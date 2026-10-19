@@ -323,14 +323,158 @@
     }
     const p=game.player,d=Math.hypot(p.x-x,p.y-y);
     if(d<110)p.hp-=Math.max(4,25*(1-d/120));
+    if(game.yeti?.alive&&Math.hypot(game.yeti.x-x,game.yeti.y-y)<155)hurtYeti(140);
     game.shake=16;say("BOOM. ANTARCTICA FILES A FORMAL COMPLAINT.",155);
     playSfx("boom");
+  }
+  // Alien energy weapon. It makes the ground itself an enemy, including near the shooter.
+  function fractureIce(x,y,chaos=false){
+    const cx=clamp(x,55,WORLD_W-55),cy=clamp(y,55,WORLD_H-55);
+    // Extra narrow fissures create actual hazard strips, not merely visual effects.
+    for(let i=0;i<3;i++){
+      const horizontal=i%2===0;
+      const span=rand(110,235);
+      const fx=clamp(cx+rand(-65,65),25,WORLD_W-25);
+      const fy=clamp(cy+rand(-65,65),25,WORLD_H-25);
+      game.ionCracks.push({x:clamp(fx-(horizontal?span/2:10),0,WORLD_W-20),
+        y:clamp(fy-(horizontal?10:span/2),0,WORLD_H-20),
+        w:horizontal?span:20,h:horizontal?20:span,depth:1,ion:true});
+    }
+    // Destructible ice creates persistent water openings.
+    game.holes.push({x:cx,y:cy,r:rand(32,48),ion:true});
+    if(chaos&&Math.random()<.52){
+      const p=game.player,theta=rand(0,Math.PI*2),range=rand(50,155);
+      const px=clamp(p.x+Math.cos(theta)*range,20,WORLD_W-20);
+      const py=clamp(p.y+Math.sin(theta)*range,20,WORLD_H-20);
+      game.ionCracks.push({x:clamp(px-11,0,WORLD_W-22),
+        y:clamp(py-90,0,WORLD_H-180),w:22,h:180,depth:1,ion:true});
+      floatText(px,py-15,"DANGER: ICE CRACK!",C.red);
+    }
+    if(game.ionCracks.length>28)game.ionCracks.splice(0,game.ionCracks.length-28);
+    const ionHoles=game.holes.filter(h=>h.ion);
+    if(ionHoles.length>12){
+      const oldest=ionHoles[0];
+      game.holes.splice(game.holes.indexOf(oldest),1);
+    }
+  }
+  function hurtYeti(amount){
+    const yeti=game.yeti;
+    if(!yeti||!yeti.alive)return;
+    yeti.hp-=amount;
+    yeti.rage=500;
+    yeti.flash=10;
+    game.shake=Math.max(7,game.shake);
+    particles(yeti.x,yeti.y,C.red,22,5);
+    floatText(yeti.x,yeti.y-72,"-"+Math.round(amount),C.red);
+    if(yeti.hp<=0){
+      yeti.alive=false;
+      game.points+=1000;
+      game.shake=23;
+      particles(yeti.x,yeti.y,C.red,130,12);
+      particles(yeti.x,yeti.y,C.white,105,12);
+      for(let i=0;i<17;i++)stain(yeti.x+rand(-75,75),yeti.y+rand(-75,75),rand(8,28));
+      floatText(yeti.x,yeti.y-82,"YETI SLAIN +1000 POINTS!",C.yellow);
+      say("YETI SLAIN. +1000 POINTS. THE MOUNTAIN DEMANDS AN EXPLANATION.",280);
+      playSfx("boom");
+    } else if(yeti.rage===500){
+      say("YOU SHOT THE FRIENDLY YETI. IT NOW WANTS YOUR HEAD.",220);
+      playSfx("boss");
+    }
+  }
+  function ionDetonate(x,y){
+    x=clamp(x,40,WORLD_W-40);y=clamp(y,40,WORLD_H-40);
+    game.explosions.push({x,y,r:0,life:38,ion:true});
+    particles(x,y,C.cyan,95,13);
+    particles(x,y,"#d2ffff",55,9);
+    fractureIce(x,y,true);
+    for(const b of game.birds){
+      if(b.down)continue;
+      const d=Math.hypot(b.x-x,b.y-y);
+      if(d<255){
+        const n=norm(b.x-x,b.y-y);
+        smack(b,Math.max(25,480*(1-d/300)),n.x*24,n.y*24);
+      }
+    }
+    if(game.yeti&&game.yeti.alive&&Math.hypot(game.yeti.x-x,game.yeti.y-y)<240){
+      const d=Math.hypot(game.yeti.x-x,game.yeti.y-y);
+      hurtYeti(Math.max(90,550*(1-d/260)));
+    }
+    const p=game.player,d=Math.hypot(p.x-x,p.y-y);
+    if(d<155){p.hp-=Math.max(5,55*(1-d/175));p.slip=Math.max(p.slip,28);}
+    game.shake=22;
+    say("PLASMA ION DETONATION! ICE FRACTURES. ALL CRACK KILLS COUNT.",210);
+    playSfx("boom");
+  }
+  function spawnYeti(){
+    const p=game.player;
+    const side=Math.random()<.5?-1:1;
+    let x=clamp(p.x+side*rand(310,450),65,WORLD_W-65);
+    let y=clamp(p.y+rand(-150,150),90,WORLD_H-90);
+    if(game.holes.some(h=>Math.hypot(x-h.x,y-h.y)<h.r+85))y=clamp(y+175,90,WORLD_H-90);
+    game.yeti={x,y,hp:6000,maxHp:6000,vx:-side*1.5,vy:rand(-.35,.35),
+      life:1200,rage:0,attackCooldown:0,flash:0,alive:true};
+    game.yetiVisits++;
+    game.yetiNext=game.clock+rand(2400,3400);
+    say("A PEACEFUL YETI IS PASSING THROUGH. STAY CLOSE FOR WARMTH. DO NOT SHOOT IT.",240);
+    playSfx("collect");
+  }
+  function updateYeti(){
+    if(!game.yeti){
+      if(game.clock>=game.yetiNext)spawnYeti();
+      return;
+    }
+    const y=game.yeti;
+    if(!y.alive){game.yeti=null;return;}
+    const p=game.player;
+    y.life--;
+    if(y.flash>0)y.flash--;
+    if(y.attackCooldown>0)y.attackCooldown--;
+    if(y.rage>0){
+      y.rage=Math.max(0,y.rage-1);
+      const n=norm(p.x-y.x,p.y-y.y);
+      y.vx=n.x*3.9;y.vy=n.y*3.9;
+      if(Math.hypot(p.x-y.x,p.y-y.y)<83&&y.attackCooldown<=0){
+        y.attackCooldown=68;
+        p.hp-=rand(18,28);
+        p.vx+=n.x*10;p.vy+=n.y*10;p.slip=22;
+        particles(p.x,p.y,C.red,35,7);
+        game.shake=Math.max(15,game.shake);
+        say("ANGRY YETI BODYSLAM. YOU'VE MADE A VERY LARGE MISTAKE.",190);
+        playSfx("boom");
+        if(p.hp<=0)finish("Got rearranged by the Yeti you decided to shoot");
+      }
+    } else {
+      y.vx+=rand(-.15,.15);y.vy+=rand(-.17,.17);
+      y.vx=clamp(y.vx,-1.8,1.8);y.vy=clamp(y.vy,-1.1,1.1);
+    }
+    y.x=clamp(y.x+y.vx,45,WORLD_W-45);
+    y.y=clamp(y.y+y.vy,70,WORLD_H-70);
+    if(y.life<=0&&y.rage===0)game.yeti=null;
   }
   function moveProjectiles(){
     for(const bullet of game.bullets){
       const ox=bullet.x,oy=bullet.y;
       bullet.x+=bullet.vx;bullet.y+=bullet.vy;bullet.life--;
+      if(bullet.ion){
+        const hit=game.birds.some(b=>!b.down&&Math.hypot(b.x-bullet.x,b.y-bullet.y)<(b.variant==="boss"?55:28));
+        const yetiHit=game.yeti?.alive&&Math.hypot(game.yeti.x-bullet.x,game.yeti.y-bullet.y)<62;
+        if(hit||yetiHit||bullet.life<=0||
+          bullet.x<=35||bullet.y<=35||bullet.x>=WORLD_W-35||bullet.y>=WORLD_H-35){
+          ionDetonate(bullet.x,bullet.y);
+          bullet.life=0;
+        }
+        continue;
+      }
       if(bullet.x<0||bullet.y<0||bullet.x>WORLD_W||bullet.y>WORLD_H)bullet.life=0;
+      const yeti=game.yeti;
+      if(yeti?.alive&&bullet.life>0){
+        const dx=bullet.x-ox,dy=bullet.y-oy,den=dx*dx+dy*dy;
+        const t=clamp(den?((yeti.x-ox)*dx+(yeti.y-oy)*dy)/den:0,0,1);
+        if(Math.hypot(yeti.x-(ox+t*dx),yeti.y-(oy+t*dy))<53){
+          hurtYeti(bullet.damage);
+          bullet.life=0;
+        }
+      }
       for(const b of game.birds){
         if(b.down||bullet.life<=0)continue;
         const dx=bullet.x-ox,dy=bullet.y-oy,den=dx*dx+dy*dy;
@@ -733,6 +877,8 @@
     checkTerrain();
     if (state !== "running") return;
     updateBirds();
+    updateYeti();
+    if(state!=="running")return;
     if(held("attack"))shove();
     collisions();
     moveProjectiles();
