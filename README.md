@@ -2,7 +2,7 @@
 
 Weird experiments, tiny games, and dramatically overengineered answers to ridiculous questions.
 
-## Emperor Gauntlet: CHAOS BUILD (v2.1)
+## Emperor Gauntlet: ICE FRACTURE (v2.2.1)
 
 > One deranged explorer. An army of penguins. Antarctica does most of the killing.
 
@@ -20,7 +20,7 @@ The browser game is the actively developed main edition in [`docs/`](docs/). The
 
 ### Chaos build features
 
-- **Six weapon slots:** fists, knife, nunchucks, bo staff, Uzi, shotgun
+- **Seven weapon slots:** fists, knife, nunchucks, bo staff, Uzi, shotgun, plasma ion cannon
 - **Throwables:** grenades with area damage and dangerous splashback
 - **Survival gear:** parkas, first-aid kits, ice cleats, ammo, caffeine rage boosts
 - **Better characters:** illustrated Antarctic explorer, animated penguins, bruisers and berserkers
@@ -28,7 +28,12 @@ The browser game is the actively developed main edition in [`docs/`](docs/). The
 - **Cross-device:** keyboard/mouse, click-to-fire aiming, touch controls, browser-local personal best
 - **Waves and bosses:** escalating waves, giant crowned Emperor boss, boss health bar and reward drops
 - **Audio:** optional synthesized arcade effects (off by default, no external sound files)
-- **Navigation:** compass points toward the nearest equipment pickup
+- **Navigation:** compass points toward loot or heat sources
+- **Fire:** animated permanent campfires, extra braziers during boss fights, and real body-temperature recovery
+- **Ion cannon:** absurdly powerful plasma blasts that open dangerous permanent ice holes and glowing cracks, potentially near the player
+- **Yeti:** an enormous white ape-like passerby that appears early near the player, provides warmth while friendly, and awards 1,000 bonus points if defeated after provocation
+- **Uzi default:** collecting an Uzi equips it; subsequent pickups never force you off the weapon you chose
+- **HUD:** locked player camera and clear arena bounded by opaque top/bottom information bands
 - **Environment:** blizzards, pressure cracks, dangerous ice, fatigue, cold
 
 ### Controls
@@ -42,7 +47,7 @@ The browser game is the actively developed main edition in [`docs/`](docs/). The
 | SOUND button | Toggle generated arcade sounds |
 | G | Throw grenade |
 | Q / E | Switch between owned weapons |
-| 1 through 6 | Select a weapon slot |
+| 1 through 7 | Select a weapon slot |
 | P / Esc | Pause |
 | Walk over equipment | Collect it |
 
