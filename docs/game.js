@@ -579,8 +579,9 @@
       if (b.down) continue;
       let dx = p.x - b.x, dy = p.y - b.y;
       const d = Math.hypot(dx, dy);
-      if (d > 0.00001 && d < PR + ER) {
-        const nx = dx / d, ny = dy / d, overlap = PR + ER - d;
+      const contactRadius=PR+(b.variant==="boss"?41:b.variant==="bruiser"?21:ER);
+      if (d > 0.00001 && d < contactRadius) {
+        const nx = dx / d, ny = dy / d, overlap = contactRadius - d;
         p.x += nx * overlap * .42;
         p.y += ny * overlap * .42;
         b.x -= nx * overlap * .58;
@@ -896,6 +897,29 @@
     ctx.lineWidth = 1;
     ctx.strokeRect(x, y, width, 13);
   }
+  function drawObjectiveCompass(){
+    const player=game.player;
+    let nearest=null, minDist=Infinity;
+    for(const item of game.drops){
+      const d=Math.hypot(item.x-player.x,item.y-player.y);
+      if(d<minDist){nearest=item;minDist=d;}
+    }
+    if(!nearest){
+      const boss=game.birds.find(b=>b.variant==="boss"&&!b.down);
+      if(boss){nearest={x:boss.x,y:boss.y,kind:"BOSS"};minDist=Math.hypot(boss.x-player.x,boss.y-player.y);}
+    }
+    if(!nearest)return;
+    const angle=Math.atan2(nearest.y-player.y,nearest.x-player.x);
+    rect(712,126,275,45,"#0a2232d4");
+    circle(737,148,15,"#294a57");
+    ctx.save();
+    ctx.translate(737,148);ctx.rotate(angle);
+    ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(-6,-7);ctx.lineTo(-3,0);ctx.lineTo(-6,7);ctx.closePath();
+    ctx.fillStyle=C.yellow;ctx.fill();
+    ctx.restore();
+    text("NEAREST "+nearest.kind.toUpperCase(),760,141,13,C.white);
+    text(Math.round(minDist)+"m · FOLLOW THE ARROW",760,158,11,C.cyan);
+  }
   function drawHud() {
     rect(0, 0, W, 84, "#091925f2");
     rect(0, 82, W, 2, "#425c69");
@@ -946,6 +970,7 @@
       rect(x,y,400*clamp(boss.hp/Math.max(1,boss.maxHp),0,1),13,C.red);
       ctx.strokeStyle="#ffe58b";ctx.lineWidth=1.5;ctx.strokeRect(x,y,w,13);
     }
+    drawObjectiveCompass();
     if(game.waveBanner>0){
       const alpha=clamp(game.waveBanner/55,0,1);
       ctx.save();ctx.globalAlpha=alpha;
