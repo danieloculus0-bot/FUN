@@ -969,7 +969,7 @@
       }
     }
     const yeti=game.yeti;
-    if(yeti?.alive&&p.swing>0&&yeti.lastSwing!==p.swingId){
+    if(yeti?.alive&&yeti.guardian<=0&&p.swing>0&&yeti.lastSwing!==p.swingId){
       const dx=yeti.x-p.x,dy=yeti.y-p.y;
       const n=norm(dx,dy);
       if(Math.hypot(dx-p.fx*p.swingReach,dy-p.fy*p.swingReach)<70&&
