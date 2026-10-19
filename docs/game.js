@@ -1454,12 +1454,26 @@
   function drawCampfire(fire){
     const x=fire.x,y=fire.y,t=game.clock*.095+fire.phase;
     const pulse=1+Math.sin(t*2.3)*.055;
-    const signal=fire.kind==="signal";
+    const signal=fire.kind==="signal",fuel=fire.kind==="fuel";
     // Warm illumination on the ice, with translucent rings rather than expensive filters.
     circle(x,y,117*pulse,"#ff952011");
     circle(x,y,82*pulse,"#ffb43120");
     circle(x,y,49*pulse,"#ffac3430");
-    ellipse(x,y+13,39,16,"#324c56a8");
+    ellipse(x,y+13,fuel?27:39,fuel?9:16,fuel?"#ec793c88":"#324c56a8");
+    if(fuel){
+      // Burning spill, no logs. It visibly shrinks before extinguishing.
+      const dying=clamp(fire.life/140,0,1);
+      for(let i=0;i<7;i++){
+        const dx=(i-3)*7;
+        const height=(21+Math.sin(t*2+i*1.8)*7)*dying;
+        ctx.beginPath();ctx.moveTo(x+dx-8,y+5);
+        ctx.quadraticCurveTo(x+dx-6,y-height*.5,x+dx+Math.sin(t+i)*4,y-height-10*dying);
+        ctx.quadraticCurveTo(x+dx+9,y-height*.25,x+dx+8,y+5);
+        ctx.closePath();ctx.fillStyle=i%2?"#ff4b25":"#ffbd43";ctx.fill();
+      }
+      ellipse(x,y+13,25,7,"#572f275b");
+      return;
+    }
     // Charred crossed logs and hot coals.
     ctx.save();ctx.translate(x,y+7);
     ctx.strokeStyle="#4e291d";ctx.lineWidth=11;ctx.lineCap="round";
