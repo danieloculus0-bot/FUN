@@ -2,7 +2,7 @@
 
 Weird experiments, tiny games, and dramatically overengineered answers to ridiculous questions.
 
-## Emperor Gauntlet: HANDHELD (v2.6)
+## Emperor Gauntlet: HANDHELD (v2.6.1)
 
 > One deranged explorer. An army of penguins. Antarctica does most of the killing.
 
@@ -53,11 +53,11 @@ The browser game is the actively developed main edition in [`docs/`](docs/). The
 | Q / E | Switch between owned weapons |
 | 1 through 9 | Select a weapon slot |
 | P / Esc | Pause |
-| Mobile D-pad | Move |
+| Mobile D-pad | Move and aim (primary control); character faces the held direction |
 | Mobile A / B / X / Y | Sprint / fire (hold B) / grenade / next weapon |
 | Mobile L / R / SELECT | Previous / next / previous weapon |
 | Mobile START | Pause or resume |
-| Mobile: drag across game screen | Aim, including while holding B |
+| Mobile: drag across game screen | Optional aiming; D-pad direction takes priority while held |
 | Walk over equipment | Collect it |
 
 ### Dev and testing
