@@ -51,12 +51,15 @@
   const held = name => pressed.has(name);
 
   function penguin(x, y) {
+    const variant=Math.random()<.11?"bruiser":Math.random()<.2?"berserker":"emperor";
     return {
       id: nextId++, x, y, vx: rand(-1, 1), vy: rand(-1, 1),
-      hp: rand(58, 76), fear: rand(.2, .7), aggression: rand(.05, .28),
-      mass: rand(.9, 1.25), state: "wander", down: false, downTimer: 0,
+      hp: rand(58, 76)*(variant==="bruiser"?1.9:variant==="berserker"?.8:1),
+      fear: rand(.2, .7), aggression: rand(.05, .28)+(variant==="berserker"?.38:0),
+      mass: rand(.9, 1.25)*(variant==="bruiser"?1.6:1),
+      state: "wander", down: false, downTimer: 0,
       peckCD: Math.floor(rand(0, 80)), phase: rand(0, Math.PI * 2),
-      panic: 0, lastSwing: -1, variant: Math.random()<.11?"bruiser":Math.random()<.2?"berserker":"emperor", flash:0
+      panic: 0, lastSwing: -1, variant, flash:0
     };
   }
   function makeDrop(kind,x,y) {return {kind,x,y,life:2500,spin:rand(0,6.28)};}
@@ -475,7 +478,7 @@
       ay += sy + w.y * .004;
       if (b.panic > 0) { b.panic--; ax *= 1.25; ay *= 1.25; }
       b.vx += ax; b.vy += ay;
-      const v = Math.hypot(b.vx, b.vy), maxSpeed = (b.state === "flee" || b.state === "mob") ? 3 : 1.55;
+      const v = Math.hypot(b.vx, b.vy), maxSpeed = ((b.state === "flee" || b.state === "mob") ? 3 : 1.55) * (b.variant==="berserker"?1.65:b.variant==="bruiser"?.75:1);
       if (v > maxSpeed) { b.vx *= maxSpeed / v; b.vy *= maxSpeed / v; }
       b.vx *= .94; b.vy *= .94;
       b.x = clamp(b.x + b.vx, ER, WORLD_W - ER);
@@ -512,7 +515,7 @@
         b.y -= ny * overlap * .58;
         if (b.state === "mob" && b.peckCD <= 0) {
           b.peckCD = Math.floor(rand(35, 70));
-          p.hp -= rand(4, 9);
+          p.hp -= rand(4, 9)*(b.variant==="bruiser"?1.7:1);
           p.vx += nx * rand(1.5, 2.8);
           p.vy += ny * rand(1.5, 2.8);
           particles(p.x - nx * 14, p.y - ny * 14, C.red, 8, 2.3);
@@ -697,8 +700,8 @@
       ctx.restore();return;
     }
     const bruiser=b.variant==="bruiser",psycho=b.variant==="berserker";
-    const scale=bruiser?1.32:psycho?.88:1;
-    const bob=Math.sin(game.clock*(psycho?.23:.11)+b.phase)*3;
+    const scale=bruiser?1.32:(psycho?0.88:1);
+    const bob=Math.sin(game.clock*(psycho?0.23:0.11)+b.phase)*3;
     ctx.translate(0,bob);ctx.scale(scale,scale);
     ellipse(0,21,19,7,"#466d8290");
     // Tiny flippers with real silhouettes, feet, belly, and a beak.
