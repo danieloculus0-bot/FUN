@@ -27,7 +27,7 @@
   <main class="shell">
     <header class="masthead">
       <a class="brand" href="https://github.com/danieloculus0-bot/FUN" aria-label="FUN on GitHub"><span class="brand-symbol">F<span>U</span>N</span><span class="brand-sub">UNREASONABLE EXPERIMENTS</span></a>
-      <span class="edition">BROWSER EDITION <span class="edition-dot"></span> v2.0 · CHAOS BUILD</span>
+      <span class="edition">BROWSER EDITION <span class="edition-dot"></span> v2.1 · CHAOS BUILD</span>
     </header>
     <section class="game-section" aria-label="Emperor Gauntlet">
       <div class="title-row">
@@ -42,7 +42,7 @@
             <h2 id="overlay-title">THE ICE DOESN'T <em>CARE.</em></h2>
             <p id="overlay-copy">One deranged explorer. A penguin army. Uzi, shotgun, knives, nunchucks, bo staff, grenades and enough questionable survival gear to annoy an entire continent.</p>
             <button class="primary-button" id="play-button" type="button">ENTER THE ARENA <span aria-hidden="true">↗</span></button>
-            <p class="overlay-hint" id="overlay-hint">WASD: MOVE &nbsp; · &nbsp; SPACE / CLICK: ATTACK &nbsp; · &nbsp; G: GRENADE &nbsp; · &nbsp; Q / E: SWITCH</p>
+            <p class="overlay-hint" id="overlay-hint">WASD: MOVE &nbsp; · &nbsp; MOUSE: AIM &nbsp; · &nbsp; SPACE / CLICK: ATTACK &nbsp; · &nbsp; G: GRENADE</p>
           </div>
         </div>
         <div class="touch-controls" aria-label="Touch game controls">
@@ -69,14 +69,15 @@
       <h3>HOW TO CAUSE ABSOLUTE MAYHEM</h3>
       <div class="control-grid">
         <span><kbd>W A S D</kbd> MOVE</span><span><kbd>SHIFT</kbd> SPRINT</span>
-        <span><kbd>SPACE / CLICK</kbd> ATTACK · HOLD FOR AUTO</span><span><kbd>G</kbd> GRENADE</span>
+        <span><kbd>MOUSE</kbd> AIM · <kbd>SPACE / CLICK</kbd> ATTACK</span><span><kbd>G</kbd> GRENADE</span>
         <span><kbd>Q / E</kbd> SWITCH WEAPONS</span><span><kbd>1 - 6</kbd> DIRECT WEAPON SLOTS</span>
         <span><kbd>P</kbd> PAUSE</span><span><kbd>WALK OVER GEAR</kbd> PICK IT UP</span>
+        <span><kbd>SOUND</kbd> OPTIONAL SYNTH EFFECTS</span>
       </div>
     </section>
     <section class="details" aria-label="How to play">
       <div class="detail"><span class="detail-num">01 /</span><h3>MOVE SMART</h3><p>Jackets slow freezing, medkits heal, ice cleats help traction and mystery coffee triggers rage mode.</p></div>
-      <div class="detail"><span class="detail-num">02 /</span><h3>PICK YOUR FIGHTS</h3><p>Find knives, nunchucks, a bo staff, shotguns, an Uzi and grenades. Hold Space or click to attack.</p></div>
+      <div class="detail"><span class="detail-num">02 /</span><h3>PICK YOUR FIGHTS</h3><p>Mouse to aim, hold Space or click to fire. Every ten takedowns brings a new wave, with crowned Emperor boss fights.</p></div>
       <div class="detail"><span class="detail-num">03 /</span><h3>BEAT 37</h3><p>That's the creator's record before freezing. Your browser remembers your best score.</p></div>
     </section>
     <footer><span>EMPEROR GAUNTLET / PART OF THE <a href="https://github.com/danieloculus0-bot/FUN">FUN PROJECT</a></span><span>SIMULATED PENGUINS ONLY. REAL-WORLD JUDGMENT NOT INCLUDED.</span></footer>
@@ -120,6 +121,53 @@
   const statusText = document.getElementById("game-status");
   const gameFrame = document.getElementById("game-frame");
   const pressed = new Set();
+  // Mouse aim is optional. Keyboard and touch users retain move-to-face aiming.
+  const pointerAim={active:false,x:500,y:320};
+  const soundButton=document.getElementById("sound-button");
+  let audio=null, soundOn=false, lastSfxTick={};
+  function playSfx(type){
+    if(!soundOn||!audio||!game)return;
+    const tick=game.clock;
+    const repeatLimit={uzi:4,shotgun:20,hit:3,collect:12,boss:40,boom:5,melee:8};
+    if(lastSfxTick[type]!==undefined&&tick-lastSfxTick[type]<(repeatLimit[type]||2))return;
+    lastSfxTick[type]=tick;
+    try{
+      const now=audio.currentTime;
+      const osc=audio.createOscillator(),amp=audio.createGain();
+      const tones={
+        uzi:[170,48,.095,"sawtooth"],shotgun:[95,31,.24,"sawtooth"],
+        melee:[350,90,.09,"triangle"],hit:[195,55,.095,"square"],
+        collect:[480,880,.17,"sine"],boom:[95,23,.36,"sawtooth"],
+        boss:[150,52,.45,"sawtooth"],wave:[360,640,.28,"triangle"],
+        heal:[450,850,.26,"sine"],grenade:[310,160,.12,"square"]
+      };
+      const t=tones[type]||tones.melee;
+      osc.type=t[3];
+      osc.frequency.setValueAtTime(t[0],now);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(20,t[1]),now+t[2]);
+      amp.gain.setValueAtTime(.0001,now);
+      amp.gain.exponentialRampToValueAtTime(type==="boom"?.22:.12,now+.006);
+      amp.gain.exponentialRampToValueAtTime(.0001,now+t[2]);
+      osc.connect(amp);amp.connect(audio.destination);
+      osc.start(now);osc.stop(now+t[2]+.02);
+    }catch(_){ /* Sound is optional and must never break gameplay. */ }
+  }
+  if(soundButton){
+    soundButton.hidden=false;
+    soundButton.textContent="SOUND OFF";
+    soundButton.addEventListener("click",()=>{
+      if(!audio){
+        const AC=window.AudioContext||window.webkitAudioContext;
+        if(!AC){soundButton.textContent="SOUND UNAVAILABLE";return;}
+        try{audio=new AC();}catch(_){soundButton.textContent="SOUND UNAVAILABLE";return;}
+      }
+      soundOn=!soundOn;
+      if(soundOn)audio.resume?.().catch?.(()=>{});
+      soundButton.textContent=soundOn?"SOUND ON":"SOUND OFF";
+      soundButton.setAttribute?.("aria-pressed",String(soundOn));
+      if(soundOn)playSfx("collect");
+    });
+  }
   let state = "menu", game, nextId = 1, accumulator = 0, lastTime = 0;
   let best = 0;
   try { best = Number(localStorage.getItem("emperorGauntletBest") || 0) || 0; } catch (_) { /* private browsing */ }
@@ -177,6 +225,7 @@
         { x: 2200, y: 350, r: 52 }, { x: 540, y: 910, r: 48 }
       ],
       particles: [], stains: [], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
+      wave:1, waveBanner:0, bossWave:0, nextWaveAt:10,
       score: 0, falls: 0, clock: 0,
       windAngle: rand(0, Math.PI * 2), windStrength: rand(.3, 1),
       blizzardTimer: 0, message: "GET GEAR. FIND AN UZI. RAISE HELL.",
@@ -231,6 +280,7 @@
       state = "running";
     }
     pressed.clear();
+    pointerAim.active=false;
     overlay.hidden = true;
     pauseButton.textContent = "PAUSE  P";
     statusText.textContent = "IN THE ARENA · GOOD LUCK, YOU IDIOT";
@@ -295,6 +345,7 @@
     for(let i=0;i<4;i++)stain(b.x+rand(-20,20),b.y+rand(-20,20),rand(4,11));
     floatText(b.x,b.y-30,Math.round(damage)+"");
     game.shake=Math.min(12,game.shake+2);
+    playSfx("hit");
     if(b.hp<=0)downBird(b,"combat");
   }
   function fireWeapon(){
@@ -312,6 +363,7 @@
     }
     particles(p.x+p.fx*35,p.y+p.fy*35,w.color,9,6);
     if(w.pellets)game.shake+=5;
+    playSfx(w.pellets?"shotgun":"uzi");
   }
   function throwGrenade(){
     if(state!=="running"||game.player.grenades<1)return;
@@ -319,6 +371,7 @@
     game.bombs.push({x:p.x+p.fx*22,y:p.y+p.fy*22,
       vx:p.fx*10+p.vx*.3,vy:p.fy*10+p.vy*.3,life:56});
     say("GRENADE OUT! THIS IS FINE.",100);
+    playSfx("grenade");
   }
   function boom(x,y){
     game.explosions.push({x,y,r:0,life:22});
@@ -334,6 +387,7 @@
     const p=game.player,d=Math.hypot(p.x-x,p.y-y);
     if(d<110)p.hp-=Math.max(4,25*(1-d/120));
     game.shake=16;say("BOOM. ANTARCTICA FILES A FORMAL COMPLAINT.",155);
+    playSfx("boom");
   }
   function moveProjectiles(){
     for(const bullet of game.bullets){
@@ -344,7 +398,7 @@
         if(b.down||bullet.life<=0)continue;
         const dx=bullet.x-ox,dy=bullet.y-oy,den=dx*dx+dy*dy;
         const t=clamp(den?((b.x-ox)*dx+(b.y-oy)*dy)/den:0,0,1);
-        if(Math.hypot(b.x-(ox+t*dx),b.y-(oy+t*dy))<(b.variant==="bruiser"?24:17)){
+        if(Math.hypot(b.x-(ox+t*dx),b.y-(oy+t*dy))<(b.variant==="boss"?42:b.variant==="bruiser"?24:17)){
           const n=norm(dx,dy);
           smack(b,bullet.damage*(game.player.rage>0?1.5:1),n.x*5,n.y*5);
           bullet.life=0;break;
@@ -383,6 +437,7 @@
       else if(k==="ammo"){p.ammo.uzi+=100;p.ammo.shotgun+=16;say("AMMO RESTOCKED.",110);}
       else if(k==="grenade"){p.grenades+=3;say("THREE MORE GRENADES. NO ONE TELL THE PENGUINS.",150);}
       else if(k==="coffee"){p.rage=900;p.stamina=100;p.temp=clamp(p.temp+16,0,100);say("CAFFEINATED RAGE: 15 SECONDS OF POOR JUDGMENT.",180);}
+      playSfx(k==="medkit"||k==="parka"?"heal":"collect");
       floatText(drop.x,drop.y-35,k.toUpperCase()+"!",DROP_COLORS[k]);
       particles(drop.x,drop.y,DROP_COLORS[k],20,5);
     }
@@ -398,6 +453,7 @@
     p.swing=9;p.swingReach=w.reach;p.swingColor=w.color;
     p.swingId++;p.provocation++;
     particles(p.x+p.fx*w.reach,p.y+p.fy*w.reach,w.color,12,4);
+    playSfx("melee");
   }
 
   function downBird(bird, reason) {
@@ -407,13 +463,18 @@
     if (reason !== "ice") {
       game.score++;
       game.player.provocation += 2;
+      if(bird.variant==="boss"){
+        say("THE KING IS DEAD. LONG LIVE YOUR TERRIBLE DECISIONS.",280);
+        game.drops.push(makeDrop("medkit",bird.x-35,bird.y),makeDrop("ammo",bird.x+35,bird.y),makeDrop("grenade",bird.x,bird.y+40));
+        playSfx("wave");
+      }
       game.player.combo++;
       game.player.comboTime=180;
       if(game.player.combo%5===0)floatText(bird.x,bird.y-55,game.player.combo+"x COMBO!");
       if(Math.random()<.19)game.drops.push(makeDrop(["ammo","medkit","grenade","coffee","parka"][Math.floor(rand(0,5))],bird.x,bird.y));
       particles(bird.x, bird.y, C.red, 25, 4);
       stain(bird.x, bird.y, rand(8, 16));
-      say([
+      if(bird.variant!=="boss")say([
         "PENGUIN DOWN. THE ROOKERY FILES A COMPLAINT.",
         "ONE TUXEDO PANCAKE. NATURE IS JUDGING YOU.",
         "IMPACT CONFIRMED. BAD KARMA.",
@@ -442,7 +503,7 @@
     else p.stamina += .22;
     p.stamina = clamp(p.stamina, 0, 100);
     if (mx !== 0 || my !== 0) {
-      p.fx = move.x; p.fy = move.y;
+      if(!pointerAim.active){p.fx=move.x;p.fy=move.y;}
       const acceleration = sprint ? .72 : .43;
       p.vx += move.x * acceleration * terrainSlow;
       p.vy += move.y * acceleration * terrainSlow;
@@ -456,6 +517,11 @@
     p.vy *= friction;
     p.x = clamp(p.x + p.vx, PR, WORLD_W - PR);
     p.y = clamp(p.y + p.vy, PR, WORLD_H - PR);
+    if(pointerAim.active){
+      const camX=clamp(p.x-W/2,0,WORLD_W-W),camY=clamp(p.y-H/2,0,WORLD_H-H);
+      const face=norm(pointerAim.x+camX-p.x,pointerAim.y+camY-p.y);
+      if(face.x!==0||face.y!==0){p.fx=face.x;p.fy=face.y;}
+    }
     if (p.shoveCD > 0) p.shoveCD--;
     if(p.muzzle>0)p.muzzle--;
     if(p.rage>0)p.rage--;
@@ -509,6 +575,10 @@
         b.downTimer--;
         continue;
       }
+      if(b.variant==="boss"){
+        b.state="mob";
+        b.aggression=2;
+      }
       const dx = player.x - b.x, dy = player.y - b.y;
       const dist = Math.hypot(dx, dy);
       let nearby = 0, cx = 0, cy = 0, sx = 0, sy = 0;
@@ -524,7 +594,9 @@
       }
       if (nearby) { cx /= nearby; cy /= nearby; }
       const mobChance = b.aggression + player.provocation * .018 + nearby * .018;
-      if (dist < 80 && nearby >= 4 && Math.random() < mobChance * .045) {
+      if (b.variant==="boss"){
+        b.state="mob";b.panic=Math.max(b.panic,40);
+      } else if (dist < 80 && nearby >= 4 && Math.random() < mobChance * .045) {
         b.state = "mob";
         b.panic = Math.max(b.panic, 80);
       } else if (dist < 155 && b.state !== "mob") {
@@ -562,12 +634,13 @@
       ay += sy + w.y * .004;
       if (b.panic > 0) { b.panic--; ax *= 1.25; ay *= 1.25; }
       b.vx += ax; b.vy += ay;
-      const v = Math.hypot(b.vx, b.vy), maxSpeed = ((b.state === "flee" || b.state === "mob") ? 3 : 1.55) * (b.variant==="berserker"?1.65:b.variant==="bruiser"?.75:1);
+      const v = Math.hypot(b.vx, b.vy), maxSpeed = ((b.state === "flee" || b.state === "mob") ? 3 : 1.55) * (b.variant==="boss"?.95:b.variant==="berserker"?1.65:b.variant==="bruiser"?.75:1);
       if (v > maxSpeed) { b.vx *= maxSpeed / v; b.vy *= maxSpeed / v; }
       b.vx *= .94; b.vy *= .94;
       b.x = clamp(b.x + b.vx, ER, WORLD_W - ER);
       b.y = clamp(b.y + b.vy, ER, WORLD_H - ER);
       if (b.peckCD > 0) b.peckCD--;
+      if (b.flash > 0) b.flash--;
       for (const hole of game.holes) {
         if (Math.hypot(b.x - hole.x, b.y - hole.y) < hole.r * .72) {
           downBird(b, "ice");
@@ -591,15 +664,16 @@
       if (b.down) continue;
       let dx = p.x - b.x, dy = p.y - b.y;
       const d = Math.hypot(dx, dy);
-      if (d > 0.00001 && d < PR + ER) {
-        const nx = dx / d, ny = dy / d, overlap = PR + ER - d;
+      const contactRadius=PR+(b.variant==="boss"?41:b.variant==="bruiser"?21:ER);
+      if (d > 0.00001 && d < contactRadius) {
+        const nx = dx / d, ny = dy / d, overlap = contactRadius - d;
         p.x += nx * overlap * .42;
         p.y += ny * overlap * .42;
         b.x -= nx * overlap * .58;
         b.y -= ny * overlap * .58;
         if (b.state === "mob" && b.peckCD <= 0) {
           b.peckCD = Math.floor(rand(35, 70));
-          p.hp -= rand(4, 9)*(b.variant==="bruiser"?1.7:1);
+          p.hp -= rand(4, 9)*(b.variant==="boss"?2.5:b.variant==="bruiser"?1.7:1);
           p.vx += nx * rand(1.5, 2.8);
           p.vy += ny * rand(1.5, 2.8);
           particles(p.x - nx * 14, p.y - ny * 14, C.red, 8, 2.3);
@@ -610,7 +684,7 @@
       if (p.swing > 0 && b.lastSwing !== p.swingId) {
         const rx = p.x + p.fx * p.swingReach - b.x, ry = p.y + p.fy * p.swingReach - b.y;
         const toward = norm(b.x - p.x, b.y - p.y);
-        if (Math.hypot(rx, ry) < 43 && toward.x * p.fx + toward.y * p.fy > .15) {
+        if (Math.hypot(rx, ry) < (b.variant==="boss"?62:43) && toward.x * p.fx + toward.y * p.fy > .15) {
           b.lastSwing = p.swingId; // Exactly one hit per penguin per shove.
           const push = norm(b.x - p.x, b.y - p.y);
           const w=ARMORY[p.weapon];
@@ -620,6 +694,36 @@
       }
     }
     if (p.hp <= 0) finish("Got swarmed by furious tuxedo linebackers");
+  }
+  function spawnBoss(){
+    // Position within the arena, away from the player and from any water holes.
+    const p=game.player;
+    let x=p.x,y=p.y;
+    for(let attempt=0;attempt<24;attempt++){
+      const a=rand(0,Math.PI*2),r=rand(330,480);
+      x=clamp(p.x+Math.cos(a)*r,60,WORLD_W-60);
+      y=clamp(p.y+Math.sin(a)*r,80,WORLD_H-80);
+      if(game.holes.every(h=>Math.hypot(x-h.x,y-h.y)>h.r+75))break;
+    }
+    const b=penguin(x,y);
+    b.variant="boss";b.hp=650+game.wave*75;b.maxHp=b.hp;
+    b.mass=4.4;b.aggression=2;b.fear=0;b.state="mob";b.peckCD=30;
+    game.birds.push(b);
+    game.drops.push(makeDrop("medkit",clamp(p.x+100,20,WORLD_W-20),clamp(p.y+70,20,WORLD_H-20)));
+    say("BOSS ALERT: THE EMPEROR OF BAD DECISIONS HAS ARRIVED!",290);
+    playSfx("boss");
+    game.shake=13;
+  }
+  function waveDirector(){
+    if(game.score<game.nextWaveAt)return;
+    game.wave++;
+    game.nextWaveAt+=10+Math.min(20,(game.wave-1)*2);
+    game.waveBanner=205;
+    game.player.temp=clamp(game.player.temp+10,0,100);
+    game.drops.push(makeDrop("ammo",clamp(game.player.x+65,40,WORLD_W-40),clamp(game.player.y+55,40,WORLD_H-40)));
+    say("WAVE "+game.wave+": THE ROOKERY REQUESTS REINFORCEMENTS.",230);
+    playSfx("wave");
+    if(game.wave%2===0){game.bossWave=game.wave;spawnBoss();}
   }
   function maintainPopulation() {
     let living = 0;
@@ -663,7 +767,9 @@
     collisions();
     moveProjectiles();
     collectDrops();
+    waveDirector();
     maintainPopulation();
+    if(game.waveBanner>0)game.waveBanner--;
     if(game.clock%650===0){const p=game.player;game.drops.push(makeDrop(["ammo","medkit","coffee","grenade","parka"][Math.floor(rand(0,5))],clamp(p.x+rand(-300,300),35,WORLD_W-35),clamp(p.y+rand(-280,280),35,WORLD_H-35)));}
     if(game.shake>0)game.shake=Math.max(0,game.shake-.65);
     for (const particle of game.particles) {
@@ -783,8 +889,8 @@
       circle(22,2,5,C.orange);
       ctx.restore();return;
     }
-    const bruiser=b.variant==="bruiser",psycho=b.variant==="berserker";
-    const scale=bruiser?1.32:(psycho?0.88:1);
+    const boss=b.variant==="boss",bruiser=b.variant==="bruiser",psycho=b.variant==="berserker";
+    const scale=boss?2.25:bruiser?1.32:(psycho?.88:1);
     const bob=Math.sin(game.clock*(psycho?0.23:0.11)+b.phase)*3;
     ctx.translate(0,bob);ctx.scale(scale,scale);
     ellipse(0,21,19,7,"#466d8290");
@@ -800,6 +906,15 @@
     circle(-4,-26,2.1,C.black);circle(7,-26,2.1,C.black);
     ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(14,-16);ctx.lineTo(0,-13);
     ctx.closePath();ctx.fillStyle=C.orange;ctx.fill();
+    if(boss){
+      ctx.beginPath();
+      ctx.moveTo(-14,-38);ctx.lineTo(-13,-51);ctx.lineTo(-5,-44);
+      ctx.lineTo(0,-55);ctx.lineTo(6,-44);ctx.lineTo(14,-51);
+      ctx.lineTo(14,-38);ctx.closePath();ctx.fillStyle="#ebc650";ctx.fill();
+      circle(0,-46,2.6,C.red);
+      ctx.strokeStyle="#f7b648";ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(0,0,29,-.4,2.7);ctx.stroke();
+    }
     if(bruiser){
       ctx.beginPath();ctx.moveTo(-14,-34);ctx.lineTo(14,-34);
       ctx.lineWidth=5;ctx.strokeStyle="#b14b59";ctx.stroke();
@@ -808,7 +923,7 @@
     if(psycho){ctx.strokeStyle=C.red;ctx.lineWidth=2;
       ctx.beginPath();ctx.moveTo(-10,-30);ctx.lineTo(-2,-26);
       ctx.moveTo(13,-30);ctx.lineTo(3,-26);ctx.stroke();}
-    if(b.flash>0){ellipse(0,-1,16,24,"#ff4f6599");b.flash--;}
+    if(b.flash>0){ellipse(0,-1,16,24,"#ff4f6599");}
     if(b.state==="mob"){
       circle(-4,-26,2.5,C.red);circle(7,-26,2.5,C.red);
     }
@@ -867,12 +982,36 @@
     ctx.lineWidth = 1;
     ctx.strokeRect(x, y, width, 13);
   }
+  function drawObjectiveCompass(){
+    const player=game.player;
+    let nearest=null, minDist=Infinity;
+    for(const item of game.drops){
+      const d=Math.hypot(item.x-player.x,item.y-player.y);
+      if(d<minDist){nearest=item;minDist=d;}
+    }
+    if(!nearest){
+      const boss=game.birds.find(b=>b.variant==="boss"&&!b.down);
+      if(boss){nearest={x:boss.x,y:boss.y,kind:"BOSS"};minDist=Math.hypot(boss.x-player.x,boss.y-player.y);}
+    }
+    if(!nearest)return;
+    const angle=Math.atan2(nearest.y-player.y,nearest.x-player.x);
+    rect(712,126,275,45,"#0a2232d4");
+    circle(737,148,15,"#294a57");
+    ctx.save();
+    ctx.translate(737,148);ctx.rotate(angle);
+    ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(-6,-7);ctx.lineTo(-3,0);ctx.lineTo(-6,7);ctx.closePath();
+    ctx.fillStyle=C.yellow;ctx.fill();
+    ctx.restore();
+    text("NEAREST "+nearest.kind.toUpperCase(),760,141,13,C.white);
+    text(Math.round(minDist)+"m · FOLLOW THE ARROW",760,158,11,C.cyan);
+  }
   function drawHud() {
     rect(0, 0, W, 84, "#091925f2");
     rect(0, 82, W, 2, "#425c69");
     text("EMPEROR GAUNTLET", 18, 24, 23, C.white);
     text("PENGUINS DOWN: " + game.score, 310, 24, 19, C.red);
     text("ICE FALLS: " + game.falls, 580, 24, 17, C.cyan);
+    text("WAVE " + game.wave, 858, 23, 17, C.yellow);
     bar(18, 53, 192, game.player.hp, C.red, "HEALTH");
     bar(247, 53, 192, game.player.temp, C.cyan, "TEMPERATURE");
     bar(476, 53, 192, game.player.stamina, C.green, "STAMINA");
@@ -907,6 +1046,23 @@
       ctx.strokeRect(80, H - 47, W - 160, 34);
       text(game.message, W / 2, H - 30, game.message.length > 80 ? 12 : 15, C.white, "center");
     }
+    const boss=game.birds.find(b=>b.variant==="boss"&&!b.down);
+    if(boss){
+      const x=300,y=H-98,w=400;
+      rect(x-3,y-18,w+6,40,"#081523d9");
+      text("THE EMPEROR OF BAD DECISIONS",W/2,y-8,15,C.yellow,"center");
+      rect(x,y,400,13,"#582b3d");
+      rect(x,y,400*clamp(boss.hp/Math.max(1,boss.maxHp),0,1),13,C.red);
+      ctx.strokeStyle="#ffe58b";ctx.lineWidth=1.5;ctx.strokeRect(x,y,w,13);
+    }
+    drawObjectiveCompass();
+    if(game.waveBanner>0){
+      const alpha=clamp(game.waveBanner/55,0,1);
+      ctx.save();ctx.globalAlpha=alpha;
+      text("WAVE " + game.wave,W/2,200,64,C.yellow,"center",1000);
+      text(game.wave%2===0?"THE EMPEROR COMETH":"THE ROOKERY WANTS REVENGE",W/2,243,20,C.white,"center",900);
+      ctx.restore();
+    }
     text("BEST: " + best + "   /   TARGET: 37", W - 14, H - 72, 15, "#14384a", "right");
   }
   function drawBlizzard() {
@@ -934,6 +1090,16 @@
     drawBlizzard();
     ctx.restore();
     drawHud();
+    if(pointerAim.active&&state==="running"){
+      const x=pointerAim.x,y=pointerAim.y;
+      ctx.strokeStyle=C.yellow;ctx.lineWidth=2;ctx.beginPath();
+      ctx.arc(x,y,12,0,Math.PI*2);
+      ctx.moveTo(x-20,y);ctx.lineTo(x-7,y);
+      ctx.moveTo(x+7,y);ctx.lineTo(x+20,y);
+      ctx.moveTo(x,y-20);ctx.lineTo(x,y-7);
+      ctx.moveTo(x,y+7);ctx.lineTo(x,y+20);
+      ctx.stroke();
+    }
   }
   function frame(now) {
     if (!lastTime) lastTime = now;
@@ -1028,6 +1194,14 @@
   if(grenadeTouch)grenadeTouch.addEventListener("pointerdown",e=>{e.preventDefault();throwGrenade();});
   const swapTouch=document.getElementById("touch-swap");
   if(swapTouch)swapTouch.addEventListener("pointerdown",e=>{e.preventDefault();cycleWeapon(1);});
+  canvas.addEventListener("pointermove",e=>{
+    if(e.pointerType==="touch")return;
+    const rect=canvas.getBoundingClientRect();
+    if(!rect.width||!rect.height)return;
+    pointerAim.x=clamp((e.clientX-rect.left)*W/rect.width,0,W);
+    pointerAim.y=clamp((e.clientY-rect.top)*H/rect.height,0,H);
+    pointerAim.active=true;
+  });
   canvas.addEventListener("pointerdown",e=>{
     if(state!=="running"||e.pointerType==="touch")return;
     if(e.button!==0)return;
@@ -1036,7 +1210,7 @@
   const releasePointer=()=>pressed.delete("attack");
   canvas.addEventListener("pointerup",releasePointer);
   canvas.addEventListener("pointercancel",releasePointer);
-  canvas.addEventListener("pointerleave",releasePointer);
+  canvas.addEventListener("pointerleave",()=>{releasePointer();pointerAim.active=false;});
   playButton.addEventListener("click", start);
   pauseButton.addEventListener("click", pause);
   fullButton.addEventListener("click", () => {
