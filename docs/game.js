@@ -147,7 +147,9 @@
         { x: 2200, y: 350, r: 52 }, { x: 540, y: 910, r: 48 }
       ],
       fires:CAMP_SITES.map((site,i)=>({x:site.x,y:site.y,phase:i*1.87,life:Infinity,kind:"campfire"})),
-      particles: [], stains: [], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
+      particles: [], stains: [], gibs:[], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
+      seal:{x:425,y:365,phase:0,vx:.7,vy:.25,hurtCooldown:0,scared:0},
+      sealWarnings:0, yetiEats:0, goreBursts:0,
       wave:1, waveBanner:0, bossWave:0, nextWaveAt:10,
       night:false,nightNotice:0,
       points:0, ionCracks:[], ionShots:0, yeti:null, yetiNext:190, yetiVisits:0,yetiBanner:0,
@@ -174,11 +176,11 @@
       game.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
         life: rand(20, 58), color, radius: rand(1, 3) });
     }
-    if (game.particles.length > 500) game.particles.splice(0, game.particles.length - 500);
+    if (game.particles.length > 1500) game.particles.splice(0, game.particles.length - 1500);
   }
   function stain(x, y, radius = 10, color = "#9b2635") {
     game.stains.push({ x, y, radius, color, life: 900 });
-    if (game.stains.length > 170) game.stains.shift();
+    if (game.stains.length > 350) game.stains.splice(0,game.stains.length-350);
   }
   function wind() {
     return { x: Math.cos(game.windAngle) * game.windStrength,
@@ -256,6 +258,40 @@
       if(p.owned[k])return selectWeapon(k);
     }
     return false;
+  }
+  function goreBurst(bird){
+    const massive=bird.variant==="boss",big=massive||bird.variant==="bruiser";
+    const scale=massive?3.5:big?2.1:1;
+    const x=bird.x,y=bird.y;
+    game.goreBursts++;
+    const palette=["#be152f","#f12c40","#8e0925","#ff5960","#56091b"];
+    const count=massive?270:big?140:75;
+    // Exaggerated arcade particles and comic-book gibs, not photorealistic.
+    for(let i=0;i<count;i++){
+      const a=rand(0,Math.PI*2),speed=rand(1.5,14)*Math.sqrt(scale);
+      game.particles.push({x:x+rand(-4,4),y:y+rand(-6,6),
+        vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,
+        radius:rand(1.8,6.2)*Math.sqrt(scale),life:rand(30,100),
+        color:palette[Math.floor(rand(0,palette.length))],blood:true});
+    }
+    for(let i=0;i<(massive?44:big?22:12);i++){
+      const a=rand(0,Math.PI*2),d=rand(5,96)*Math.sqrt(scale);
+      stain(x+Math.cos(a)*d,y+Math.sin(a)*d,rand(4,17)*Math.sqrt(scale),
+        palette[Math.floor(rand(0,palette.length))]);
+    }
+    for(let i=0;i<(massive?26:big?15:7);i++){
+      const a=rand(0,Math.PI*2),speed=rand(3,12)*Math.sqrt(scale);
+      game.gibs.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,
+        size:rand(4,13)*Math.sqrt(scale),angle:a,spin:rand(-.35,.35),
+        life:rand(90,190),color:i%4===0?"#121e25":palette[i%palette.length]});
+    }
+    game.gibs=game.gibs.slice(-280);
+    game.particles=game.particles.slice(-1500);
+    game.shake=Math.max(game.shake,massive?27:big?17:8);
+    if(big){
+      game.explosions.push({x,y,r:0,life:26,maxR:massive?175:105,blood:true});
+      floatText(x,y-66,massive?"EMPEROR EXPLODED!": "TUXEDO BLOOD TSUNAMI!",C.red);
+    }
   }
   function floatText(x,y,label,color=C.yellow){
     game.floats.push({x,y,label,color,life:75});
@@ -501,7 +537,7 @@
       if(bomb.life<=0)boom(bomb.x,bomb.y);
     }
     game.bombs=game.bombs.filter(b=>b.life>0);
-    for(const blast of game.explosions){blast.life--;blast.r=Math.min(135,blast.r+15);}
+    for(const blast of game.explosions){blast.life--;blast.r=Math.min(blast.maxR||135,blast.r+(blast.blood?22:15));}
     game.explosions=game.explosions.filter(b=>b.life>0);
     for(const p of game.floats){p.y-=.65;p.life--;}
     game.floats=game.floats.filter(p=>p.life>0);
@@ -553,9 +589,18 @@
 
   function downBird(bird, reason) {
     if (bird.down) return;
-    bird.down = true;
-    bird.downTimer = 240;
-    if (reason !== "ice") {
+    bird.down=true;
+    bird.downTimer=240;
+    // The Yeti gets hungry. Its dinner NEVER adds to the player's score,
+    // combo, kills, ice falls or wave progression.
+    if(reason==="yeti"){
+      game.yetiEats++;
+      particles(bird.x,bird.y,"#f6fcff",18,2.5);
+      floatText(bird.x,bird.y-28,"YETI SNACK · +0",C.cyan);
+      return;
+    }
+    if(reason!=="ice"){
+      goreBurst(bird);
       game.score++;
       game.player.provocation += 2;
       game.points+=bird.variant==="boss"?500:100;
@@ -568,8 +613,7 @@
       game.player.comboTime=180;
       if(game.player.combo%5===0)floatText(bird.x,bird.y-55,game.player.combo+"x COMBO!");
       if(Math.random()<.19)game.drops.push(makeDrop(["ammo","medkit","grenade","coffee","parka"][Math.floor(rand(0,5))],bird.x,bird.y));
-      particles(bird.x, bird.y, C.red, 25, 4);
-      stain(bird.x, bird.y, rand(8, 16));
+      // goreBurst already scattered the comic-book snow stains and fragments.
       if(bird.variant!=="boss")say([
         "PENGUIN DOWN. THE ROOKERY FILES A COMPLAINT.",
         "ONE TUXEDO PANCAKE. NATURE IS JUDGING YOU.",
@@ -925,7 +969,13 @@
       particle.x += particle.vx; particle.y += particle.vy;
       particle.vx *= .94; particle.vy *= .94; particle.life--;
     }
-    game.particles = game.particles.filter(p => p.life > 0);
+    game.particles = game.particles.filter(p=>p.life>0);
+    for(const gib of game.gibs){
+      gib.x+=gib.vx;gib.y+=gib.vy;gib.vx*=.93;gib.vy*=.93;
+      gib.angle+=gib.spin;gib.life--;
+      if(gib.life%5===0)stain(gib.x,gib.y,Math.max(2,gib.size*.4),gib.color);
+    }
+    game.gibs=game.gibs.filter(g=>g.life>0);
     for (const s of game.stains) s.life--;
     game.stains = game.stains.filter(s => s.life > 0);
     if (game.messageTimer > 0) game.messageTimer--;
@@ -1063,11 +1113,17 @@
       circle(bomb.x-2,bomb.y-3,3,C.yellow);
     }
     for(const blast of game.explosions){
-      circle(blast.x,blast.y,blast.r,blast.ion?"#7bffff48":"#ef7b2633");
+      circle(blast.x,blast.y,blast.r,blast.blood?"#bb123b38":blast.ion?"#7bffff48":"#ef7b2633");
       ctx.beginPath();ctx.arc(blast.x,blast.y,blast.r,0,Math.PI*2);
-      ctx.strokeStyle=blast.ion?"#6ff9ff":"#ffcb59";ctx.lineWidth=7;ctx.stroke();
+      ctx.strokeStyle=blast.blood?"#ed254e":blast.ion?"#6ff9ff":"#ffcb59";ctx.lineWidth=blast.blood?10:7;ctx.stroke();
     }
-    for (const p of game.particles) circle(p.x, p.y, p.radius, p.color);
+    for(const gib of game.gibs){
+      ctx.save();ctx.translate(gib.x,gib.y);ctx.rotate(gib.angle);
+      ellipse(0,0,gib.size,gib.size*.52,gib.color);
+      ellipse(-gib.size*.25,-gib.size*.15,gib.size*.35,gib.size*.2,"#ff5f7180");
+      ctx.restore();
+    }
+    for(const p of game.particles) circle(p.x,p.y,p.radius,p.color);
     for(const ft of game.floats)text(ft.label,ft.x,ft.y,17,ft.color,"center",1000);
     ctx.restore();
   }
