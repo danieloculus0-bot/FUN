@@ -195,6 +195,7 @@
       state = "running";
     }
     pressed.clear();
+    pointerAim.active=false;
     overlay.hidden = true;
     pauseButton.textContent = "PAUSE  P";
     statusText.textContent = "IN THE ARENA · GOOD LUCK, YOU IDIOT";
@@ -388,7 +389,7 @@
       if(Math.random()<.19)game.drops.push(makeDrop(["ammo","medkit","grenade","coffee","parka"][Math.floor(rand(0,5))],bird.x,bird.y));
       particles(bird.x, bird.y, C.red, 25, 4);
       stain(bird.x, bird.y, rand(8, 16));
-      say([
+      if(bird.variant!=="boss")say([
         "PENGUIN DOWN. THE ROOKERY FILES A COMPLAINT.",
         "ONE TUXEDO PANCAKE. NATURE IS JUDGING YOU.",
         "IMPACT CONFIRMED. BAD KARMA.",
@@ -554,6 +555,7 @@
       b.x = clamp(b.x + b.vx, ER, WORLD_W - ER);
       b.y = clamp(b.y + b.vy, ER, WORLD_H - ER);
       if (b.peckCD > 0) b.peckCD--;
+      if (b.flash > 0) b.flash--;
       for (const hole of game.holes) {
         if (Math.hypot(b.x - hole.x, b.y - hole.y) < hole.r * .72) {
           downBird(b, "ice");
@@ -618,7 +620,7 @@
       if(game.holes.every(h=>Math.hypot(x-h.x,y-h.y)>h.r+75))break;
     }
     const b=penguin(x,y);
-    b.variant="boss";b.hp=650+game.wave*75;
+    b.variant="boss";b.hp=650+game.wave*75;b.maxHp=b.hp;
     b.mass=4.4;b.aggression=2;b.fear=0;b.state="mob";b.peckCD=30;
     game.birds.push(b);
     game.drops.push(makeDrop("medkit",clamp(p.x+100,20,WORLD_W-20),clamp(p.y+70,20,WORLD_H-20)));
@@ -801,8 +803,8 @@
       circle(22,2,5,C.orange);
       ctx.restore();return;
     }
-    const bruiser=b.variant==="bruiser",psycho=b.variant==="berserker";
-    const scale=bruiser?1.32:(psycho?0.88:1);
+    const boss=b.variant==="boss",bruiser=b.variant==="bruiser",psycho=b.variant==="berserker";
+    const scale=boss?2.25:bruiser?1.32:(psycho?.88:1);
     const bob=Math.sin(game.clock*(psycho?0.23:0.11)+b.phase)*3;
     ctx.translate(0,bob);ctx.scale(scale,scale);
     ellipse(0,21,19,7,"#466d8290");
@@ -818,6 +820,15 @@
     circle(-4,-26,2.1,C.black);circle(7,-26,2.1,C.black);
     ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(14,-16);ctx.lineTo(0,-13);
     ctx.closePath();ctx.fillStyle=C.orange;ctx.fill();
+    if(boss){
+      ctx.beginPath();
+      ctx.moveTo(-14,-38);ctx.lineTo(-13,-51);ctx.lineTo(-5,-44);
+      ctx.lineTo(0,-55);ctx.lineTo(6,-44);ctx.lineTo(14,-51);
+      ctx.lineTo(14,-38);ctx.closePath();ctx.fillStyle="#ebc650";ctx.fill();
+      circle(0,-46,2.6,C.red);
+      ctx.strokeStyle="#f7b648";ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(0,0,29,-.4,2.7);ctx.stroke();
+    }
     if(bruiser){
       ctx.beginPath();ctx.moveTo(-14,-34);ctx.lineTo(14,-34);
       ctx.lineWidth=5;ctx.strokeStyle="#b14b59";ctx.stroke();
@@ -826,7 +837,7 @@
     if(psycho){ctx.strokeStyle=C.red;ctx.lineWidth=2;
       ctx.beginPath();ctx.moveTo(-10,-30);ctx.lineTo(-2,-26);
       ctx.moveTo(13,-30);ctx.lineTo(3,-26);ctx.stroke();}
-    if(b.flash>0){ellipse(0,-1,16,24,"#ff4f6599");b.flash--;}
+    if(b.flash>0){ellipse(0,-1,16,24,"#ff4f6599");}
     if(b.state==="mob"){
       circle(-4,-26,2.5,C.red);circle(7,-26,2.5,C.red);
     }
@@ -891,6 +902,7 @@
     text("EMPEROR GAUNTLET", 18, 24, 23, C.white);
     text("PENGUINS DOWN: " + game.score, 310, 24, 19, C.red);
     text("ICE FALLS: " + game.falls, 580, 24, 17, C.cyan);
+    text("WAVE " + game.wave, 858, 23, 17, C.yellow);
     bar(18, 53, 192, game.player.hp, C.red, "HEALTH");
     bar(247, 53, 192, game.player.temp, C.cyan, "TEMPERATURE");
     bar(476, 53, 192, game.player.stamina, C.green, "STAMINA");
@@ -925,6 +937,22 @@
       ctx.strokeRect(80, H - 47, W - 160, 34);
       text(game.message, W / 2, H - 30, game.message.length > 80 ? 12 : 15, C.white, "center");
     }
+    const boss=game.birds.find(b=>b.variant==="boss"&&!b.down);
+    if(boss){
+      const x=300,y=H-98,w=400;
+      rect(x-3,y-18,w+6,40,"#081523d9");
+      text("THE EMPEROR OF BAD DECISIONS",W/2,y-8,15,C.yellow,"center");
+      rect(x,y,400,13,"#582b3d");
+      rect(x,y,400*clamp(boss.hp/Math.max(1,boss.maxHp),0,1),13,C.red);
+      ctx.strokeStyle="#ffe58b";ctx.lineWidth=1.5;ctx.strokeRect(x,y,w,13);
+    }
+    if(game.waveBanner>0){
+      const alpha=clamp(game.waveBanner/55,0,1);
+      ctx.save();ctx.globalAlpha=alpha;
+      text("WAVE " + game.wave,W/2,200,64,C.yellow,"center",1000);
+      text(game.wave%2===0?"THE EMPEROR COMETH":"THE ROOKERY WANTS REVENGE",W/2,243,20,C.white,"center",900);
+      ctx.restore();
+    }
     text("BEST: " + best + "   /   TARGET: 37", W - 14, H - 72, 15, "#14384a", "right");
   }
   function drawBlizzard() {
@@ -952,6 +980,16 @@
     drawBlizzard();
     ctx.restore();
     drawHud();
+    if(pointerAim.active&&state==="running"){
+      const x=pointerAim.x,y=pointerAim.y;
+      ctx.strokeStyle=C.yellow;ctx.lineWidth=2;ctx.beginPath();
+      ctx.arc(x,y,12,0,Math.PI*2);
+      ctx.moveTo(x-20,y);ctx.lineTo(x-7,y);
+      ctx.moveTo(x+7,y);ctx.lineTo(x+20,y);
+      ctx.moveTo(x,y-20);ctx.lineTo(x,y-7);
+      ctx.moveTo(x,y+7);ctx.lineTo(x,y+20);
+      ctx.stroke();
+    }
   }
   function frame(now) {
     if (!lastTime) lastTime = now;
@@ -1046,6 +1084,14 @@
   if(grenadeTouch)grenadeTouch.addEventListener("pointerdown",e=>{e.preventDefault();throwGrenade();});
   const swapTouch=document.getElementById("touch-swap");
   if(swapTouch)swapTouch.addEventListener("pointerdown",e=>{e.preventDefault();cycleWeapon(1);});
+  canvas.addEventListener("pointermove",e=>{
+    if(e.pointerType==="touch")return;
+    const rect=canvas.getBoundingClientRect();
+    if(!rect.width||!rect.height)return;
+    pointerAim.x=clamp((e.clientX-rect.left)*W/rect.width,0,W);
+    pointerAim.y=clamp((e.clientY-rect.top)*H/rect.height,0,H);
+    pointerAim.active=true;
+  });
   canvas.addEventListener("pointerdown",e=>{
     if(state!=="running"||e.pointerType==="touch")return;
     if(e.button!==0)return;
@@ -1054,7 +1100,7 @@
   const releasePointer=()=>pressed.delete("attack");
   canvas.addEventListener("pointerup",releasePointer);
   canvas.addEventListener("pointercancel",releasePointer);
-  canvas.addEventListener("pointerleave",releasePointer);
+  canvas.addEventListener("pointerleave",()=>{releasePointer();pointerAim.active=false;});
   playButton.addEventListener("click", start);
   pauseButton.addEventListener("click", pause);
   fullButton.addEventListener("click", () => {
