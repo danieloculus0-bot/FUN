@@ -11,7 +11,8 @@
     nunchucks: {name:"NUNCHUCKS",type:"melee",damage:27,reach:60,cooldown:11,stamina:7,color:"#f8d578"},
     staff: {name:"BO STAFF",type:"melee",damage:56,reach:86,cooldown:27,stamina:10,color:"#deb179"},
     uzi: {name:"UZI",type:"gun",damage:26,cooldown:5,velocity:24,spread:.11,color:"#ffeb80"},
-    shotgun: {name:"SHOTGUN",type:"gun",damage:26,cooldown:39,velocity:20,spread:.37,pellets:7,color:"#ffc16d"}
+    shotgun: {name:"SHOTGUN",type:"gun",damage:26,cooldown:39,velocity:20,spread:.37,pellets:7,color:"#ffc16d"},
+    ion: {name:"ION CANNON",type:"gun",damage:420,cooldown:85,velocity:12,spread:0,color:"#73f4ff"}
   };
   const WEAPON_ORDER = Object.keys(ARMORY);
   // Permanent survival campfires keep the cold mechanic playable during extended waves.
@@ -22,7 +23,7 @@
   const WARMTH_RADIUS=145;
   const DROP_COLORS = {uzi:"#f9cb5d",shotgun:"#f4a575",knife:"#dcebf5",
     nunchucks:"#ffdf6e",staff:"#caa47b",parka:"#77e0f5",medkit:"#f76879",
-    grenade:"#f1af51",ammo:"#ffe48b",coffee:"#dbafff",cleats:"#afff7a"};
+    grenade:"#f1af51",ammo:"#ffe48b",coffee:"#dbafff",cleats:"#afff7a",ion:"#73f4ff",ioncell:"#99f5ff"};
   const C = {
     snow: "#e8f4f7", ice: "#b0dce9", darkIce: "#123b51", blueIce: "#57a7c8",
     white: "#f3f8f9", black: "#0b1319", gray: "#4c6270", red: "#dd5c63",
@@ -123,7 +124,7 @@
         x: 170, y: 200, vx: 0, vy: 0, fx: 1, fy: 0,
         temp: 100, hp: 100, stamina: 100, wet: 0, slip: 0,
         shoveCD: 0, swing: 0, swingId: 0, provocation: 0,
-        weapon:"fists",owned:{fists:true},ammo:{uzi:120,shotgun:20},
+        weapon:"fists",owned:{fists:true},ammo:{uzi:120,shotgun:20,ion:0},
         grenades:2,parka:0,cleats:false,rage:0,combo:0,comboTime:0,
         swingReach:43,swingColor:"#fbb667",muzzle:0,warming:false
       },
@@ -148,6 +149,7 @@
       fires:CAMP_SITES.map((site,i)=>({x:site.x,y:site.y,phase:i*1.87,life:Infinity,kind:"campfire"})),
       particles: [], stains: [], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
       wave:1, waveBanner:0, bossWave:0, nextWaveAt:10,
+      points:0, ionCracks:[], ionShots:0, yeti:null, yetiNext:950, yetiVisits:0,
       score: 0, falls: 0, clock: 0,
       windAngle: rand(0, Math.PI * 2), windStrength: rand(.3, 1),
       blizzardTimer: 0, message: "GET GEAR. FIND AN UZI. RAISE HELL.",
@@ -159,7 +161,8 @@
     g.drops.push(makeDrop("uzi",275,230),makeDrop("parka",350,285),
       makeDrop("knife",440,290),makeDrop("medkit",560,350),makeDrop("grenade",675,410),
       makeDrop("nunchucks",780,505),makeDrop("shotgun",1050,590),
-      makeDrop("staff",1260,440),makeDrop("cleats",1460,620),makeDrop("coffee",840,270));
+      makeDrop("staff",1260,440),makeDrop("cleats",1460,620),makeDrop("coffee",840,270),
+      makeDrop("ion",1660,1200));
     return g;
   }
 
@@ -276,6 +279,18 @@
       p.shoveCD=18;say("CLICK. EMPTY. FIND AMMO OR SWITCH WEAPONS.",120);return;
     }
     p.ammo[p.weapon]--;p.shoveCD=w.cooldown;p.provocation+=.8;p.muzzle=5;
+    if(p.weapon==="ion"){ 
+      const a=Math.atan2(p.fy,p.fx);
+      game.bullets.push({x:p.x+p.fx*34,y:p.y+p.fy*34,
+        vx:Math.cos(a)*w.velocity,vy:Math.sin(a)*w.velocity,
+        damage:w.damage,life:70,color:w.color,ion:true});
+      game.ionShots++;
+      particles(p.x+p.fx*35,p.y+p.fy*35,C.cyan,40,8);
+      game.shake=Math.max(game.shake,9);
+      playSfx("boss");
+      say("PLASMA ION CHARGE AWAY. YOUR INSURANCE IS CANCELLED.",170);
+      return;
+    }
     const angle=Math.atan2(p.fy,p.fx);
     for(let i=0;i<(w.pellets||1);i++){
       const theta=angle+rand(-w.spread,w.spread);
@@ -351,12 +366,18 @@
         p.owned[k]=true;
         if(k==="uzi")p.ammo.uzi+=130;
         if(k==="shotgun")p.ammo.shotgun+=18;
-        p.weapon=k;
-        say("NEW WEAPON: "+ARMORY[k].name+"! LET'S FUCKING GO.",190);
+        if(k==="ion")p.ammo.ion+=8;
+        // Once the Uzi is owned it is the default. Other pickups never steal
+        // selection. Players may deliberately select any owned weapon.
+        const hadUzi=p.owned.uzi && k!=="uzi";
+        if(k==="uzi")p.weapon="uzi";
+        else if(!hadUzi && !p.owned.uzi)p.weapon=k;
+        say("PICKED UP: "+ARMORY[k].name+(k==="uzi"?" · DEFAULT WEAPON":". PRESS Q/E TO EQUIP."),190);
       }else if(k==="parka"){p.parka=Math.min(3,p.parka+1);p.temp=clamp(p.temp+30,0,100);say("PARKA EQUIPPED. COLD RESISTANCE UP.",145);}
       else if(k==="medkit"){p.hp=clamp(p.hp+50,0,100);say("FIRST AID KIT: +50 HEALTH.",120);}
       else if(k==="cleats"){p.cleats=true;say("ICE CLEATS. TRACTION, YOU BEAUTIFUL BASTARD.",125);}
-      else if(k==="ammo"){p.ammo.uzi+=100;p.ammo.shotgun+=16;say("AMMO RESTOCKED.",110);}
+      else if(k==="ammo"){p.ammo.uzi+=100;p.ammo.shotgun+=16;p.ammo.ion+=2;say("AMMO RESTOCKED.",110);}
+      else if(k==="ioncell"){p.ammo.ion+=3;say("PLASMA ION CELLS +3. ANTARCTICA IS FUCKED.",160);}
       else if(k==="grenade"){p.grenades+=3;say("THREE MORE GRENADES. NO ONE TELL THE PENGUINS.",150);}
       else if(k==="coffee"){p.rage=900;p.stamina=100;p.temp=clamp(p.temp+16,0,100);say("CAFFEINATED RAGE: 15 SECONDS OF POOR JUDGMENT.",180);}
       playSfx(k==="medkit"||k==="parka"?"heal":"collect");
@@ -385,6 +406,7 @@
     if (reason !== "ice") {
       game.score++;
       game.player.provocation += 2;
+      game.points+=bird.variant==="boss"?500:100;
       if(bird.variant==="boss"){
         say("THE KING IS DEAD. LONG LIVE YOUR TERRIBLE DECISIONS.",280);
         game.drops.push(makeDrop("medkit",bird.x-35,bird.y),makeDrop("ammo",bird.x+35,bird.y),makeDrop("grenade",bird.x,bird.y+40));
@@ -405,9 +427,17 @@
       if (game.score === 37) say("37! YOU'VE TIED THE LEGENDARY RECORD. NOW DON'T FREEZE.", 280);
       if (game.score === 38) say("38! THE LEGEND HAS BEEN TOPPLED. ANTARCTICA IS FURIOUS.", 310);
     } else {
+      // Ice kills are now scored. The ion cannon turns the terrain into a weapon.
       game.falls++;
-      particles(bird.x, bird.y, C.blueIce, 22, 3.6);
-      say("A PENGUIN FELL THROUGH BAD ICE. NOT A HAND-TO-HAND KILL.");
+      game.score++;
+      game.points+=100;
+      game.player.combo++;
+      game.player.comboTime=180;
+      particles(bird.x,bird.y,C.blueIce,24,4);
+      floatText(bird.x,bird.y-25,"CRACK KILL +100",C.cyan);
+      if(game.score===37)say("37! THE LEGENDARY RECORD IS YOURS.",240);
+      else if(game.score===38)say("38! YOU'VE SURPASSED THE LEGEND.",260);
+      else say("ICE CLAIMS ANOTHER TUXEDO. YOU GET THE CREDIT.",110);
     }
   }
 
