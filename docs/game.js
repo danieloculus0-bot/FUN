@@ -2250,10 +2250,14 @@
     if(e.button!==0)return;
     pressed.add("attack");shove();
   });
-  const releasePointer=()=>pressed.delete("attack");
+  // Touch aiming must NOT release the separate B button's held fire state.
+  const releasePointer=e=>{if(e?.pointerType!=="touch")pressed.delete("attack");};
   canvas.addEventListener("pointerup",releasePointer);
   canvas.addEventListener("pointercancel",releasePointer);
-  canvas.addEventListener("pointerleave",()=>{releasePointer();pointerAim.active=false;});
+  canvas.addEventListener("pointerleave",e=>{
+    if(e?.pointerType==="touch")return; // keep last thumb aim after lifting
+    releasePointer(e);pointerAim.active=false;
+  });
   playButton.addEventListener("click", start);
   pauseButton.addEventListener("click", pause);
   fullButton.addEventListener("click", () => {
