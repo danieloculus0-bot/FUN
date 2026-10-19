@@ -26,13 +26,15 @@ function element() {
     hidden: false, textContent: "", handlers: {},
     classList: { add() {}, remove() {} },
     addEventListener(type, fn) { this.handlers[type] = fn; },
-    getContext() { return ctx; }, focus() {}, setPointerCapture() {}
+    getContext() { return ctx; }, focus() {}, setPointerCapture() {},
+    getBoundingClientRect() { return {left:0,top:0,width:1000,height:640}; },
+    setAttribute() {}
   };
 }
 const names = [
   "game", "overlay", "overlay-kicker", "overlay-title", "overlay-copy",
   "overlay-hint", "play-button", "pause-button", "fullscreen-button",
-  "game-status", "game-frame", "touch-shove", "touch-grenade", "touch-swap"
+  "game-status", "game-frame", "touch-shove", "touch-grenade", "touch-swap", "sound-button"
 ];
 const nodes = Object.fromEntries(names.map(name => [name, element()]));
 const document = {
@@ -114,6 +116,30 @@ assert.equal(g.game.bombs.length, 1, "Grenade projectile spawned");
 for (let i=0; i<57; i++) g.tick();
 assert.equal(g.game.bombs.length, 0, "Grenade fuse expired");
 assert.ok(g.game.explosions.length > 0, "Grenade detonated");
+
+// v2.1: actual wave progression, boss spawning, boss health and loot.
+while(g.game.score < 10) {
+  const live = g.game.birds.find(b => !b.down);
+  assert.ok(live, "A live target is required for score advancement");
+  g.downBird(live, "combat");
+}
+g.tick();
+assert.equal(g.game.wave, 2, "Ten defeats must advance to wave two");
+const boss = g.game.birds.find(b => b.variant === "boss" && !b.down);
+assert.ok(boss, "Wave two must spawn an Emperor boss");
+assert.ok(boss.maxHp >= 800, "Emperor must have meaningful boss HP");
+const beforeRewards = g.game.drops.length;
+g.downBird(boss, "combat");
+assert.ok(g.game.drops.length >= beforeRewards + 3, "Boss defeat must award supplies");
+
+// Mouse target coordinates are converted from CSS pixels to canvas world space.
+const pointerMove = nodes.game.handlers.pointermove;
+assert.equal(typeof pointerMove, "function", "Canvas must support mouse aiming");
+const focusPlayer = g.game.player;
+focusPlayer.x = 250; focusPlayer.y = 280; focusPlayer.vx = focusPlayer.vy = 0;
+pointerMove({pointerType:"mouse",clientX:250,clientY:60});
+g.tick();
+assert.ok(focusPlayer.fy < -.5, "Mouse aiming must update player facing");
 assert.equal(g.selectWeapon("fists"), true, "Previous weapons remain available");
 g.game.player.temp = 0.001;
 g.tick();
