@@ -2,7 +2,7 @@
 
 Weird experiments, tiny games, and dramatically overengineered answers to ridiculous questions.
 
-## Emperor Gauntlet: BLOODBATH (v2.4)
+## Emperor Gauntlet: POLAR FIRE (v2.5)
 
 > One deranged explorer. An army of penguins. Antarctica does most of the killing.
 
@@ -20,7 +20,7 @@ The browser game is the actively developed main edition in [`docs/`](docs/). The
 
 ### Chaos build features
 
-- **Seven weapon slots:** fists, knife, nunchucks, bo staff, Uzi, shotgun, plasma ion cannon
+- **Nine weapon slots:** fists, knife, nunchucks, bo staff, Uzi, shotgun, plasma ion cannon, rocket launcher, flamethrower
 - **Throwables:** grenades with area damage and dangerous splashback
 - **Survival gear:** parkas, first-aid kits, ice cleats, ammo, caffeine rage boosts
 - **Better characters:** illustrated Antarctic explorer, animated penguins, bruisers and berserkers
@@ -29,14 +29,16 @@ The browser game is the actively developed main edition in [`docs/`](docs/). The
 - **Waves and bosses:** escalating waves, giant crowned Emperor boss, boss health bar and reward drops
 - **Audio:** optional synthesized arcade effects (off by default, no external sound files)
 - **Navigation:** compass points toward loot or heat sources
-- **Fire:** animated permanent campfires, extra braziers during boss fights, and real body-temperature recovery
+- **Fire:** permanent campfires, boss braziers, and 12-second flamethrower fuel fires that visibly flicker out and actually warm the player
 - **Ion cannon:** absurdly powerful plasma blasts that open dangerous permanent ice holes and glowing cracks, potentially near the player
 - **Yeti:** a boss-sized side-profile Bigfoot who provides warmth when friendly, independently snatches and eats penguins without giving the player kill credit, and defends the seal with a half-health warning smack. Provoking him directly leads to a difficult fight worth 1,000 points
-- **Uzi default:** collecting an Uzi equips it; subsequent pickups never force you off the weapon you chose
+- **Day/night weapon preferences:** Uzi automatically becomes active in full daylight if owned; flamethrower is supplied and automatically equipped at nightfall. Other owned weapons remain manually selectable until the next transition
 - **HUD:** locked player camera and clear arena bounded by opaque top/bottom information bands
-- **Polar night:** wave 3, 6, 9, etc. runs under darkness; player, campfires, friendly Yeti, ion shots and explosions provide local illumination. Daybreak returns on the following wave
+- **Polar night:** every 3rd wave queues 15-second dusk → exactly 59 seconds of night → 15-second dawn, with at least 3 minutes of daylight between events; directional flashlight and fire/energy/explosion lighting, increased night cold
 - **Baby seal:** a visible white pup near the starting area. Attacking it triggers the Yeti guardian, reducing current player HP by 50% (without a lethal warning blow); the seal survives
-- **Environment:** blizzards, pressure cracks, dangerous ice, fatigue, cold
+- **Environment:** five winding, jagged-edged river channels with matching hazards and ice bridges, water holes, blizzards, dangerous pressure cracks, fatigue and cold
+- **Leopard seals:** predators surface partly from water holes and ambush players who linger; their health scales to 2x current giant Emperor boss health
+- **Ammo:** flame fuel pickups, rockets and significantly easier-to-find ion cannon pickups
 
 ### Controls
 
@@ -49,7 +51,7 @@ The browser game is the actively developed main edition in [`docs/`](docs/). The
 | SOUND button | Toggle generated arcade sounds |
 | G | Throw grenade |
 | Q / E | Switch between owned weapons |
-| 1 through 7 | Select a weapon slot |
+| 1 through 9 | Select a weapon slot |
 | P / Esc | Pause |
 | Walk over equipment | Collect it |
 
