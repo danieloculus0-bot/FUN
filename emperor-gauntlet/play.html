@@ -61,21 +61,31 @@
  .touch-controls .system-key:active{transform:rotate(-15deg) translateY(2px)}
  .touch-controls .pad-legend{grid-area:3/1/4/4;justify-self:center;color:#2f3c46;align-self:center;font-size:9px;letter-spacing:.65px;font-weight:900;white-space:nowrap}
 }
-@media(pointer:coarse) and (max-width:1180px) and (orientation:landscape) and (max-height:620px){
- .game-frame{display:grid;grid-template-columns:minmax(0,1fr) clamp(205px,28vw,252px);grid-template-rows:1fr}
+@media(pointer:coarse) and (max-width:1180px) and (orientation:landscape) and (max-height:760px){
+ /* The whole viewport becomes: D-PAD | GAME | ABXY. No controls over the ice. */
+ .game-frame{display:grid;grid-template-columns:clamp(135px,18.5vw,210px) minmax(0,1fr) clamp(135px,18.5vw,210px);grid-template-rows:minmax(0,1fr) 30px;background:linear-gradient(180deg,#cbd0d7,#9aa3ad 58%,#7e8998);gap:0}
  .mobile-topbar{display:none}
- .arena-stage{grid-area:1/1;width:100%;height:100%;min-width:0;min-height:0}
+ .arena-stage{grid-area:1/2;width:100%;height:100%;min-width:0;min-height:0;border-left:3px solid #4b5663;border-right:3px solid #4b5663;overflow:hidden}
  .arena-stage canvas{width:auto;height:auto;max-width:100%;max-height:100%}
  .arena-stage .overlay p#overlay-copy{font-size:10px;line-height:1.14}
  .arena-stage .overlay h2{font-size:24px}.arena-stage .overlay-card{padding:7px}
- .touch-controls{grid-area:1/2;grid-template-columns:1fr 1fr;grid-template-rows:27px minmax(0,1fr) 40px;height:100%;max-height:none;width:100%;flex:none;padding:5px max(7px,env(safe-area-inset-right)) 7px 7px;border-top:0;border-left:3px solid #454d57;gap:3px}
- .touch-controls .shoulder-left{grid-area:1/1}.touch-controls .shoulder-right{grid-area:1/2}
- .touch-controls .dpad{grid-area:2/1;width:min(100%,110px)}
- .touch-controls .action-pad{grid-area:2/2;width:min(100%,112px)}
- .touch-controls .system-pad{grid-area:3/1/4/3;flex-direction:row;gap:14px}
- .touch-controls .system-key{height:24px;width:66px;flex:none}
+ /* Flatten the controller wrapper: each side becomes a grid item in game-frame. */
+ .touch-controls{display:contents}
+ .touch-controls .dpad{grid-area:1/1;align-self:center;justify-self:center;width:min(82%,164px);height:auto;margin:18px 0 0}
+ .touch-controls .action-pad{grid-area:1/3;align-self:center;justify-self:center;width:min(83%,169px);height:auto;margin:18px 0 0}
+ .touch-controls .shoulder{grid-row:1;height:29px;width:min(90%,145px);align-self:start;justify-self:center;margin-top:11px;z-index:1}
+ .touch-controls .shoulder-left{grid-column:1}
+ .touch-controls .shoulder-right{grid-column:3}
+ .touch-controls .system-pad{grid-area:2/1/3/4;display:flex;align-self:stretch;justify-self:stretch;flex-direction:row;justify-content:center;align-items:center;gap:18px;background:#707988;border-top:1px solid #5a6473;z-index:1}
+ .touch-controls .system-key{height:23px;min-height:23px;width:82px;flex:none;font-size:9px}
  .touch-controls .pad-legend{display:none}
- .touch-controls .face small{font-size:6px}
+ .touch-controls .face small{font-size:7px}
+}
+@media(pointer:coarse) and (max-width:1180px) and (orientation:landscape) and (max-height:355px){
+ .game-frame{grid-template-columns:clamp(115px,17vw,160px) minmax(0,1fr) clamp(115px,17vw,160px);grid-template-rows:minmax(0,1fr) 25px}
+ .touch-controls .dpad,.touch-controls .action-pad{width:min(75%,121px);margin-top:15px}
+ .touch-controls .shoulder{margin-top:4px;height:23px}
+ .touch-controls .system-key{height:20px;min-height:20px}
 }
 
 </style>
@@ -84,7 +94,7 @@
   <main class="shell">
     <header class="masthead">
       <a class="brand" href="https://github.com/danieloculus0-bot/FUN" aria-label="FUN on GitHub"><span class="brand-symbol">F<span>U</span>N</span><span class="brand-sub">UNREASONABLE EXPERIMENTS</span></a>
-      <span class="edition">BROWSER EDITION <span class="edition-dot"></span> v2.6 · HANDHELD</span>
+      <span class="edition">BROWSER EDITION <span class="edition-dot"></span> v2.6.1 · HANDHELD</span>
     </header>
     <section class="game-section" aria-label="Emperor Gauntlet">
       <div class="title-row">
@@ -125,7 +135,7 @@
             <button type="button" class="touch-btn face a" data-hold="sprint" aria-label="A: Hold to sprint">A<small>RUN</small></button>
           </div>
           <button type="button" class="shoulder shoulder-right touch-btn" id="touch-next" aria-label="Next weapon">R <small>WEAPON</small></button>
-          <div class="pad-legend" aria-hidden="true">DRAG ON THE ICE TO AIM · HOLD B TO FIRE</div>
+          <div class="pad-legend" aria-hidden="true">D-PAD MOVES + AIMS · B FIRES · TOUCH AIM OPTIONAL</div>
         </div>
       </div>
       <div class="below-game">
@@ -201,7 +211,7 @@
   const gameFrame = document.getElementById("game-frame");
   const pressed = new Set();
   // Mouse aim is optional. Keyboard and touch users retain move-to-face aiming.
-  const pointerAim={active:false,x:500,y:320};
+  const pointerAim={active:false,touch:false,x:500,y:320};
   const soundButton=document.getElementById("sound-button");
   let audio=null, soundOn=false, lastSfxTick={};
   function playSfx(type){
@@ -1144,7 +1154,8 @@
     else p.stamina += .22;
     p.stamina = clamp(p.stamina, 0, 100);
     if (mx !== 0 || my !== 0) {
-      if(!pointerAim.active){p.fx=move.x;p.fy=move.y;}
+      // On mobile the D-pad is the PRIMARY steering and aiming control.
+      if(!pointerAim.active||pointerAim.touch){p.fx=move.x;p.fy=move.y;}
       const acceleration = sprint ? .72 : .43;
       p.vx += move.x * acceleration * terrainSlow;
       p.vy += move.y * acceleration * terrainSlow;
@@ -1158,7 +1169,8 @@
     p.vy *= friction;
     p.x = clamp(p.x + p.vx, PR, WORLD_W - PR);
     p.y = clamp(p.y + p.vy, PR, WORLD_H - PR);
-    if(pointerAim.active){
+    // Finger aiming is optional. Any held D-pad direction overrides it.
+    if(pointerAim.active&&!(pointerAim.touch&&(mx!==0||my!==0))){
       const camX=p.x-W/2,camY=p.y-385;
       const face=norm(pointerAim.x+camX-p.x,pointerAim.y+camY-p.y);
       if(face.x!==0||face.y!==0){p.fx=face.x;p.fy=face.y;}
@@ -2386,6 +2398,7 @@
     pointerAim.x=clamp((e.clientX-box.left)*W/box.width,0,W);
     pointerAim.y=clamp((e.clientY-box.top)*H/box.height,0,H);
     pointerAim.active=true;
+    pointerAim.touch=e.pointerType==="touch";
   };
   canvas.addEventListener("pointermove",e=>{
     if(e.pointerType==="touch"&&state!=="running")return;
@@ -2403,13 +2416,21 @@
     if(e.button!==0)return;
     pressed.add("attack");shove();
   });
-  // Touch aiming must NOT release the separate B button's held fire state.
-  const releasePointer=e=>{if(e?.pointerType!=="touch")pressed.delete("attack");};
+  // Touch aiming is optional and never overrides the D-pad. Releasing a
+  // pointing finger must not release the separate B button's held-fire state.
+  const releasePointer=e=>{
+    if(e?.pointerType==="touch"){
+      pointerAim.active=false;
+      pointerAim.touch=false;
+      return;
+    }
+    pressed.delete("attack");
+  };
   canvas.addEventListener("pointerup",releasePointer);
   canvas.addEventListener("pointercancel",releasePointer);
   canvas.addEventListener("pointerleave",e=>{
-    if(e?.pointerType==="touch")return; // keep last thumb aim after lifting
-    releasePointer(e);pointerAim.active=false;
+    releasePointer(e);
+    if(e?.pointerType!=="touch")pointerAim.active=false;
   });
   playButton.addEventListener("click", start);
   pauseButton.addEventListener("click", pause);
