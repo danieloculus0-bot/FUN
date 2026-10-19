@@ -14,6 +14,12 @@
     shotgun: {name:"SHOTGUN",type:"gun",damage:26,cooldown:39,velocity:20,spread:.37,pellets:7,color:"#ffc16d"}
   };
   const WEAPON_ORDER = Object.keys(ARMORY);
+  // Permanent survival campfires keep the cold mechanic playable during extended waves.
+  const CAMP_SITES = [
+    {x:245,y:345},{x:795,y:700},{x:1170,y:305},{x:1750,y:790},
+    {x:1920,y:1420},{x:420,y:1440},{x:1160,y:1450},{x:2250,y:1500}
+  ];
+  const WARMTH_RADIUS=145;
   const DROP_COLORS = {uzi:"#f9cb5d",shotgun:"#f4a575",knife:"#dcebf5",
     nunchucks:"#ffdf6e",staff:"#caa47b",parka:"#77e0f5",medkit:"#f76879",
     grenade:"#f1af51",ammo:"#ffe48b",coffee:"#dbafff",cleats:"#afff7a"};
@@ -119,7 +125,7 @@
         shoveCD: 0, swing: 0, swingId: 0, provocation: 0,
         weapon:"fists",owned:{fists:true},ammo:{uzi:120,shotgun:20},
         grenades:2,parka:0,cleats:false,rage:0,combo:0,comboTime:0,
-        swingReach:43,swingColor:"#fbb667",muzzle:0
+        swingReach:43,swingColor:"#fbb667",muzzle:0,warming:false
       },
       birds: [], drifts: [
         { x: 360, y: 300, w: 270, h: 120 },
@@ -139,6 +145,7 @@
         { x: 1040, y: 470, r: 58 }, { x: 1540, y: 1120, r: 72 },
         { x: 2200, y: 350, r: 52 }, { x: 540, y: 910, r: 48 }
       ],
+      fires:CAMP_SITES.map((site,i)=>({x:site.x,y:site.y,phase:i*1.87,life:Infinity,kind:"campfire"})),
       particles: [], stains: [], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
       wave:1, waveBanner:0, bossWave:0, nextWaveAt:10,
       score: 0, falls: 0, clock: 0,
@@ -445,7 +452,18 @@
     let loss = .018 + (game.blizzardTimer > 0 ? .04 : 0) - (sprint ? .008 : 0);
     if (p.wet > 0) { p.wet--; loss += .058; }
     loss*=1-p.parka*.2;
-    p.temp = clamp(p.temp - loss, 0, 100);
+    // Standing in the golden ring turns the fire into a real warming station.
+    // It offsets blizzards and even wet clothing if you move in close enough.
+    let fireHeat=0;
+    for(const fire of game.fires){
+      const d=Math.hypot(p.x-fire.x,p.y-fire.y);
+      if(d<WARMTH_RADIUS){
+        const gain=.30*(1-d/WARMTH_RADIUS);
+        fireHeat=Math.max(fireHeat,gain);
+      }
+    }
+    p.warming=fireHeat>loss;
+    p.temp=clamp(p.temp-loss+fireHeat,0,100);
     if (p.temp <= 0) {
       finish("Froze after losing a very predictable thermodynamics argument");
     } else if (p.hp <= 0) {
@@ -624,6 +642,11 @@
     b.variant="boss";b.hp=650+game.wave*75;b.maxHp=b.hp;
     b.mass=4.4;b.aggression=2;b.fear=0;b.state="mob";b.peckCD=30;
     game.birds.push(b);
+    // Boss fights light an extra orange signal brazier for a temporary safe zone.
+    const fireX=clamp(x+165,55,WORLD_W-55),fireY=clamp(y+55,65,WORLD_H-65);
+    if(game.holes.every(h=>Math.hypot(fireX-h.x,fireY-h.y)>h.r+40)){
+      game.fires.push({x:fireX,y:fireY,phase:rand(0,6.28),life:2400,kind:"signal"});
+    }
     game.drops.push(makeDrop("medkit",clamp(p.x+100,20,WORLD_W-20),clamp(p.y+70,20,WORLD_H-20)));
     say("BOSS ALERT: THE EMPEROR OF BAD DECISIONS HAS ARRIVED!",290);
     playSfx("boss");
@@ -673,6 +696,8 @@
       game.windAngle += rand(-.65, .65);
       game.windStrength = clamp(game.windStrength + rand(-.25, .3), .25, 2.2);
     }
+    for(const fire of game.fires)if(Number.isFinite(fire.life))fire.life--;
+    game.fires=game.fires.filter(fire=>fire.life>0);
     updatePlayer();
     if (state !== "running") return;
     checkTerrain();
@@ -720,6 +745,55 @@
     ctx.textBaseline = "middle";
     ctx.fillText(label, x, y);
   }
+  function drawCampfire(fire){
+    const x=fire.x,y=fire.y,t=game.clock*.095+fire.phase;
+    const pulse=1+Math.sin(t*2.3)*.055;
+    const signal=fire.kind==="signal";
+    // Warm illumination on the ice, with translucent rings rather than expensive filters.
+    circle(x,y,117*pulse,"#ff952011");
+    circle(x,y,82*pulse,"#ffb43120");
+    circle(x,y,49*pulse,"#ffac3430");
+    ellipse(x,y+13,39,16,"#324c56a8");
+    // Charred crossed logs and hot coals.
+    ctx.save();ctx.translate(x,y+7);
+    ctx.strokeStyle="#4e291d";ctx.lineWidth=11;ctx.lineCap="round";
+    ctx.beginPath();ctx.moveTo(-20,-6);ctx.lineTo(20,11);
+    ctx.moveTo(20,-7);ctx.lineTo(-20,11);ctx.stroke();
+    ctx.strokeStyle="#98613b";ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(-19,-7);ctx.lineTo(19,10);ctx.stroke();
+    circle(0,0,14,"#e94b1e");
+    circle(0,-3,10,"#ffb23e");
+    ctx.restore();
+    // Five independently flickering flames, bright yellow cores and wisps.
+    for(let i=0;i<5;i++){
+      const ox=(i-2)*7+Math.sin(t+i*3.2)*3;
+      const height=(i===2?31:21)+Math.sin(t*1.9+i*2)*6+(signal?8:0);
+      const fy=y-7+Math.sin(t*1.4+i)*1.5;
+      ctx.beginPath();
+      ctx.moveTo(x+ox-8,fy+9);
+      ctx.quadraticCurveTo(x+ox-8,fy-height*.35,x+ox+Math.sin(t*1.2+i)*5,fy-height);
+      ctx.quadraticCurveTo(x+ox+11,fy-height*.2,x+ox+8,fy+9);
+      ctx.closePath();
+      ctx.fillStyle=i%2?"#f87924":"#ffb22c";ctx.fill();
+      ctx.beginPath();ctx.moveTo(x+ox-3,fy+5);
+      ctx.quadraticCurveTo(x+ox-2,fy-height*.3,x+ox+2,fy-height*.57);
+      ctx.quadraticCurveTo(x+ox+5,fy-height*.12,x+ox+4,fy+5);
+      ctx.closePath();ctx.fillStyle="#fff090";ctx.fill();
+    }
+    // Procedural drifting smoke and floating embers: animated but allocation-free.
+    for(let i=0;i<7;i++){
+      const age=(game.clock*.7+i*20+fire.phase*31)%145;
+      const windDrift=Math.sin(game.windAngle)*age*.12;
+      const dx=Math.sin(i*4+t*.7)*10+windDrift;
+      const dy=-20-age*.63;
+      const r=(i%2===0?2.2:3.6);
+      circle(x+dx,y+dy,r,i%3===0?"#a5a9a959":"#ffb450a8");
+    }
+    if(signal){
+      ctx.strokeStyle="#ffda71";ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(x,y,36,0,Math.PI*2);ctx.stroke();
+    }
+  }
   function drawWorld(camX, camY) {
     rect(0, 0, W, H, C.ice);
     const grd = ctx.createLinearGradient(0, 0, W, H);
@@ -755,6 +829,7 @@
     for (const s of game.stains) {
       circle(s.x, s.y, Math.max(2, s.radius * clamp(s.life / 900, .25, 1)), s.color);
     }
+    for(const fire of game.fires)drawCampfire(fire);
     for(const item of game.drops)drawDrop(item);
     for(const b of game.birds)drawBird(b);
     drawPlayer(game.player);
@@ -904,6 +979,14 @@
       const d=Math.hypot(item.x-player.x,item.y-player.y);
       if(d<minDist){nearest=item;minDist=d;}
     }
+    // Below half temperature, point to a real fire instead of ammunition.
+    if(player.temp<48&&game.fires.length){
+      nearest=null;minDist=Infinity;
+      for(const fire of game.fires){
+        const d=Math.hypot(fire.x-player.x,fire.y-player.y);
+        if(d<minDist){nearest={x:fire.x,y:fire.y,kind:"FIRE"};minDist=d;}
+      }
+    }
     if(!nearest){
       const boss=game.birds.find(b=>b.variant==="boss"&&!b.down);
       if(boss){nearest={x:boss.x,y:boss.y,kind:"BOSS"};minDist=Math.hypot(boss.x-player.x,boss.y-player.y);}
@@ -928,7 +1011,7 @@
     text("ICE FALLS: " + game.falls, 580, 24, 17, C.cyan);
     text("WAVE " + game.wave, 858, 23, 17, C.yellow);
     bar(18, 53, 192, game.player.hp, C.red, "HEALTH");
-    bar(247, 53, 192, game.player.temp, C.cyan, "TEMPERATURE");
+    bar(247, 53, 192, game.player.temp, game.player.warming?C.orange:C.cyan,game.player.warming?"TEMPERATURE + WARMING":"TEMPERATURE");
     bar(476, 53, 192, game.player.stamina, C.green, "STAMINA");
     ctx.beginPath();
     ctx.arc(776, 56, 19, 0, Math.PI * 2);
@@ -953,7 +1036,7 @@
     text("WEAPON: "+weaponSpec.name,18,100,17,weaponSpec.color);
     text(weaponSpec.type==="gun"?"AMMO: "+p.ammo[p.weapon]:"MELEE / UNLIMITED",310,100,15,C.white);
     text("GRENADES: "+p.grenades,500,100,15,C.orange);
-    text(p.combo>1?p.combo+"x COMBO":"PICK UP THE GLOWING GEAR",695,100,15,p.combo>1?C.yellow:C.white);
+    text(p.warming?"FIRE WARMTH ACTIVE":p.combo>1?p.combo+"x COMBO":"FIND FIRE TO WARM UP",695,100,15,p.warming?C.orange:p.combo>1?C.yellow:C.white);
         if (game.messageTimer > 0 && game.message) {
       rect(80, H - 47, W - 160, 34, "#091925ed");
       ctx.strokeStyle = C.yellow;
