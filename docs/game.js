@@ -216,7 +216,7 @@
     // Water predators emerge from holes but never walk onto the ice.
     for(const index of [0,4]){
       const hole=g.holes[index];
-      const hp=2*(650+g.wave*75); // Twice an Emperor-class giant penguin.
+      const hp=2*(650+Math.max(2,g.wave)*75); // Twice the next Emperor-class boss.
       g.leopardSeals.push({holeIndex:index,hp,maxHp:hp,x:hole.x,y:hole.y,
         phase:index*2.1,emerge:0,flash:0,attackCooldown:90,dead:false});
     }
@@ -1322,6 +1322,13 @@
     if(game.score<game.nextWaveAt)return;
     game.wave++;
     game.nextWaveAt+=10+Math.min(20,(game.wave-1)*2);
+    // Leopard seals remain twice as durable as the current wave's Emperor.
+    const leopardMax=2*(650+Math.max(2,game.wave)*75);
+    for(const seal of game.leopardSeals){
+      if(seal.dead)continue;
+      seal.hp+=leopardMax-seal.maxHp;
+      seal.maxHp=leopardMax;
+    }
     game.waveBanner=205;
     if(game.wave%3===0){
       game.nightQueue++;
