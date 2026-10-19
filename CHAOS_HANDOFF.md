@@ -1,4 +1,4 @@
-# Emperor Gauntlet v2.2.1: cross-agent finishing notes
+# Emperor Gauntlet v2.3: cross-agent finishing notes
 
 **Repository:** danieloculus0-bot/FUN
 **Active playable edition:** `docs/index.html`, `docs/game.js`, `docs/style.css`
@@ -40,3 +40,7 @@ Wave two begins at ten combat defeats. Each subsequent wave needs incrementally 
 ## Yeti + HUD visibility fix (v2.2.1)
 
 The Yeti now appears about 3 seconds after starting (`yetiNext=190` frames), roughly 195 world units away from the player, rather than far off-screen at 950 frames. It is a large, clearly rendered white ape-like creature with a normal-size status label. Boss and Yeti encounter announcements, compass, and health displays stay entirely in opaque top/bottom bands; gameplay viewport is clipped to y=120..535 on the 1000x640 canvas. The camera tracks the player's screen position at (500,385), including near world boundaries, with mouse aim using the same transform. Native GitHub Pages publishes from `main/docs`. Automated smoke tests now assert Yeti spawning close to the player, warmth at fires and the Yeti, ion terrain destruction, Uzi default selection, and frost death away from all heat.
+
+## v2.3: Side-profile Yeti and polar night
+
+The Yeti is now a **boss-penguin-sized, side-profile Bigfoot**. The sprite has hunched shoulders, long gorilla arms, single-profile eye, projecting muzzle and oversized snow feet. It remains white and warm when unprovoked, red-eyed when enraged. Bullet/melee hit radii were shrunk to match the smaller sprite while preserving the health and 1,000-point reward. Night happens for waves 3, 6, 9, and all waves divisible by three, with daybreak immediately the next wave. Night masks only the gameplay area and illuminates around the player, campfires, Yeti, ion projectiles and explosions using an offscreen compositing mask (with a safe fallback for headless tests). The HUD is rendered on top, remains bright, and displays NIGHT plus a daybreak/nightfall announcement inside the HUD bands. The offline HTML must be regenerated when these files change. Night transitions and spotlight rendering are covered by automated regression tests.
