@@ -149,6 +149,7 @@
       fires:CAMP_SITES.map((site,i)=>({x:site.x,y:site.y,phase:i*1.87,life:Infinity,kind:"campfire"})),
       particles: [], stains: [], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
       wave:1, waveBanner:0, bossWave:0, nextWaveAt:10,
+      night:false,nightNotice:0,
       points:0, ionCracks:[], ionShots:0, yeti:null, yetiNext:190, yetiVisits:0,yetiBanner:0,
       score: 0, falls: 0, clock: 0,
       windAngle: rand(0, Math.PI * 2), windStrength: rand(.3, 1),
@@ -440,7 +441,7 @@
       y.rage=Math.max(0,y.rage-1);
       const n=norm(p.x-y.x,p.y-y.y);
       y.vx=n.x*3.9;y.vy=n.y*3.9;
-      if(Math.hypot(p.x-y.x,p.y-y.y)<105&&y.attackCooldown<=0){
+      if(Math.hypot(p.x-y.x,p.y-y.y)<78&&y.attackCooldown<=0){
         y.attackCooldown=68;
         p.hp-=rand(18,28);
         p.vx+=n.x*10;p.vy+=n.y*10;p.slip=22;
@@ -464,7 +465,7 @@
       bullet.x+=bullet.vx;bullet.y+=bullet.vy;bullet.life--;
       if(bullet.ion){
         const hit=game.birds.some(b=>!b.down&&Math.hypot(b.x-bullet.x,b.y-bullet.y)<(b.variant==="boss"?55:28));
-        const yetiHit=game.yeti?.alive&&Math.hypot(game.yeti.x-bullet.x,game.yeti.y-bullet.y)<103;
+        const yetiHit=game.yeti?.alive&&Math.hypot(game.yeti.x-bullet.x,game.yeti.y-bullet.y)<63;
         if(hit||yetiHit||bullet.life<=0||
           bullet.x<=35||bullet.y<=35||bullet.x>=WORLD_W-35||bullet.y>=WORLD_H-35){
           ionDetonate(bullet.x,bullet.y);
@@ -477,7 +478,7 @@
       if(yeti?.alive&&bullet.life>0){
         const dx=bullet.x-ox,dy=bullet.y-oy,den=dx*dx+dy*dy;
         const t=clamp(den?((yeti.x-ox)*dx+(yeti.y-oy)*dy)/den:0,0,1);
-        if(Math.hypot(yeti.x-(ox+t*dx),yeti.y-(oy+t*dy))<105){
+        if(Math.hypot(yeti.x-(ox+t*dx),yeti.y-(oy+t*dy))<66){
           hurtYeti(bullet.damage);
           bullet.life=0;
         }
@@ -820,7 +821,7 @@
     if(yeti?.alive&&p.swing>0&&yeti.lastSwing!==p.swingId){
       const dx=yeti.x-p.x,dy=yeti.y-p.y;
       const n=norm(dx,dy);
-      if(Math.hypot(dx-p.fx*p.swingReach,dy-p.fy*p.swingReach)<111&&
+      if(Math.hypot(dx-p.fx*p.swingReach,dy-p.fy*p.swingReach)<70&&
          n.x*p.fx+n.y*p.fy>.15){
         yeti.lastSwing=p.swingId;
         hurtYeti(ARMORY[p.weapon].damage*(p.rage>0?1.5:1));
@@ -857,9 +858,13 @@
     game.wave++;
     game.nextWaveAt+=10+Math.min(20,(game.wave-1)*2);
     game.waveBanner=205;
+    const wasNight=game.night;
+    game.night=game.wave%3===0;
+    if(game.night!==wasNight)game.nightNotice=210;
     game.player.temp=clamp(game.player.temp+10,0,100);
     game.drops.push(makeDrop("ammo",clamp(game.player.x+65,40,WORLD_W-40),clamp(game.player.y+55,40,WORLD_H-40)));
-    say("WAVE "+game.wave+": THE ROOKERY REQUESTS REINFORCEMENTS.",230);
+    say(game.night?"WAVE "+game.wave+": NIGHTFALL. FOLLOW THE FIRES.":
+      "WAVE "+game.wave+": THE ROOKERY REQUESTS REINFORCEMENTS.",230);
     playSfx("wave");
     if(game.wave%2===0){game.bossWave=game.wave;spawnBoss();}
   }
@@ -912,6 +917,7 @@
     waveDirector();
     maintainPopulation();
     if(game.waveBanner>0)game.waveBanner--;
+    if(game.nightNotice>0)game.nightNotice--;
     if(game.yetiBanner>0)game.yetiBanner--;
     if(game.clock%650===0){const p=game.player;game.drops.push(makeDrop(["ammo","medkit","coffee","grenade","parka"][Math.floor(rand(0,5))],clamp(p.x+rand(-300,300),35,WORLD_W-35),clamp(p.y+rand(-280,280),35,WORLD_H-35)));}
     if(game.shake>0)game.shake=Math.max(0,game.shake-.65);
@@ -1084,68 +1090,78 @@
     text(item.kind.toUpperCase(),x,y+28,11,"#19384a","center",950);
   }
   function drawYeti(y){
-    // A truly enormous white ape: ~210px across and ~300px tall.
-    // Draw its warmth field first, so the rest of the world remains readable.
-    const enraged=y.rage>0;
-    const swing=Math.sin(game.clock*.065);
-    circle(y.x,y.y,205,enraged?"#ff406b20":"#ffc54b1c");
-    circle(y.x,y.y,125,enraged?"#ff406b17":"#ffcd6420");
-    ctx.save();
-    ctx.translate(y.x,y.y);
-    ctx.scale(2.15,2.15);
-    const bob=Math.sin(game.clock*.07)*2.8;
-    ellipse(0,47,60,14,"#183f566e");
-    // Enormous ape legs and snow-claw feet.
-    ellipse(-27,29+bob,22,37,"#b8d3e1");
-    ellipse(26,29+bob,22,37,"#b8d3e1");
-    ellipse(-31,53+bob,27,12,"#edf8ff");
-    ellipse(31,53+bob,27,12,"#edf8ff");
-    for(const sx of [-1,1]){
-      // Gorilla-length arms nearly touching the ground.
-      ellipse(sx*48,-3+bob,22,50,"#c9e4f1");
-      ellipse(sx*50,34+bob,20,18,"#edf8ff");
-      for(let i=0;i<3;i++)circle(sx*(40+i*8),44+bob,6,"#d1e9f5");
+    // Side-profile Bigfoot: roughly the size of an Emperor boss penguin,
+    // with a hunched back, elongated arms, huge feet and projecting ape face.
+    const angry=y.rage>0;
+    const facing=y.vx<0?-1:1;
+    const walk=game.clock*.095,step=Math.sin(walk)*8,bob=Math.abs(Math.sin(walk))*.8;
+    circle(y.x,y.y,angry?126:151,angry?"#ff426519":"#ffbf4930");
+    ctx.save();ctx.translate(y.x,y.y);
+    ctx.scale(facing,1);
+    // Back-facing leg and massive heel.
+    ellipse(-22,26+step*.5,15,31,"#b2ccdb");
+    ellipse(-24,56+step*.6,27,9,"#f1f9ff");
+    // Trailing arm, bent elbow and oversized white knuckles.
+    ellipse(-40,-10+bob,13,36,"#c3dbe8");
+    ellipse(-47,19+bob+step*.2,13,24,"#a8cadb");
+    ellipse(-44,40+bob+step*.2,17,12,"#f0faff");
+    // Sloping Bigfoot shoulders + forward-leaning hump.
+    ctx.beginPath();
+    ctx.moveTo(-51,14+bob);
+    ctx.quadraticCurveTo(-60,-39+bob,-42,-63+bob);
+    ctx.quadraticCurveTo(-15,-92+bob,13,-69+bob);
+    ctx.quadraticCurveTo(34,-52+bob,28,-20+bob);
+    ctx.quadraticCurveTo(33,13+bob,8,36+bob);
+    ctx.quadraticCurveTo(-22,40+bob,-51,14+bob);
+    ctx.closePath();ctx.fillStyle="#a8c7d8";ctx.fill();
+    // Shaggy snow-white fur, sharp silhouette tufts along the bent spine.
+    for(let i=0;i<11;i++){
+      const px=-51+i*6,py=-22-Math.sin(i/10*Math.PI)*50+bob;
+      ctx.beginPath();ctx.moveTo(px-7,py+10);
+      ctx.lineTo(px-10,py-8);ctx.lineTo(px+6,py+8);
+      ctx.closePath();ctx.fillStyle=i%2?"#e4f3fb":"#f5fcff";ctx.fill();
     }
-    // Broad chest, massive shoulders, shaggy white pelt.
-    ellipse(0,-3+bob,55,59,"#a2c3d3");
-    ellipse(0,-6+bob,50,55,"#f2f9ff");
-    ellipse(0,1+bob,35,45,"#d7ecf6");
-    for(let i=0;i<15;i++){
-      const angle=i*Math.PI*2/15;
-      const tx=Math.cos(angle)*48,ty=-10+Math.sin(angle)*53+bob;
-      ctx.beginPath();ctx.moveTo(tx-7,ty-4);
-      ctx.lineTo(tx+Math.cos(angle)*15,ty+Math.sin(angle)*16);
-      ctx.lineTo(tx+7,ty+4);ctx.closePath();
-      ctx.fillStyle=i%2?"#e0f1fb":"#b9d7e6";ctx.fill();
+    ellipse(-6,-12+bob,31,45,"#edf7fd");
+    ellipse(3,6+bob,20,27,"#d6ecf5");
+    // Nearest leg is in front of the body. It makes the walking motion readable.
+    ellipse(16,28-step*.42,17,31,"#deeff8");
+    ellipse(27,56-step*.5,28,10,"#f9fdff");
+    // Long forward arm almost brushes the snow as the Yeti lumbers by.
+    ellipse(31,-10+bob,16,32,"#b6d5e4");
+    ellipse(39,15+bob-step*.45,13,27,"#eff8fd");
+    ellipse(44,37+bob-step*.5,18,12,"#c8e1ee");
+    for(let i=0;i<3;i++)circle(34+i*8,44+bob-step*.5,5,"#fbfeff");
+    // Side-facing ape skull. ONE visible eye, projecting brow and heavy muzzle.
+    ellipse(22,-73+bob,32,30,"#e6f4fc");
+    ellipse(43,-64+bob,24,19,"#91b5c7");
+    ellipse(49,-59+bob,24,11,"#bfd8e3");
+    ctx.beginPath();ctx.moveTo(9,-92+bob);
+    ctx.quadraticCurveTo(31,-103+bob,51,-82+bob);
+    ctx.lineTo(47,-75+bob);ctx.quadraticCurveTo(26,-86+bob,9,-82+bob);
+    ctx.fillStyle="#f5fcff";ctx.fill();
+    ellipse(36,-77+bob,9,7,"#244251");
+    circle(39,-77+bob,3.2,angry?"#ff314c":"#aeedff");
+    ellipse(64,-63+bob,5,4,"#1d3a49");
+    if(angry){
+      ellipse(52,-48+bob,18,8,"#6c2436");
+      for(let i=0;i<4;i++)rect(42+i*7,-54+bob,3,8,"#fff8f2");
+    }else{
+      ctx.beginPath();ctx.arc(49,-53+bob,9,.2,Math.PI*.82);
+      ctx.strokeStyle="#466978";ctx.lineWidth=2;ctx.stroke();
     }
-    // Huge gorilla head, protruding muzzle, brow ridge, toothy mouth.
-    circle(0,-66+bob,40,"#b3d0df");
-    ellipse(0,-65+bob,37,34,"#eff8ff");
-    ellipse(0,-55+bob,29,25,"#638594");
-    ellipse(0,-47+bob,25,16,"#aac5cf");
-    ellipse(-15,-66+bob,12,9,"#243945");
-    ellipse(15,-66+bob,12,9,"#243945");
-    circle(-13,-64+bob,5,enraged?"#fc3349":"#c3eeff");
-    circle(13,-64+bob,5,enraged?"#fc3349":"#c3eeff");
-    ellipse(-9,-49+bob,5,4,"#1a3745");
-    ellipse(9,-49+bob,5,4,"#1a3745");
-    ellipse(0,-37+bob,19,enraged?11:5,enraged?"#781c29":"#365768");
-    if(enraged){
-      for(let i=0;i<5;i++)rect(-14+i*6,-42+bob,3,9,"#fff5f6");
+    for(let i=0;i<6;i++){
+      const px=-13+i*8;
+      ctx.beginPath();ctx.moveTo(px,-93+bob);
+      ctx.lineTo(px+3,-102+Math.sin(walk*.3+i)*2+bob);
+      ctx.lineTo(px+6,-90+bob);
+      ctx.fillStyle="#fff";ctx.fill();
     }
-    for(let i=0;i<9;i++){
-      const tx=(i-4)*9;
-      ctx.beginPath();ctx.moveTo(tx,-93+bob);
-      ctx.lineTo(tx+5,-114+Math.sin(i*2.4+game.clock*.04)*3+bob);
-      ctx.lineTo(tx+10,-92+bob);ctx.closePath();
-      ctx.fillStyle=i%2?"#d7ebf8":"#f9fdff";ctx.fill();
-    }
-    if(y.flash>0)ellipse(0,-6+bob,57,61,"#ff3b6599");
+    if(y.flash>0)ellipse(-6,-15+bob,39,52,"#ff49657a");
     ctx.restore();
-    // Labels keep normal text size, outside the scaled sprite.
-    const labelY=y.y-219;
-    rect(y.x-106,labelY-16,212,31,enraged?"#4b142bdc":"#143746d9");
-    text(enraged?"ENRAGED YETI +1000":"FRIENDLY YETI · HEAT",y.x,labelY,15,enraged?C.red:C.yellow,"center",1000);
+    const labelY=y.y-127;
+    rect(y.x-100,labelY-15,200,29,angry?"#551729de":"#163844e6");
+    text(angry?"ENRAGED YETI +1000":"FRIENDLY YETI · WARMTH",
+      y.x,labelY,14,angry?C.red:C.yellow,"center",1000);
   }
   function drawBird(b) {
     ctx.save();ctx.translate(b.x,b.y);
@@ -1302,7 +1318,7 @@
     text("EMPEROR GAUNTLET",18,24,23,C.white);
     text("PENGUINS: "+game.score,310,24,19,C.red);
     text("ICE: "+game.falls,579,24,17,C.cyan);
-    text("WAVE "+game.wave,856,24,17,C.yellow);
+    text("WAVE "+game.wave+(game.night?" · NIGHT":""),856,24,15,game.night?C.cyan:C.yellow);
     const p=game.player;
     bar(18,53,192,p.hp,C.red,"HEALTH");
     bar(247,53,192,p.temp,p.warming?C.orange:C.cyan,p.warming?"TEMP + HEAT":"TEMPERATURE");
@@ -1337,7 +1353,9 @@
     }
     drawObjectiveCompass();
     // Notifications, boss warnings and wave announcements all share the bottom band.
-    const notice=game.yetiBanner>0?"MASSIVE YETI SPOTTED · FRIENDLY UNTIL PROVOKED":
+    const notice=game.nightNotice>0?(game.night?
+      "NIGHTFALL · WAVE "+game.wave+" · FOLLOW THE FIRES":"DAYBREAK · WAVE "+game.wave):
+      game.yetiBanner>0?"FRIENDLY YETI SPOTTED · HE'S A WALKING HEATER":
       game.waveBanner>0?"WAVE "+game.wave+" · "+
       (game.wave%2===0?"THE EMPEROR COMETH":"THE ROOKERY WANTS REVENGE"):
       game.messageTimer>0?game.message:"";
@@ -1361,6 +1379,51 @@
     ctx.stroke();
     rect(0, 84, W, H - 84, "#f5fcff25");
   }
+  let nightCanvas=null,nightCtx=null;
+  function drawNight(camX,camY){
+    if(!game.night)return;
+    // A separate compositing surface keeps spotlight transparency from
+    // erasing the actual world. The gameplay HUD renders afterward.
+    if(!nightCanvas&&typeof document.createElement==="function"){
+      nightCanvas=document.createElement("canvas");
+      nightCanvas.width=W;nightCanvas.height=H;
+      nightCtx=nightCanvas.getContext("2d");
+    }
+    if(nightCtx){
+      nightCtx.clearRect(0,0,W,H);
+      nightCtx.globalCompositeOperation="source-over";
+      nightCtx.fillStyle="rgba(4,11,28,0.80)";
+      nightCtx.fillRect(0,0,W,H);
+      nightCtx.globalCompositeOperation="destination-out";
+      const light=(wx,wy,r)=>{
+        const x=wx-camX,y=wy-camY;
+        if(x+r<0||x-r>W||y+r<118||y-r>H-104)return;
+        const glow=nightCtx.createRadialGradient(x,y,8,x,y,r);
+        glow.addColorStop(0,"rgba(0,0,0,.96)");
+        glow.addColorStop(.42,"rgba(0,0,0,.75)");
+        glow.addColorStop(1,"rgba(0,0,0,0)");
+        nightCtx.fillStyle=glow;nightCtx.beginPath();
+        nightCtx.arc(x,y,r,0,Math.PI*2);nightCtx.fill();
+      };
+      const p=game.player;
+      light(p.x,p.y,145);
+      for(const fire of game.fires)light(fire.x,fire.y,180);
+      if(game.yeti?.alive)light(game.yeti.x,game.yeti.y,205);
+      for(const b of game.bullets)if(b.ion)light(b.x,b.y,155);
+      for(const b of game.explosions)light(b.x,b.y,b.ion?260:160);
+      nightCtx.globalCompositeOperation="source-over";
+      ctx.drawImage(nightCanvas,0,0);
+    }else{
+      // Headless tests and older canvas implementations have a safe fallback.
+      rect(0,120,W,H-225,"#071427ad");
+    }
+    // Specks of Antarctic night sky visible in the far ice horizon.
+    for(let i=0;i<35;i++){
+      const x=(i*173+41)%W;
+      const y=145+(i*43)%250;
+      circle(x,y,i%5===0?1.9:1,"#d6edffbc");
+    }
+  }
   function draw() {
     if (!game) return;
     // Don't clamp camera at world edges. The player always stays centered
@@ -1374,6 +1437,7 @@
     ctx.clip();
     if(game.shake>0)ctx.translate(rand(-game.shake,game.shake),rand(-game.shake,game.shake));
     drawWorld(camX,camY);
+    drawNight(camX,camY);
     drawBlizzard();
     ctx.restore();
     drawHud();
