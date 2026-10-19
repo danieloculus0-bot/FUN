@@ -2,7 +2,7 @@
 
 Weird experiments, tiny games, and dramatically overengineered answers to ridiculous questions.
 
-## Emperor Gauntlet: POLAR FIRE (v2.5)
+## Emperor Gauntlet: HANDHELD (v2.6)
 
 > One deranged explorer. An army of penguins. Antarctica does most of the killing.
 
@@ -25,7 +25,7 @@ The browser game is the actively developed main edition in [`docs/`](docs/). The
 - **Survival gear:** parkas, first-aid kits, ice cleats, ammo, caffeine rage boosts
 - **Better characters:** illustrated Antarctic explorer, animated penguins, bruisers and berserkers
 - **Effects:** huge comic-book blood detonations and flying gore fragments, especially for bruisers and Emperor bosses, persistent red-snow stains, damage numbers, combos and heavy screen shake
-- **Cross-device:** keyboard/mouse, click-to-fire aiming, touch controls, browser-local personal best
+- **Cross-device:** desktop keyboard/mouse and a fixed-screen mobile SNES-style handheld layout with a physically separate D-pad/ABXY touch deck, portrait and landscape arrangements, drag-to-aim, browser-local personal best
 - **Waves and bosses:** escalating waves, giant crowned Emperor boss, boss health bar and reward drops
 - **Audio:** optional synthesized arcade effects (off by default, no external sound files)
 - **Navigation:** compass points toward loot or heat sources
@@ -53,6 +53,11 @@ The browser game is the actively developed main edition in [`docs/`](docs/). The
 | Q / E | Switch between owned weapons |
 | 1 through 9 | Select a weapon slot |
 | P / Esc | Pause |
+| Mobile D-pad | Move |
+| Mobile A / B / X / Y | Sprint / fire (hold B) / grenade / next weapon |
+| Mobile L / R / SELECT | Previous / next / previous weapon |
+| Mobile START | Pause or resume |
+| Mobile: drag across game screen | Aim, including while holding B |
 | Walk over equipment | Collect it |
 
 ### Dev and testing
