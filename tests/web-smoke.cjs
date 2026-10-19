@@ -320,6 +320,10 @@ for(const id of ["touch-prev","touch-next","touch-select","touch-start","touch-g
 assert.ok(handheldCss.includes("height:100dvh")&&handheldCss.includes("overscroll-behavior:none"),
   "Mobile screen is fixed and cannot scroll the page");
 assert.ok(handheldCss.includes("orientation:landscape"),"Landscape game/controller arrangement exists");
+assert.ok(handheldCss.includes("display:contents"),"Mobile gamepad distributes around landscape arena");
+assert.ok(handheldCss.includes(".arena-stage{grid-area:1/2"),"Landscape playfield occupies middle column");
+assert.ok(handheldCss.includes(".touch-controls .dpad{grid-area:1/1"),"D-pad occupies LEFT landscape column");
+assert.ok(handheldCss.includes(".touch-controls .action-pad{grid-area:1/3"),"ABXY occupies RIGHT landscape column");
 assert.ok(handheldCss.includes(".touch-controls .dpad"),"Mobile D-pad has custom styling");
 const eTouch={pointerType:"touch",pointerId:7,clientX:725,clientY:195,
   cancelable:true,preventDefault(){this.prevented=true;}};
@@ -334,12 +338,24 @@ assert.equal(g.pressed.has("sprint"),false,"A button releases sprint");
 nodes["touch-shove"].handlers.pointerdown({...eTouch});
 assert.equal(g.pressed.has("attack"),true,"B button holds fire");
 nodes.game.handlers.pointerdown({...eTouch});
-assert.equal(g.pointerAim.active,true,"Touching canvas aims");
+assert.equal(g.pointerAim.active,true,"Optional touch aiming works");
+assert.equal(g.pointerAim.touch,true,"Mobile aim source is tracked");
 assert.ok(g.pointerAim.x>500,"Aim uses the touch position");
+// Holding the D-pad must override a simultaneous aiming finger.
+g.game.player.x=170;g.game.player.y=180;
+g.game.player.vx=g.game.player.vy=0;g.game.player.temp=100;
+holdButtons[0].handlers.pointerdown(eTouch);
+g.tick();
+assert.ok(g.game.player.fy<-.95&&Math.abs(g.game.player.fx)<.05,
+  "D-pad aims UP even while another finger touches the battlefield");
+holdButtons[0].handlers.pointerup();
+g.tick();
+assert.ok(g.game.player.fx>.25,"Touch aim remains an optional secondary input");
 nodes.game.handlers.pointerup({pointerType:"touch"});
-assert.equal(g.pressed.has("attack"),true,"Releasing aim does not cancel held B button");
+assert.equal(g.pressed.has("attack"),true,"Releasing touch aim does not cancel held B button");
+assert.equal(g.pointerAim.active,false,"Touch aiming disengages when finger lifts; D-pad resumes primary aim");
 nodes.game.handlers.pointerleave({pointerType:"touch"});
-assert.equal(g.pointerAim.active,true,"Touch aim is retained after finger release");
+assert.equal(g.pointerAim.active,false,"Touch leave does not leave a sticky aim override");
 nodes["touch-shove"].handlers.pointerup();
 assert.equal(g.pressed.has("attack"),false,"B button stops firing on release");
 let blockedScroll=false;
