@@ -183,7 +183,7 @@
         grenades:2,parka:0,cleats:false,rage:0,combo:0,comboTime:0,
         swingReach:43,swingColor:"#fbb667",muzzle:0,warming:false
       },
-      birds: [], drifts: [
+      birds: [], leopardSeals:[], leopardKills:0, drifts: [
         { x: 360, y: 300, w: 270, h: 120 },
         { x: 820, y: 1040, w: 360, h: 150 },
         { x: 1420, y: 450, w: 300, h: 135 },
@@ -196,7 +196,8 @@
         {x:2080,y:1160,safeRadius:30}],
       holes: [
         { x: 1040, y: 470, r: 58 }, { x: 1540, y: 1120, r: 72 },
-        { x: 2200, y: 350, r: 52 }, { x: 540, y: 910, r: 48 }
+        { x: 2200, y: 350, r: 52 }, { x: 540, y: 910, r: 48 },
+        { x: 470, y: 455, r: 67 }
       ],
       fires:CAMP_SITES.map((site,i)=>({x:site.x,y:site.y,phase:i*1.87,life:Infinity,kind:"campfire"})),
       particles: [], stains: [], gibs:[], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
@@ -211,6 +212,13 @@
       blizzardTimer: 0, message: "GET GEAR. FIND AN UZI. RAISE HELL.",
       messageTimer: 260, cause: ""
     };
+    // Water predators emerge from holes but never walk onto the ice.
+    for(const index of [0,4]){
+      const hole=g.holes[index];
+      const hp=2*(650+g.wave*75); // Twice an Emperor-class giant penguin.
+      g.leopardSeals.push({holeIndex:index,hp,maxHp:hp,x:hole.x,y:hole.y,
+        phase:index*2.1,emerge:0,flash:0,attackCooldown:90,dead:false});
+    }
     for (let i = 0; i < START_PENGUINS; i++) {
       g.birds.push(penguin(rand(500, WORLD_W - 200), rand(180, WORLD_H - 180)));
     }
@@ -427,6 +435,7 @@
     if(d<110)p.hp-=Math.max(4,25*(1-d/120));
     if(game.yeti?.alive&&Math.hypot(game.yeti.x-x,game.yeti.y-y)<155)hurtYeti(140);
     if(game.seal&&Math.hypot(game.seal.x-x,game.seal.y-y)<120)warnSeal();
+    damageNearbyLeopards(x,y,155,150);
     game.shake=16;say("BOOM. ANTARCTICA FILES A FORMAL COMPLAINT.",155);
     playSfx("boom");
   }
@@ -458,6 +467,59 @@
     if(ionHoles.length>12){
       const oldest=ionHoles[0];
       game.holes.splice(game.holes.indexOf(oldest),1);
+    }
+  }
+  function hurtLeopard(seal,amount){
+    if(!seal||seal.dead||seal.emerge<.2)return false;
+    seal.hp-=amount;
+    seal.flash=9;
+    particles(seal.x,seal.y,C.red,17,5);
+    floatText(seal.x,seal.y-36,"-"+Math.round(amount),C.red);
+    if(seal.hp<=0){
+      seal.dead=true;game.leopardKills++;
+      game.points+=650; // Bonus is separate from emperor/penguin wave kills.
+      particles(seal.x,seal.y,C.red,90,10);
+      floatText(seal.x,seal.y-50,"LEOPARD SEAL +650",C.yellow);
+      say("LEOPARD SEAL DEFEATED. THE WATER FINALLY RELENTS.",190);
+      game.shake=Math.max(13,game.shake);
+    }
+    return true;
+  }
+  function updateLeopards(){
+    const p=game.player;
+    for(const seal of game.leopardSeals){
+      if(seal.dead)continue;
+      const hole=game.holes[seal.holeIndex];
+      if(!hole||hole.ion){seal.dead=true;continue;}
+      seal.phase+=.026;
+      if(seal.attackCooldown>0)seal.attackCooldown--;
+      if(seal.flash>0)seal.flash--;
+      const dist=Math.hypot(p.x-hole.x,p.y-hole.y);
+      // They surface when the player approaches, then slip back beneath water.
+      const near=dist<hole.r+220;
+      const desired=near?.95:(Math.sin(seal.phase*.7)>.65?.42:0);
+      seal.emerge+=(desired-seal.emerge)*.085;
+      const direction=norm(p.x-hole.x,p.y-hole.y);
+      seal.x=hole.x+direction.x*hole.r*.28*seal.emerge;
+      seal.y=hole.y+direction.y*hole.r*.28*seal.emerge;
+      if(dist<hole.r+105&&seal.emerge>.52&&seal.attackCooldown<=0){
+        seal.attackCooldown=Math.floor(rand(80,125));
+        const d=norm(p.x-seal.x,p.y-seal.y);
+        p.hp-=rand(13,23);
+        p.vx+=d.x*6;p.vy+=d.y*6;p.wet=Math.max(p.wet,185);
+        particles(p.x,p.y,C.red,22,5);
+        game.shake=Math.max(8,game.shake);
+        say("LEOPARD SEAL AMBUSH! THE WATER HAS TEETH.",130);
+        playSfx("hit");
+        if(p.hp<=0)finish("Mauled at the ice edge by a leopard seal");
+      }
+    }
+  }
+  function damageNearbyLeopards(x,y,radius,damage){
+    for(const seal of game.leopardSeals){
+      if(seal.dead||seal.emerge<.2)continue;
+      const d=Math.hypot(seal.x-x,seal.y-y);
+      if(d<radius)hurtLeopard(seal,Math.max(10,damage*(1-d/(radius+50))));
     }
   }
   function hurtYeti(amount){
@@ -503,6 +565,7 @@
     // get accidentally hit by the very same plasma detonation.
     const yetiBeforeImpact=game.yeti?.alive?game.yeti:null;
     if(game.seal&&Math.hypot(game.seal.x-x,game.seal.y-y)<245)warnSeal();
+    damageNearbyLeopards(x,y,250,520);
     if(yetiBeforeImpact&&game.yeti===yetiBeforeImpact&&
        game.yeti.alive&&Math.hypot(game.yeti.x-x,game.yeti.y-y)<240){
       const d=Math.hypot(game.yeti.x-x,game.yeti.y-y);
@@ -662,6 +725,7 @@
     }
     if(game.yeti?.alive&&Math.hypot(x-game.yeti.x,y-game.yeti.y)<180)hurtYeti(200);
     if(game.seal&&Math.hypot(x-game.seal.x,y-game.seal.y)<140)warnSeal();
+    damageNearbyLeopards(x,y,195,340);
     const p=game.player,dist=Math.hypot(x-p.x,y-p.y);
     if(dist<160)p.hp-=Math.max(8,50*(1-dist/170));
     game.shake=Math.max(17,game.shake);
@@ -675,7 +739,8 @@
       if(bullet.rocket){
         bullet.trail++;
         if(bullet.trail%2===0)particles(bullet.x,bullet.y,C.orange,3,1.8);
-        const impact=game.birds.some(b=>!b.down&&Math.hypot(b.x-bullet.x,b.y-bullet.y)<(b.variant==="boss"?53:23));
+        const impact=game.birds.some(b=>!b.down&&Math.hypot(b.x-bullet.x,b.y-bullet.y)<(b.variant==="boss"?53:23))||
+          game.leopardSeals.some(l=>!l.dead&&l.emerge>.35&&Math.hypot(l.x-bullet.x,l.y-bullet.y)<46);
         if(impact||bullet.life<=0||bullet.x<35||bullet.y<35||
            bullet.x>WORLD_W-35||bullet.y>WORLD_H-35){
           rocketDetonate(bullet.x,bullet.y);bullet.life=0;
@@ -683,7 +748,8 @@
         continue;
       }
       if(bullet.ion){
-        const hit=game.birds.some(b=>!b.down&&Math.hypot(b.x-bullet.x,b.y-bullet.y)<(b.variant==="boss"?55:28));
+        const hit=game.birds.some(b=>!b.down&&Math.hypot(b.x-bullet.x,b.y-bullet.y)<(b.variant==="boss"?55:28))||
+          game.leopardSeals.some(l=>!l.dead&&l.emerge>.35&&Math.hypot(l.x-bullet.x,l.y-bullet.y)<43);
         const yetiHit=game.yeti?.alive&&Math.hypot(game.yeti.x-bullet.x,game.yeti.y-bullet.y)<63;
         if(hit||yetiHit||bullet.life<=0||
           bullet.x<=35||bullet.y<=35||bullet.x>=WORLD_W-35||bullet.y>=WORLD_H-35){
@@ -699,6 +765,16 @@
         const t=clamp(den?((seal.x-ox)*dx+(seal.y-oy)*dy)/den:0,0,1);
         if(Math.hypot(seal.x-(ox+t*dx),seal.y-(oy+t*dy))<22){
           warnSeal();bullet.life=0;
+        }
+      }
+      if(bullet.life>0){
+        for(const leopard of game.leopardSeals){
+          if(leopard.dead||leopard.emerge<.25)continue;
+          const dx=bullet.x-ox,dy=bullet.y-oy,len2=dx*dx+dy*dy;
+          const t=clamp(len2?((leopard.x-ox)*dx+(leopard.y-oy)*dy)/len2:0,0,1);
+          if(Math.hypot(leopard.x-ox-t*dx,leopard.y-oy-t*dy)<33){
+            hurtLeopard(leopard,bullet.damage);bullet.life=0;break;
+          }
         }
       }
       const yeti=game.yeti;
@@ -1080,6 +1156,15 @@
         warnSeal();
       }
     }
+    for(const leopard of game.leopardSeals){
+      if(leopard.dead||leopard.emerge<.25||p.swing<=0||leopard.lastSwing===p.swingId)continue;
+      const dx=leopard.x-p.x,dy=leopard.y-p.y,n=norm(dx,dy);
+      if(Math.hypot(dx-p.fx*p.swingReach,dy-p.fy*p.swingReach)<58 &&
+         n.x*p.fx+n.y*p.fy>.1){
+        leopard.lastSwing=p.swingId;
+        hurtLeopard(leopard,ARMORY[p.weapon].damage*(p.rage>0?1.5:1));
+      }
+    }
     const yeti=game.yeti;
     if(yeti?.alive&&yeti.guardian<=0&&p.swing>0&&yeti.lastSwing!==p.swingId){
       const dx=yeti.x-p.x,dy=yeti.y-p.y;
@@ -1218,6 +1303,8 @@
     updateBirds();
     updateSeal();
     updateYeti();
+    updateLeopards();
+    if(state!=="running")return;
     if(state!=="running")return;
     if(held("attack"))shove();
     collisions();
@@ -1419,6 +1506,7 @@
     }
     for(const fire of game.fires)drawCampfire(fire);
     for(const item of game.drops)drawDrop(item);
+    for(const leopard of game.leopardSeals)drawLeopard(leopard);
     for(const b of game.birds)if(!b.eaten)drawBird(b);
     if(game.seal)drawSeal(game.seal);
     if(game.yeti?.alive)drawYeti(game.yeti);
@@ -1474,6 +1562,37 @@
       text(icons[item.kind]||"?",x,y,22,"#132231","center",1000);
     }
     text(item.kind.toUpperCase(),x,y+28,11,"#19384a","center",950);
+  }
+  function drawLeopard(seal){
+    if(seal.dead||seal.emerge<.07)return;
+    const hole=game.holes[seal.holeIndex];
+    if(!hole)return;
+    const x=seal.x,y=seal.y,depth=seal.emerge;
+    const angle=Math.atan2(game.player.y-y,game.player.x-x);
+    circle(x,y,24*depth,"#7bc9df76");
+    ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.scale(depth,depth);
+    // ONLY head and upper neck emerge. The rest remains underwater.
+    ellipse(-24,0,32,19,"#43575e");
+    ellipse(0,0,37,20,"#778d90");
+    ellipse(20,-3,30,16,"#c7d2cb");
+    ellipse(38,1,9,6,"#37484e");
+    for(const n of [-1,1]){
+      circle(11,n*11,4,"#171e24");
+      circle(13,n*11,1.4,"#e5f8ff");
+      for(let i=0;i<4;i++){
+        circle(-24+i*12,n*(i%2?6:12),2.8,"#313c42");
+      }
+    }
+    ctx.beginPath();ctx.moveTo(16,10);ctx.lineTo(48,8);
+    ctx.lineWidth=2.5;ctx.strokeStyle="#38252b";ctx.stroke();
+    if(seal.flash>0)ellipse(6,0,35,20,"#ff324966");
+    ctx.restore();
+    // Above-water health shown only while engaged.
+    if(depth>.55){
+      rect(x-37,y-34,74,7,"#142f43");
+      rect(x-37,y-34,74*clamp(seal.hp/Math.max(1,seal.maxHp),0,1),7,C.red);
+      text("LEOPARD SEAL",x,y-45,11,C.yellow,"center",1000);
+    }
   }
   function drawSeal(seal){
     const x=seal.x,y=seal.y,bob=Math.sin(game.clock*.1+seal.phase)*2;
