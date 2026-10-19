@@ -2,24 +2,58 @@
 
 Weird experiments, tiny games, and dramatically overengineered answers to ridiculous questions.
 
-## Emperor Gauntlet
+## Emperor Gauntlet: CHAOS BUILD (v2)
 
-> One unarmed human. A lot of penguins. Antarctica does most of the killing.
+> One deranged explorer. An army of penguins. Antarctica does most of the killing.
 
-An arcade survival game born from the question: **"How many penguins could you defeat in hand-to-hand combat on their turf?"**
+A ridiculous, free, browser-based Antarctic arcade game, based on a hypothetical question about surviving hand-to-hand combat with emperor penguins.
 
-**Legendary record: 37 penguins before freezing to death.**
+**Original creator's record: 37 penguins before freezing to death.**
 
-### Ways to play
+### Play it
 
-- **Browser:** [Play Emperor Gauntlet](https://danieloculus0-bot.github.io/FUN/) (requires GitHub Pages to be enabled for this repository).
-- **Offline HTML:** [Download `emperor-gauntlet/play.html`](emperor-gauntlet/play.html) and open the saved file in Chrome, Firefox, Edge, or Safari. No installation or internet required.
-- **Original Python:** [Pygame source and local run instructions](emperor-gauntlet/README.md).
+- **Online (once Pages is enabled):** [Emperor Gauntlet](https://danieloculus0-bot.github.io/FUN/)
+- **Offline in a browser:** Download [`emperor-gauntlet/play.html`](emperor-gauntlet/play.html) as a file and open it. No install or internet needed.
+- **Original Python prototype:** [Pygame edition](emperor-gauntlet/emperor_gauntlet.py)
 
-### Development
+The browser game is the actively developed main edition in [`docs/`](docs/). The Pygame original stays available for history.
 
-The Python original is preserved. The HTML5 Canvas port lives under [`docs/`](docs/) and is dependency-free. The GitHub Pages deployment workflow is at [`.github/workflows/pages.yml`](.github/workflows/pages.yml).
+### Chaos build features
 
-To enable online hosting: repository **Settings > Pages > Build and deployment > Source > GitHub Actions**. The deployment workflow runs automatically after changes to the web edition. You can also run it from **Actions**.
+- **Six weapon slots:** fists, knife, nunchucks, bo staff, Uzi, shotgun
+- **Throwables:** grenades with area damage and dangerous splashback
+- **Survival gear:** parkas, first-aid kits, ice cleats, ammo, caffeine rage boosts
+- **Better characters:** illustrated Antarctic explorer, animated penguins, bruisers and berserkers
+- **Effects:** blood splatter, blood trails, explosions, damage numbers, combos and screen shake
+- **Cross-device:** keyboard/mouse, touch controls, browser-local personal best
+- **Environment:** blizzards, pressure cracks, dangerous ice, fatigue, cold
 
-**Reminder:** This is an absurdist arcade game, not a real-world animal combat simulation.
+### Controls
+
+| Key / input | Action |
+| --- | --- |
+| WASD / arrow keys | Move |
+| Shift | Sprint |
+| Space / mouse click | Attack; hold for automatic attacks |
+| G | Throw grenade |
+| Q / E | Switch between owned weapons |
+| 1 through 6 | Select a weapon slot |
+| P / Esc | Pause |
+| Walk over equipment | Collect it |
+
+### Dev and testing
+
+Plain JavaScript and HTML5 Canvas. Zero runtime libraries or services. Start by opening `docs/index.html` or the bundled offline `emperor-gauntlet/play.html`.
+
+Regression checks can run with Node:
+
+```sh
+node --check docs/game.js
+node tests/web-smoke.cjs
+```
+
+GitHub Actions runs those checks and deploys `docs/` to Pages if **Settings > Pages > Source > GitHub Actions** is enabled. The GitHub deployment **has not been confirmed live**.
+
+This is a deliberately unpolished chaos build. Cross-browser controls, game balance, sprite polishing and deployment verification are next-pass work, suitable for Replit or independent review with Claude.
+
+**No real penguins were harmed.**
