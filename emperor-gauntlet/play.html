@@ -27,7 +27,7 @@
   <main class="shell">
     <header class="masthead">
       <a class="brand" href="https://github.com/danieloculus0-bot/FUN" aria-label="FUN on GitHub"><span class="brand-symbol">F<span>U</span>N</span><span class="brand-sub">UNREASONABLE EXPERIMENTS</span></a>
-      <span class="edition">BROWSER EDITION <span class="edition-dot"></span> v2.3 · POLAR NIGHT</span>
+      <span class="edition">BROWSER EDITION <span class="edition-dot"></span> v2.4 · BLOODBATH</span>
     </header>
     <section class="game-section" aria-label="Emperor Gauntlet">
       <div class="title-row">
@@ -40,7 +40,7 @@
           <div class="overlay-card">
             <span class="overlay-kicker" id="overlay-kicker">WELCOME TO THE WORST FIELD TRIP ON EARTH</span>
             <h2 id="overlay-title">THE ICE DOESN'T <em>CARE.</em></h2>
-            <p id="overlay-copy">One deranged explorer, an Uzi, and catastrophic Antarctic decision-making. Every third wave brings polar night. Campfires and plasma light the darkness, and a boss-sized Bigfoot-shaped Yeti can warm you up—unless you shoot it.</p>
+            <p id="overlay-copy">One deranged explorer, a flamethrower-level disregard for good judgment, and penguins exploding in ridiculous red-snow carnage. The Yeti occasionally eats a penguin for himself—no points for you. Club the baby seal and he removes half your health as a warning.</p>
             <button class="primary-button" id="play-button" type="button">ENTER THE ARENA <span aria-hidden="true">↗</span></button>
             <p class="overlay-hint" id="overlay-hint">WASD: MOVE &nbsp; · &nbsp; MOUSE: AIM &nbsp; · &nbsp; SPACE / CLICK: ATTACK &nbsp; · &nbsp; G: GRENADE</p>
           </div>
@@ -76,9 +76,9 @@
       </div>
     </section>
     <section class="details" aria-label="How to play">
-      <div class="detail"><span class="detail-num">01 /</span><h3>MOVE SMART</h3><p>Survive polar night every third wave. Follow the glow of campfires, plasma shots and the wandering, side-profile Bigfoot Yeti to keep warm.</p></div>
-      <div class="detail"><span class="detail-num">02 /</span><h3>PICK YOUR FIGHTS</h3><p>The Uzi becomes your default when found. Swap to other gear manually. The plasma ion cannon melts the ice, and all penguins lost to cracks count toward your score.</p></div>
-      <div class="detail"><span class="detail-num">03 /</span><h3>BEAT 37</h3><p>That's the original record. Score penguins defeated by weapons or cracked ice. A defeated Yeti is worth 1,000 bonus points.</p></div>
+      <div class="detail"><span class="detail-num">01 /</span><h3>MOVE SMART</h3><p>Survive polar night every third wave. Campfires and the friendly Yeti provide warmth. A baby seal wanders nearby; hit it and the Yeti slaps away half your health.</p></div>
+      <div class="detail"><span class="detail-num">02 /</span><h3>PICK YOUR FIGHTS</h3><p>The Uzi becomes your default when found. Plasma blasts melt the ice and all crack kills count. Big emperor penguins burst into ridiculous cartoon blood fountains.</p></div>
+      <div class="detail"><span class="detail-num">03 /</span><h3>BEAT 37</h3><p>That's the original record. Penguins killed by your weapons or ice count; penguins eaten by the Yeti don't. Defeating an enraged Yeti earns 1,000 bonus points.</p></div>
     </section>
     <footer><span>EMPEROR GAUNTLET / PART OF THE <a href="https://github.com/danieloculus0-bot/FUN">FUN PROJECT</a></span><span>SIMULATED PENGUINS ONLY. REAL-WORLD JUDGMENT NOT INCLUDED.</span></footer>
   </main>
@@ -232,7 +232,9 @@
         { x: 2200, y: 350, r: 52 }, { x: 540, y: 910, r: 48 }
       ],
       fires:CAMP_SITES.map((site,i)=>({x:site.x,y:site.y,phase:i*1.87,life:Infinity,kind:"campfire"})),
-      particles: [], stains: [], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
+      particles: [], stains: [], gibs:[], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
+      seal:{x:350,y:270,phase:0,vx:.7,vy:.25,hurtCooldown:0,scared:0,lastSwing:-1},
+      sealWarnings:0, yetiEats:0, goreBursts:0, guardianNotice:0,
       wave:1, waveBanner:0, bossWave:0, nextWaveAt:10,
       night:false,nightNotice:0,
       points:0, ionCracks:[], ionShots:0, yeti:null, yetiNext:190, yetiVisits:0,yetiBanner:0,
@@ -259,11 +261,11 @@
       game.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
         life: rand(20, 58), color, radius: rand(1, 3) });
     }
-    if (game.particles.length > 500) game.particles.splice(0, game.particles.length - 500);
+    if (game.particles.length > 1500) game.particles.splice(0, game.particles.length - 1500);
   }
   function stain(x, y, radius = 10, color = "#9b2635") {
     game.stains.push({ x, y, radius, color, life: 900 });
-    if (game.stains.length > 170) game.stains.shift();
+    if (game.stains.length > 350) game.stains.splice(0,game.stains.length-350);
   }
   function wind() {
     return { x: Math.cos(game.windAngle) * game.windStrength,
@@ -342,6 +344,40 @@
     }
     return false;
   }
+  function goreBurst(bird){
+    const massive=bird.variant==="boss",big=massive||bird.variant==="bruiser";
+    const scale=massive?3.5:big?2.1:1;
+    const x=bird.x,y=bird.y;
+    game.goreBursts++;
+    const palette=["#be152f","#f12c40","#8e0925","#ff5960","#56091b"];
+    const count=massive?270:big?140:75;
+    // Exaggerated arcade particles and comic-book gibs, not photorealistic.
+    for(let i=0;i<count;i++){
+      const a=rand(0,Math.PI*2),speed=rand(1.5,14)*Math.sqrt(scale);
+      game.particles.push({x:x+rand(-4,4),y:y+rand(-6,6),
+        vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,
+        radius:rand(1.8,6.2)*Math.sqrt(scale),life:rand(30,100),
+        color:palette[Math.floor(rand(0,palette.length))],blood:true});
+    }
+    for(let i=0;i<(massive?44:big?22:12);i++){
+      const a=rand(0,Math.PI*2),d=rand(5,96)*Math.sqrt(scale);
+      stain(x+Math.cos(a)*d,y+Math.sin(a)*d,rand(4,17)*Math.sqrt(scale),
+        palette[Math.floor(rand(0,palette.length))]);
+    }
+    for(let i=0;i<(massive?26:big?15:7);i++){
+      const a=rand(0,Math.PI*2),speed=rand(3,12)*Math.sqrt(scale);
+      game.gibs.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,
+        size:rand(4,13)*Math.sqrt(scale),angle:a,spin:rand(-.35,.35),
+        life:rand(90,190),color:i%4===0?"#121e25":palette[i%palette.length]});
+    }
+    game.gibs=game.gibs.slice(-280);
+    game.particles=game.particles.slice(-1500);
+    game.shake=Math.max(game.shake,massive?27:big?17:8);
+    if(big){
+      game.explosions.push({x,y,r:0,life:26,maxR:massive?175:105,blood:true});
+      floatText(x,y-66,massive?"EMPEROR EXPLODED!": "TUXEDO BLOOD TSUNAMI!",C.red);
+    }
+  }
   function floatText(x,y,label,color=C.yellow){
     game.floats.push({x,y,label,color,life:75});
     if(game.floats.length>70)game.floats.shift();
@@ -410,6 +446,7 @@
     const p=game.player,d=Math.hypot(p.x-x,p.y-y);
     if(d<110)p.hp-=Math.max(4,25*(1-d/120));
     if(game.yeti?.alive&&Math.hypot(game.yeti.x-x,game.yeti.y-y)<155)hurtYeti(140);
+    if(game.seal&&Math.hypot(game.seal.x-x,game.seal.y-y)<120)warnSeal();
     game.shake=16;say("BOOM. ANTARCTICA FILES A FORMAL COMPLAINT.",155);
     playSfx("boom");
   }
@@ -482,7 +519,12 @@
         smack(b,Math.max(25,480*(1-d/300)),n.x*24,n.y*24);
       }
     }
-    if(game.yeti&&game.yeti.alive&&Math.hypot(game.yeti.x-x,game.yeti.y-y)<240){
+    // A guardian Yeti freshly summoned by a seal warning must not also
+    // get accidentally hit by the very same plasma detonation.
+    const yetiBeforeImpact=game.yeti?.alive?game.yeti:null;
+    if(game.seal&&Math.hypot(game.seal.x-x,game.seal.y-y)<245)warnSeal();
+    if(yetiBeforeImpact&&game.yeti===yetiBeforeImpact&&
+       game.yeti.alive&&Math.hypot(game.yeti.x-x,game.yeti.y-y)<240){
       const d=Math.hypot(game.yeti.x-x,game.yeti.y-y);
       hurtYeti(Math.max(90,550*(1-d/260)));
     }
@@ -504,12 +546,76 @@
       y=clamp(p.y+rand(-55,55),135,WORLD_H-105);
     }
     game.yeti={x,y,hp:6000,maxHp:6000,vx:-side*1.15,vy:rand(-.2,.2),
-      life:1500,rage:0,attackCooldown:0,flash:0,lastSwing:-1,alive:true};
+      life:1500,rage:0,attackCooldown:0,flash:0,lastSwing:-1,alive:true,
+      snackCooldown:Math.floor(rand(180,400)),munch:0,guardian:0};
     game.yetiVisits++;
     game.yetiNext=game.clock+rand(2300,3200);
     say("ENORMOUS FRIENDLY YETI APPROACHING! WALK NEAR IT TO WARM UP.",260);
     game.yetiBanner=195;
     playSfx("collect");
+  }
+  function warnSeal(){
+    const seal=game.seal;
+    if(!seal||seal.hurtCooldown>0)return false;
+    seal.hurtCooldown=750;
+    seal.scared=180;
+    game.sealWarnings++;
+    const p=game.player;
+    // Protective Yeti's slap halves CURRENT health but cannot kill.
+    p.hp=Math.max(1,p.hp*.5);
+    p.slip=Math.max(20,p.slip);
+    const dx=p.x-seal.x,dy=p.y-seal.y,n=norm(dx,dy);
+    p.vx+=n.x*11;p.vy+=n.y*11;
+    particles(p.x,p.y,C.white,43,9);
+    floatText(p.x,p.y-42,"YETI WARNING! -50% HP",C.orange);
+    game.shake=Math.max(19,game.shake);
+    game.explosions.push({x:p.x,y:p.y,r:0,life:20,maxR:100,warning:true});
+    if(!game.yeti?.alive)spawnYeti();
+    const yeti=game.yeti;
+    if(yeti){
+      yeti.x=clamp(p.x+95,65,WORLD_W-65);
+      yeti.y=clamp(p.y-18,105,WORLD_H-80);
+      yeti.vx=-1.1;yeti.vy=0;
+      yeti.guardian=100;
+      yeti.rage=0; // This is a warning. He stays friendly afterward.
+      yeti.life=Math.max(yeti.life,500);
+    }
+    game.yetiBanner=150;
+    game.guardianNotice=175;
+    say("YOU CLUBBED A BABY SEAL! YETI WARNING SHOT: HALF YOUR HEALTH. LEAVE THE PUP ALONE.",250);
+    playSfx("boss");
+    return true;
+  }
+  function updateSeal(){
+    const seal=game.seal;
+    if(!seal)return;
+    seal.phase+=.027;
+    if(seal.hurtCooldown>0)seal.hurtCooldown--;
+    if(seal.scared>0){
+      seal.scared--;
+      const p=game.player,n=norm(seal.x-p.x,seal.y-p.y);
+      seal.vx+=n.x*.34;seal.vy+=n.y*.34;
+    }else{
+      seal.vx+=Math.cos(seal.phase)*.06;
+      seal.vy+=Math.sin(seal.phase*.7)*.06;
+    }
+    seal.vx=clamp(seal.vx,-2.2,2.2)*.97;
+    seal.vy=clamp(seal.vy,-2.2,2.2)*.97;
+    seal.x=clamp(seal.x+seal.vx,45,WORLD_W-45);
+    seal.y=clamp(seal.y+seal.vy,65,WORLD_H-65);
+  }
+  function yetiSnack(b){
+    const y=game.yeti;
+    if(!y?.alive||y.rage>0||!b||b.down||b.variant==="boss")return false;
+    downBird(b,"yeti");
+    y.snackCooldown=Math.floor(rand(450,800));
+    y.munch=80;
+    game.shake=Math.max(game.shake,3);
+    floatText(y.x,y.y-128,"GULP! - NO POINTS",C.white);
+    // No kill credit or rewards: this is the Yeti's snack, not a player kill.
+    say("THE YETI JUST ATE A PENGUIN. THAT ONE DOESN'T COUNT.",140);
+    playSfx("collect");
+    return true;
   }
   function updateYeti(){
     if(!game.yeti){
@@ -522,6 +628,9 @@
     y.life--;
     if(y.flash>0)y.flash--;
     if(y.attackCooldown>0)y.attackCooldown--;
+    if(y.snackCooldown>0)y.snackCooldown--;
+    if(y.munch>0)y.munch--;
+    if(y.guardian>0)y.guardian--;
     if(y.rage>0){
       y.rage=Math.max(0,y.rage-1);
       const n=norm(p.x-y.x,p.y-y.y);
@@ -537,8 +646,23 @@
         if(p.hp<=0)finish("Got rearranged by the Yeti you decided to shoot");
       }
     } else {
-      y.vx+=rand(-.15,.15);y.vy+=rand(-.17,.17);
-      y.vx=clamp(y.vx,-1.8,1.8);y.vy=clamp(y.vy,-1.1,1.1);
+      // Whenever he gets hungry, stalk the nearest ordinary penguin
+      // and occasionally snap one up. He NEVER awards player credit.
+      const nearby=game.birds.filter(b=>!b.down&&b.variant!=="boss");
+      let target=null,dist=Infinity;
+      for(const b of nearby){
+        const d=Math.hypot(y.x-b.x,y.y-b.y);
+        if(d<dist){dist=d;target=b;}
+      }
+      if(y.snackCooldown<=0&&target&&dist<420){
+        const n=norm(target.x-y.x,target.y-y.y);
+        y.vx=clamp(y.vx+n.x*.20,-2.5,2.5);
+        y.vy=clamp(y.vy+n.y*.20,-2.5,2.5);
+        if(dist<68)yetiSnack(target);
+      }else{
+        y.vx+=rand(-.15,.15);y.vy+=rand(-.17,.17);
+        y.vx=clamp(y.vx,-1.8,1.8);y.vy=clamp(y.vy,-1.1,1.1);
+      }
     }
     y.x=clamp(y.x+y.vx,45,WORLD_W-45);
     y.y=clamp(y.y+y.vy,70,WORLD_H-70);
@@ -559,6 +683,14 @@
         continue;
       }
       if(bullet.x<0||bullet.y<0||bullet.x>WORLD_W||bullet.y>WORLD_H)bullet.life=0;
+      const seal=game.seal;
+      if(seal&&bullet.life>0){
+        const dx=bullet.x-ox,dy=bullet.y-oy,den=dx*dx+dy*dy;
+        const t=clamp(den?((seal.x-ox)*dx+(seal.y-oy)*dy)/den:0,0,1);
+        if(Math.hypot(seal.x-(ox+t*dx),seal.y-(oy+t*dy))<22){
+          warnSeal();bullet.life=0;
+        }
+      }
       const yeti=game.yeti;
       if(yeti?.alive&&bullet.life>0){
         const dx=bullet.x-ox,dy=bullet.y-oy,den=dx*dx+dy*dy;
@@ -586,7 +718,7 @@
       if(bomb.life<=0)boom(bomb.x,bomb.y);
     }
     game.bombs=game.bombs.filter(b=>b.life>0);
-    for(const blast of game.explosions){blast.life--;blast.r=Math.min(135,blast.r+15);}
+    for(const blast of game.explosions){blast.life--;blast.r=Math.min(blast.maxR||135,blast.r+(blast.blood?22:15));}
     game.explosions=game.explosions.filter(b=>b.life>0);
     for(const p of game.floats){p.y-=.65;p.life--;}
     game.floats=game.floats.filter(p=>p.life>0);
@@ -638,9 +770,20 @@
 
   function downBird(bird, reason) {
     if (bird.down) return;
-    bird.down = true;
-    bird.downTimer = 240;
-    if (reason !== "ice") {
+    bird.down=true;
+    bird.downTimer=240;
+    // The Yeti gets hungry. Its dinner NEVER adds to the player's score,
+    // combo, kills, ice falls or wave progression.
+    if(reason==="yeti"){
+      bird.eaten=true;
+      bird.downTimer=0;
+      game.yetiEats++;
+      particles(bird.x,bird.y,"#f6fcff",18,2.5);
+      floatText(bird.x,bird.y-28,"YETI SNACK · +0",C.cyan);
+      return;
+    }
+    if(reason!=="ice"){
+      goreBurst(bird);
       game.score++;
       game.player.provocation += 2;
       game.points+=bird.variant==="boss"?500:100;
@@ -653,8 +796,7 @@
       game.player.comboTime=180;
       if(game.player.combo%5===0)floatText(bird.x,bird.y-55,game.player.combo+"x COMBO!");
       if(Math.random()<.19)game.drops.push(makeDrop(["ammo","medkit","grenade","coffee","parka"][Math.floor(rand(0,5))],bird.x,bird.y));
-      particles(bird.x, bird.y, C.red, 25, 4);
-      stain(bird.x, bird.y, rand(8, 16));
+      // goreBurst already scattered the comic-book snow stains and fragments.
       if(bird.variant!=="boss")say([
         "PENGUIN DOWN. THE ROOKERY FILES A COMPLAINT.",
         "ONE TUXEDO PANCAKE. NATURE IS JUDGING YOU.",
@@ -902,8 +1044,17 @@
         }
       }
     }
+    const seal=game.seal;
+    if(seal&&p.swing>0&&seal.lastSwing!==p.swingId){
+      const dx=seal.x-p.x,dy=seal.y-p.y,n=norm(dx,dy);
+      if(Math.hypot(dx-p.fx*p.swingReach,dy-p.fy*p.swingReach)<40&&
+         n.x*p.fx+n.y*p.fy>.15){
+        seal.lastSwing=p.swingId;
+        warnSeal();
+      }
+    }
     const yeti=game.yeti;
-    if(yeti?.alive&&p.swing>0&&yeti.lastSwing!==p.swingId){
+    if(yeti?.alive&&yeti.guardian<=0&&p.swing>0&&yeti.lastSwing!==p.swingId){
       const dx=yeti.x-p.x,dy=yeti.y-p.y;
       const n=norm(dx,dy);
       if(Math.hypot(dx-p.fx*p.swingReach,dy-p.fy*p.swingReach)<70&&
@@ -993,6 +1144,7 @@
     checkTerrain();
     if (state !== "running") return;
     updateBirds();
+    updateSeal();
     updateYeti();
     if(state!=="running")return;
     if(held("attack"))shove();
@@ -1004,13 +1156,20 @@
     if(game.waveBanner>0)game.waveBanner--;
     if(game.nightNotice>0)game.nightNotice--;
     if(game.yetiBanner>0)game.yetiBanner--;
+    if(game.guardianNotice>0)game.guardianNotice--;
     if(game.clock%650===0){const p=game.player;game.drops.push(makeDrop(["ammo","medkit","coffee","grenade","parka"][Math.floor(rand(0,5))],clamp(p.x+rand(-300,300),35,WORLD_W-35),clamp(p.y+rand(-280,280),35,WORLD_H-35)));}
     if(game.shake>0)game.shake=Math.max(0,game.shake-.65);
     for (const particle of game.particles) {
       particle.x += particle.vx; particle.y += particle.vy;
       particle.vx *= .94; particle.vy *= .94; particle.life--;
     }
-    game.particles = game.particles.filter(p => p.life > 0);
+    game.particles = game.particles.filter(p=>p.life>0);
+    for(const gib of game.gibs){
+      gib.x+=gib.vx;gib.y+=gib.vy;gib.vx*=.93;gib.vy*=.93;
+      gib.angle+=gib.spin;gib.life--;
+      if(gib.life%5===0)stain(gib.x,gib.y,Math.max(2,gib.size*.4),gib.color);
+    }
+    game.gibs=game.gibs.filter(g=>g.life>0);
     for (const s of game.stains) s.life--;
     game.stains = game.stains.filter(s => s.life > 0);
     if (game.messageTimer > 0) game.messageTimer--;
@@ -1129,7 +1288,8 @@
     }
     for(const fire of game.fires)drawCampfire(fire);
     for(const item of game.drops)drawDrop(item);
-    for(const b of game.birds)drawBird(b);
+    for(const b of game.birds)if(!b.eaten)drawBird(b);
+    if(game.seal)drawSeal(game.seal);
     if(game.yeti?.alive)drawYeti(game.yeti);
     drawPlayer(game.player);
     for(const bullet of game.bullets){
@@ -1148,11 +1308,17 @@
       circle(bomb.x-2,bomb.y-3,3,C.yellow);
     }
     for(const blast of game.explosions){
-      circle(blast.x,blast.y,blast.r,blast.ion?"#7bffff48":"#ef7b2633");
+      circle(blast.x,blast.y,blast.r,blast.warning?"#fbd3793d":blast.blood?"#bb123b38":blast.ion?"#7bffff48":"#ef7b2633");
       ctx.beginPath();ctx.arc(blast.x,blast.y,blast.r,0,Math.PI*2);
-      ctx.strokeStyle=blast.ion?"#6ff9ff":"#ffcb59";ctx.lineWidth=7;ctx.stroke();
+      ctx.strokeStyle=blast.warning?"#ffed92":blast.blood?"#ed254e":blast.ion?"#6ff9ff":"#ffcb59";ctx.lineWidth=blast.blood?10:7;ctx.stroke();
     }
-    for (const p of game.particles) circle(p.x, p.y, p.radius, p.color);
+    for(const gib of game.gibs){
+      ctx.save();ctx.translate(gib.x,gib.y);ctx.rotate(gib.angle);
+      ellipse(0,0,gib.size,gib.size*.52,gib.color);
+      ellipse(-gib.size*.25,-gib.size*.15,gib.size*.35,gib.size*.2,"#ff5f7180");
+      ctx.restore();
+    }
+    for(const p of game.particles) circle(p.x,p.y,p.radius,p.color);
     for(const ft of game.floats)text(ft.label,ft.x,ft.y,17,ft.color,"center",1000);
     ctx.restore();
   }
@@ -1173,6 +1339,28 @@
       text(icons[item.kind]||"?",x,y,22,"#132231","center",1000);
     }
     text(item.kind.toUpperCase(),x,y+28,11,"#19384a","center",950);
+  }
+  function drawSeal(seal){
+    const x=seal.x,y=seal.y,bob=Math.sin(game.clock*.1+seal.phase)*2;
+    const scared=seal.scared>0;
+    ellipse(x,y+14,34,8,"#416b8166");
+    // A visible round white seal pup and a clear warning label.
+    ellipse(x-21,y+6+bob,13,8,"#e9f4f9");
+    ellipse(x+24,y+8+bob,13,9,"#d2e9f1");
+    ellipse(x,y+bob,35,20,"#f4fdff");
+    ellipse(x+23,y-7+bob,19,17,"#f7fcff");
+    ellipse(x+26,y+1+bob,11,7,"#d4ecf4");
+    circle(x+30,y-11+bob,4.5,"#1e3844");
+    circle(x+31,y-12+bob,1.6,"#f8ffff");
+    ellipse(x+38,y+bob,4,2.8,"#1c3d48");
+    for(const sy of [-1,1]){
+      ctx.strokeStyle="#638696";ctx.lineWidth=1.4;ctx.beginPath();
+      ctx.moveTo(x+37,y+3+bob);
+      ctx.lineTo(x+44,y+3+sy*6+bob);ctx.stroke();
+    }
+    rect(x-108,y-55,216,24,"#173848dc");
+    text(scared?"THE YETI IS WATCHING":"BABY SEAL · DON'T CLUB",
+      x,y-43,12,scared?C.orange:C.cyan,"center",1000);
   }
   function drawYeti(y){
     // Side-profile Bigfoot: roughly the size of an Emperor boss penguin,
@@ -1227,8 +1415,8 @@
     ellipse(36,-77+bob,9,7,"#244251");
     circle(39,-77+bob,3.2,angry?"#ff314c":"#aeedff");
     ellipse(64,-63+bob,5,4,"#1d3a49");
-    if(angry){
-      ellipse(52,-48+bob,18,8,"#6c2436");
+    if(angry||y.munch>0){
+      ellipse(52,-48+bob,18,y.munch>0?13:8,"#6c2436");
       for(let i=0;i<4;i++)rect(42+i*7,-54+bob,3,8,"#fff8f2");
     }else{
       ctx.beginPath();ctx.arc(49,-53+bob,9,.2,Math.PI*.82);
@@ -1245,7 +1433,7 @@
     ctx.restore();
     const labelY=y.y-127;
     rect(y.x-100,labelY-15,200,29,angry?"#551729de":"#163844e6");
-    text(angry?"ENRAGED YETI +1000":"FRIENDLY YETI · WARMTH",
+    text(angry?"ENRAGED YETI +1000":y.munch>0?"YETI MUNCHING · +0":"FRIENDLY YETI · WARMTH",
       y.x,labelY,14,angry?C.red:C.yellow,"center",1000);
   }
   function drawBird(b) {
@@ -1438,7 +1626,8 @@
     }
     drawObjectiveCompass();
     // Notifications, boss warnings and wave announcements all share the bottom band.
-    const notice=game.nightNotice>0?(game.night?
+    const notice=game.guardianNotice>0?"YETI PROTECTS BABY SEAL · WARNING SLAP: -50% HP":
+      game.nightNotice>0?(game.night?
       "NIGHTFALL · WAVE "+game.wave+" · FOLLOW THE FIRES":"DAYBREAK · WAVE "+game.wave):
       game.yetiBanner>0?"FRIENDLY YETI SPOTTED · HE'S A WALKING HEATER":
       game.waveBanner>0?"WAVE "+game.wave+" · "+
@@ -1446,7 +1635,7 @@
       game.messageTimer>0?game.message:"";
     if(notice){
       text(notice,W/2,H-27,notice.length>80?12:15,
-        game.yetiBanner>0?C.yellow:C.white,"center");
+        game.guardianNotice>0?C.red:game.yetiBanner>0?C.yellow:C.white,"center");
     }
   }
   function drawBlizzard() {
