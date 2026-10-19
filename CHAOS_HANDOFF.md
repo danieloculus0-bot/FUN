@@ -1,0 +1,34 @@
+# Emperor Gauntlet v2: cross-agent finishing notes
+
+**Repository:** danieloculus0-bot/FUN
+**Active playable edition:** `docs/index.html`, `docs/game.js`, `docs/style.css`
+**Standalone offline edition:** `emperor-gauntlet/play.html`, assembled from the three web files
+**Historical baseline:** `emperor-gauntlet/emperor_gauntlet.py`
+**Deployment:** `.github/workflows/pages.yml` deploys `docs/` to GitHub Pages. It requires Pages configured to use GitHub Actions.
+
+## Current implemented build
+
+Browser-based Canvas top-down Antarctic arena. Movement / sprint, shoves and weapon cooldowns, Uzi/shotgun bullets, knife, bo staff, nunchucks, grenades with player splash damage, ammo inventory, pickups, jacket cold resistance, medkits, cleats, rage boost, blood effects, popup damage, screen shake, combo counter, basic penguin variants, blizzard, terrain hazards, camera, touch controls, and local best-score storage.
+
+The humor, exaggerated weapons and simulated cartoon violence are intentional.
+
+## Controls
+
+WASD/arrows to move; Shift sprint; Space or left mouse button to attack (hold to repeat); G grenade; Q/E cycle owned weapons; 1-6 quick weapon select; P/Escape pause. Touch arrows, sprint, swap, boom, fire are provided.
+
+## Finishing pass priorities
+
+1. Open the GitHub Pages site and the offline HTML in real browsers (desktop and mobile); validate touch input and sizing. Check Pages setup if the site is still unavailable.
+2. Run `node --check docs/game.js` and `node tests/web-smoke.cjs`, then click through real gameplay, weapon pickups, firing, switches, inventory/ammo, grenades, deaths and restarts.
+3. Play-balance cold drain, survivability, grenade friendly fire, drop frequencies, player attack timing and enemy composition. The original 37-penguin baseline is not directly comparable to the armed arcade edition.
+4. Improve character animation and hitbox alignment. Current characters are procedural Canvas illustrations, not imported sprite sheets.
+5. Add sound effects, screen transitions, and legible responsive UI; no audio is included yet.
+6. Add wave pacing, optional mini-bosses and more absurd rare drops only after controls and combat are stable.
+
+## Key development rule
+
+Keep the repository's `main` branch as the current source of truth. Do not replace it with the older Python prototype. Preserve `emperor-gauntlet/emperor_gauntlet.py` as history. When `docs/` changes, regenerate `emperor-gauntlet/play.html` from the HTML, CSS, and JS so offline and hosted editions don't diverge.
+
+## Verification to date
+
+JavaScript syntax and mocked Canvas event/render/gameplay loops have passed in the development session, including item pickup, Uzi bullet, grenade explosion, weapon switch, pause/resume and freeze death. The GitHub Pages site and real interactive browser playthrough have **not** been independently verified. No claim is made that this is a polished or balanced release.
