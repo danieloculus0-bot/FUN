@@ -4,7 +4,7 @@
 **Active playable edition:** `docs/index.html`, `docs/game.js`, `docs/style.css`
 **Standalone offline edition:** `emperor-gauntlet/play.html`, assembled from the three web files
 **Historical baseline:** `emperor-gauntlet/emperor_gauntlet.py`
-**Deployment:** `.github/workflows/pages.yml` deploys `docs/` to GitHub Pages. It requires Pages configured to use GitHub Actions.
+**Deployment:** GitHub Pages native branch publishing from `main` and folder `/docs`. One-time activation in repository Settings > Pages > Source: Deploy from a branch > Branch: main > Folder: /docs > Save. `.github/workflows/pages.yml` only runs CI tests; it does not attempt deployment.
 
 ## Current implemented build
 
@@ -22,7 +22,7 @@ WASD/arrows to move; Shift sprint; mouse moves aiming cursor within the arena; S
 2. Run `node --check docs/game.js` and `node tests/web-smoke.cjs`, then click through real gameplay, weapon pickups, firing, switches, inventory/ammo, grenades, deaths and restarts.
 3. Play-balance cold drain, survivability, grenade friendly fire, drop frequencies, player attack timing and enemy composition. The original 37-penguin baseline is not directly comparable to the armed arcade edition.
 4. Improve character animation and hitbox alignment. Current characters are procedural Canvas illustrations, not imported sprite sheets.
-5. Add sound effects, screen transitions, and legible responsive UI; no audio is included yet.
+5. Evaluate synthesized browser sound effects, screen transitions, and legible responsive UI. Audio is now optional and off by default.
 6. Add wave pacing, optional mini-bosses and more absurd rare drops only after controls and combat are stable.
 
 ## Key development rule
