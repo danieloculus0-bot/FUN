@@ -12,7 +12,8 @@
     staff: {name:"BO STAFF",type:"melee",damage:56,reach:86,cooldown:27,stamina:10,color:"#deb179"},
     uzi: {name:"UZI",type:"gun",damage:26,cooldown:5,velocity:24,spread:.11,color:"#ffeb80"},
     shotgun: {name:"SHOTGUN",type:"gun",damage:26,cooldown:39,velocity:20,spread:.37,pellets:7,color:"#ffc16d"},
-    ion: {name:"ION CANNON",type:"gun",damage:420,cooldown:85,velocity:12,spread:0,color:"#73f4ff"}
+    ion: {name:"ION CANNON",type:"gun",damage:420,cooldown:85,velocity:12,spread:0,color:"#73f4ff"},
+    rocket: {name:"ROCKET LAUNCHER",type:"gun",damage:340,cooldown:52,velocity:15,spread:.025,color:"#ff9d51"}
   };
   const WEAPON_ORDER = Object.keys(ARMORY);
   // Permanent survival campfires keep the cold mechanic playable during extended waves.
@@ -25,7 +26,7 @@
   const MIN_DAY_TICKS=180*FPS;
   const DROP_COLORS = {uzi:"#f9cb5d",shotgun:"#f4a575",knife:"#dcebf5",
     nunchucks:"#ffdf6e",staff:"#caa47b",parka:"#77e0f5",medkit:"#f76879",
-    grenade:"#f1af51",ammo:"#ffe48b",coffee:"#dbafff",cleats:"#afff7a",ion:"#73f4ff",ioncell:"#99f5ff"};
+    grenade:"#f1af51",ammo:"#ffe48b",coffee:"#dbafff",cleats:"#afff7a",ion:"#73f4ff",ioncell:"#99f5ff",rocket:"#ff9d51",rockets:"#ffa64c"};
   const C = {
     snow: "#e8f4f7", ice: "#b0dce9", darkIce: "#123b51", blueIce: "#57a7c8",
     white: "#f3f8f9", black: "#0b1319", gray: "#4c6270", red: "#dd5c63",
@@ -126,7 +127,7 @@
         x: 170, y: 200, vx: 0, vy: 0, fx: 1, fy: 0,
         temp: 100, hp: 100, stamina: 100, wet: 0, slip: 0,
         shoveCD: 0, swing: 0, swingId: 0, provocation: 0,
-        weapon:"fists",owned:{fists:true},ammo:{uzi:120,shotgun:20,ion:0},
+        weapon:"fists",owned:{fists:true},ammo:{uzi:120,shotgun:20,ion:0,rocket:0},
         grenades:2,parka:0,cleats:false,rage:0,combo:0,comboTime:0,
         swingReach:43,swingColor:"#fbb667",muzzle:0,warming:false
       },
@@ -168,7 +169,8 @@
       makeDrop("knife",440,290),makeDrop("medkit",560,350),makeDrop("grenade",675,410),
       makeDrop("nunchucks",780,505),makeDrop("shotgun",1050,590),
       makeDrop("staff",1260,440),makeDrop("cleats",1460,620),makeDrop("coffee",840,270),
-      makeDrop("ion",1660,1200));
+      makeDrop("ion",510,320),makeDrop("ion",1660,1200),
+      makeDrop("rocket",655,300));
     return g;
   }
 
@@ -319,6 +321,17 @@
       p.shoveCD=18;say("CLICK. EMPTY. FIND AMMO OR SWITCH WEAPONS.",120);return;
     }
     p.ammo[p.weapon]--;p.shoveCD=w.cooldown;p.provocation+=.8;p.muzzle=5;
+    if(p.weapon==="rocket"){
+      const angle=Math.atan2(p.fy,p.fx);
+      game.bullets.push({x:p.x+p.fx*35,y:p.y+p.fy*35,
+        vx:Math.cos(angle)*w.velocity,vy:Math.sin(angle)*w.velocity,
+        damage:w.damage,life:85,color:w.color,rocket:true,trail:0});
+      particles(p.x+p.fx*27,p.y+p.fy*27,C.orange,36,6);
+      game.shake=Math.max(game.shake,8);
+      playSfx("shotgun");
+      say("ROCKET AWAY. THE ICE HAS QUESTIONS.",120);
+      return;
+    }
     if(p.weapon==="ion"){ 
       const a=Math.atan2(p.fy,p.fx);
       game.bullets.push({x:p.x+p.fx*34,y:p.y+p.fy*34,
@@ -586,10 +599,40 @@
     y.y=clamp(y.y+y.vy,70,WORLD_H-70);
     if(y.life<=0&&y.rage===0)game.yeti=null;
   }
+  function rocketDetonate(x,y){
+    x=clamp(x,35,WORLD_W-35);y=clamp(y,35,WORLD_H-35);
+    game.explosions.push({x,y,r:0,life:32,maxR:180,rocket:true});
+    particles(x,y,C.orange,115,12);particles(x,y,C.red,30,8);
+    for(const b of game.birds){
+      if(b.down)continue;
+      const d=Math.hypot(x-b.x,y-b.y);
+      if(d<200){
+        const n=norm(b.x-x,b.y-y);
+        smack(b,Math.max(25,350*(1-d/230)),n.x*20,n.y*20);
+      }
+    }
+    if(game.yeti?.alive&&Math.hypot(x-game.yeti.x,y-game.yeti.y)<180)hurtYeti(200);
+    if(game.seal&&Math.hypot(x-game.seal.x,y-game.seal.y)<140)warnSeal();
+    const p=game.player,dist=Math.hypot(x-p.x,y-p.y);
+    if(dist<160)p.hp-=Math.max(8,50*(1-dist/170));
+    game.shake=Math.max(17,game.shake);
+    say("ROCKET IMPACT: CARTOON EXPLOSION, MAXIMUM DISRESPECT.",155);
+    playSfx("boom");
+  }
   function moveProjectiles(){
     for(const bullet of game.bullets){
       const ox=bullet.x,oy=bullet.y;
       bullet.x+=bullet.vx;bullet.y+=bullet.vy;bullet.life--;
+      if(bullet.rocket){
+        bullet.trail++;
+        if(bullet.trail%2===0)particles(bullet.x,bullet.y,C.orange,3,1.8);
+        const impact=game.birds.some(b=>!b.down&&Math.hypot(b.x-bullet.x,b.y-bullet.y)<(b.variant==="boss"?53:23));
+        if(impact||bullet.life<=0||bullet.x<35||bullet.y<35||
+           bullet.x>WORLD_W-35||bullet.y>WORLD_H-35){
+          rocketDetonate(bullet.x,bullet.y);bullet.life=0;
+        }
+        continue;
+      }
       if(bullet.ion){
         const hit=game.birds.some(b=>!b.down&&Math.hypot(b.x-bullet.x,b.y-bullet.y)<(b.variant==="boss"?55:28));
         const yetiHit=game.yeti?.alive&&Math.hypot(game.yeti.x-bullet.x,game.yeti.y-bullet.y)<63;
@@ -654,7 +697,8 @@
         p.owned[k]=true;
         if(k==="uzi")p.ammo.uzi+=130;
         if(k==="shotgun")p.ammo.shotgun+=18;
-        if(k==="ion")p.ammo.ion+=8;
+        if(k==="ion")p.ammo.ion+=10;
+        if(k==="rocket")p.ammo.rocket+=8;
         // First Uzi pickup makes it the default. Later pickups must not
         // interrupt a weapon the player explicitly chose.
         if(k==="uzi"&&!hadUzi)p.weapon="uzi";
@@ -663,7 +707,8 @@
       }else if(k==="parka"){p.parka=Math.min(3,p.parka+1);p.temp=clamp(p.temp+30,0,100);say("PARKA EQUIPPED. COLD RESISTANCE UP.",145);}
       else if(k==="medkit"){p.hp=clamp(p.hp+50,0,100);say("FIRST AID KIT: +50 HEALTH.",120);}
       else if(k==="cleats"){p.cleats=true;say("ICE CLEATS. TRACTION, YOU BEAUTIFUL BASTARD.",125);}
-      else if(k==="ammo"){p.ammo.uzi+=100;p.ammo.shotgun+=16;p.ammo.ion+=2;say("AMMO RESTOCKED.",110);}
+      else if(k==="ammo"){p.ammo.uzi+=100;p.ammo.shotgun+=16;p.ammo.ion+=3;p.ammo.rocket+=3;say("AMMO RESTOCKED.",110);}
+      else if(k==="rockets"){p.ammo.rocket+=5;say("FIVE MORE ROCKETS. ANTARCTICA IS WORRIED.",150);}
       else if(k==="ioncell"){p.ammo.ion+=3;say("PLASMA ION CELLS +3. ANTARCTICA IS FUCKED.",160);}
       else if(k==="grenade"){p.grenades+=3;say("THREE MORE GRENADES. NO ONE TELL THE PENGUINS.",150);}
       else if(k==="coffee"){p.rage=900;p.stamina=100;p.temp=clamp(p.temp+16,0,100);say("CAFFEINATED RAGE: 15 SECONDS OF POOR JUDGMENT.",180);}
@@ -1057,6 +1102,14 @@
     // happen, so full night always lasts precisely 59 gameplay seconds.
     game.player.temp=clamp(game.player.temp+10,0,100);
     game.drops.push(makeDrop("ammo",clamp(game.player.x+65,40,WORLD_W-40),clamp(game.player.y+55,40,WORLD_H-40)));
+    if(game.wave===2||game.wave%3===0){
+      const p=game.player;
+      game.drops.push(makeDrop("ion",clamp(p.x+110,40,WORLD_W-40),clamp(p.y+55,40,WORLD_H-40)));
+      game.drops.push(makeDrop("ioncell",clamp(p.x+140,40,WORLD_W-40),clamp(p.y+35,40,WORLD_H-40)));
+    }
+    if(game.wave%2===0){
+      const p=game.player;game.drops.push(makeDrop("rocket",clamp(p.x-100,40,WORLD_W-40),clamp(p.y+75,40,WORLD_H-40)));
+    }
     say(game.wave%3===0?"WAVE "+game.wave+": SUNSET INCOMING. KEEP YOUR FLASHLIGHT READY.":
       "WAVE "+game.wave+": THE ROOKERY REQUESTS REINFORCEMENTS.",230);
     playSfx("wave");
@@ -1116,7 +1169,12 @@
     if(game.nightNotice>0)game.nightNotice--;
     if(game.yetiBanner>0)game.yetiBanner--;
     if(game.guardianNotice>0)game.guardianNotice--;
-    if(game.clock%650===0){const p=game.player;game.drops.push(makeDrop(["ammo","medkit","coffee","grenade","parka"][Math.floor(rand(0,5))],clamp(p.x+rand(-300,300),35,WORLD_W-35),clamp(p.y+rand(-280,280),35,WORLD_H-35)));}
+    if(game.clock%480===0){
+      const p=game.player;
+      const kinds=["ammo","medkit","coffee","grenade","parka","ion","ioncell","rocket","rockets"];
+      game.drops.push(makeDrop(kinds[Math.floor(rand(0,kinds.length))],
+        clamp(p.x+rand(-180,180),35,WORLD_W-35),clamp(p.y+rand(-180,180),35,WORLD_H-35)));
+    }
     if(game.shake>0)game.shake=Math.max(0,game.shake-.65);
     for (const particle of game.particles) {
       particle.x += particle.vx; particle.y += particle.vy;
@@ -1252,6 +1310,10 @@
     if(game.yeti?.alive)drawYeti(game.yeti);
     drawPlayer(game.player);
     for(const bullet of game.bullets){
+      if(bullet.rocket){
+        circle(bullet.x,bullet.y,13,"#ff9f43");
+        circle(bullet.x,bullet.y,6,"#ffe5a3");
+      }
       if(bullet.ion){
         circle(bullet.x,bullet.y,20+Math.sin(game.clock*.25)*3,"#52ecff44");
         circle(bullet.x,bullet.y,12,"#3de9f8");
@@ -1294,7 +1356,7 @@
       rect(-6,2,4,11,"#374c53");
       ctx.restore();
     }else{
-      const icons={medkit:"+",parka:"J",cleats:"C",ammo:"A",grenade:"G",coffee:"!"};
+      const icons={medkit:"+",parka:"J",cleats:"C",ammo:"A",grenade:"G",coffee:"!",ioncell:"⚡",rockets:"R"};
       text(icons[item.kind]||"?",x,y,22,"#132231","center",1000);
     }
     text(item.kind.toUpperCase(),x,y+28,11,"#19384a","center",950);
@@ -1472,7 +1534,13 @@
     ctx.restore();
     // Weapon points along the movement direction.
     const fx=p.fx,fy=p.fy,x=p.x+fx*23,y=p.y+fy*23;
-    if(p.weapon==="ion"){
+    if(p.weapon==="rocket"){
+      ctx.strokeStyle="#3f4748";ctx.lineWidth=17;
+      ctx.beginPath();ctx.moveTo(x-fx*15,y-fy*15);
+      ctx.lineTo(x+fx*42,y+fy*42);ctx.stroke();
+      circle(x+fx*40,y+fy*40,9,"#f09540");
+      if(p.muzzle>0)circle(x+fx*51,y+fy*51,16,"#ffbd6e");
+    }else if(p.weapon==="ion"){
       ctx.strokeStyle="#8af6ff";ctx.lineWidth=12;
       ctx.beginPath();ctx.moveTo(x-fx*15,y-fy*15);
       ctx.lineTo(x+fx*40,y+fy*40);ctx.stroke();
@@ -1732,7 +1800,7 @@
   window.addEventListener("keydown", e => {
     const k = keyName(e);
     const space = e.code === "Space";
-    if (k || space || ["g","q","e","1","2","3","4","5","6","7"].includes(e.key.toLowerCase())) e.preventDefault();
+    if (k || space || ["g","q","e","1","2","3","4","5","6","7","8"].includes(e.key.toLowerCase())) e.preventDefault();
     if (k && state === "running") pressed.add(k);
     if (e.repeat) return;
     if (e.key.toLowerCase() === "p" || e.key === "Escape") {
@@ -1744,7 +1812,7 @@
       throwGrenade();
     } else if (state === "running" && (e.key.toLowerCase() === "q" || e.key.toLowerCase() === "e")) {
       cycleWeapon(e.key.toLowerCase()==="e"?1:-1);
-    } else if (state === "running" && /^[1-7]$/.test(e.key)) {
+    } else if (state === "running" && /^[1-8]$/.test(e.key)) {
       selectWeapon(WEAPON_ORDER[Number(e.key)-1]);
     } else if (e.key.toLowerCase() === "r" && state === "over") {
       start();
