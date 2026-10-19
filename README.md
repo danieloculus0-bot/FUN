@@ -2,7 +2,7 @@
 
 Weird experiments, tiny games, and dramatically overengineered answers to ridiculous questions.
 
-## Emperor Gauntlet: POLAR NIGHT (v2.3)
+## Emperor Gauntlet: BLOODBATH (v2.4)
 
 > One deranged explorer. An army of penguins. Antarctica does most of the killing.
 
@@ -24,17 +24,18 @@ The browser game is the actively developed main edition in [`docs/`](docs/). The
 - **Throwables:** grenades with area damage and dangerous splashback
 - **Survival gear:** parkas, first-aid kits, ice cleats, ammo, caffeine rage boosts
 - **Better characters:** illustrated Antarctic explorer, animated penguins, bruisers and berserkers
-- **Effects:** blood splatter, blood trails, explosions, damage numbers, combos and screen shake
+- **Effects:** huge comic-book blood detonations and flying gore fragments, especially for bruisers and Emperor bosses, persistent red-snow stains, damage numbers, combos and heavy screen shake
 - **Cross-device:** keyboard/mouse, click-to-fire aiming, touch controls, browser-local personal best
 - **Waves and bosses:** escalating waves, giant crowned Emperor boss, boss health bar and reward drops
 - **Audio:** optional synthesized arcade effects (off by default, no external sound files)
 - **Navigation:** compass points toward loot or heat sources
 - **Fire:** animated permanent campfires, extra braziers during boss fights, and real body-temperature recovery
 - **Ion cannon:** absurdly powerful plasma blasts that open dangerous permanent ice holes and glowing cracks, potentially near the player
-- **Yeti:** a hunched, white-furred side-profile Bigfoot, scaled to boss-penguin height rather than towering over the arena; peaceful warmth source, or a difficult fight worth 1,000 points
+- **Yeti:** a boss-sized side-profile Bigfoot who provides warmth when friendly, independently snatches and eats penguins without giving the player kill credit, and defends the seal with a half-health warning smack. Provoking him directly leads to a difficult fight worth 1,000 points
 - **Uzi default:** collecting an Uzi equips it; subsequent pickups never force you off the weapon you chose
 - **HUD:** locked player camera and clear arena bounded by opaque top/bottom information bands
 - **Polar night:** wave 3, 6, 9, etc. runs under darkness; player, campfires, friendly Yeti, ion shots and explosions provide local illumination. Daybreak returns on the following wave
+- **Baby seal:** a visible white pup near the starting area. Attacking it triggers the Yeti guardian, reducing current player HP by 50% (without a lethal warning blow); the seal survives
 - **Environment:** blizzards, pressure cracks, dangerous ice, fatigue, cold
 
 ### Controls
