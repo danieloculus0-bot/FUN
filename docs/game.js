@@ -36,6 +36,53 @@
   const statusText = document.getElementById("game-status");
   const gameFrame = document.getElementById("game-frame");
   const pressed = new Set();
+  // Mouse aim is optional. Keyboard and touch users retain move-to-face aiming.
+  const pointerAim={active:false,x:500,y:320};
+  const soundButton=document.getElementById("sound-button");
+  let audio=null, soundOn=false, lastSfxTick={};
+  function playSfx(type){
+    if(!soundOn||!audio||!game)return;
+    const tick=game.clock;
+    const repeatLimit={uzi:4,shotgun:20,hit:3,collect:12,boss:40,boom:5,melee:8};
+    if(lastSfxTick[type]!==undefined&&tick-lastSfxTick[type]<(repeatLimit[type]||2))return;
+    lastSfxTick[type]=tick;
+    try{
+      const now=audio.currentTime;
+      const osc=audio.createOscillator(),amp=audio.createGain();
+      const tones={
+        uzi:[170,48,.095,"sawtooth"],shotgun:[95,31,.24,"sawtooth"],
+        melee:[350,90,.09,"triangle"],hit:[195,55,.095,"square"],
+        collect:[480,880,.17,"sine"],boom:[95,23,.36,"sawtooth"],
+        boss:[150,52,.45,"sawtooth"],wave:[360,640,.28,"triangle"],
+        heal:[450,850,.26,"sine"],grenade:[310,160,.12,"square"]
+      };
+      const t=tones[type]||tones.melee;
+      osc.type=t[3];
+      osc.frequency.setValueAtTime(t[0],now);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(20,t[1]),now+t[2]);
+      amp.gain.setValueAtTime(.0001,now);
+      amp.gain.exponentialRampToValueAtTime(type==="boom"?.22:.12,now+.006);
+      amp.gain.exponentialRampToValueAtTime(.0001,now+t[2]);
+      osc.connect(amp);amp.connect(audio.destination);
+      osc.start(now);osc.stop(now+t[2]+.02);
+    }catch(_){ /* Sound is optional and must never break gameplay. */ }
+  }
+  if(soundButton){
+    soundButton.hidden=false;
+    soundButton.textContent="SOUND OFF";
+    soundButton.addEventListener("click",()=>{
+      if(!audio){
+        const AC=window.AudioContext||window.webkitAudioContext;
+        if(!AC){soundButton.textContent="SOUND UNAVAILABLE";return;}
+        try{audio=new AC();}catch(_){soundButton.textContent="SOUND UNAVAILABLE";return;}
+      }
+      soundOn=!soundOn;
+      if(soundOn)audio.resume?.().catch?.(()=>{});
+      soundButton.textContent=soundOn?"SOUND ON":"SOUND OFF";
+      soundButton.setAttribute?.("aria-pressed",String(soundOn));
+      if(soundOn)playSfx("collect");
+    });
+  }
   let state = "menu", game, nextId = 1, accumulator = 0, lastTime = 0;
   let best = 0;
   try { best = Number(localStorage.getItem("emperorGauntletBest") || 0) || 0; } catch (_) { /* private browsing */ }
@@ -93,6 +140,7 @@
         { x: 2200, y: 350, r: 52 }, { x: 540, y: 910, r: 48 }
       ],
       particles: [], stains: [], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
+      wave:1, waveBanner:0, bossWave:0, nextWaveAt:10,
       score: 0, falls: 0, clock: 0,
       windAngle: rand(0, Math.PI * 2), windStrength: rand(.3, 1),
       blizzardTimer: 0, message: "GET GEAR. FIND AN UZI. RAISE HELL.",
@@ -211,6 +259,7 @@
     for(let i=0;i<4;i++)stain(b.x+rand(-20,20),b.y+rand(-20,20),rand(4,11));
     floatText(b.x,b.y-30,Math.round(damage)+"");
     game.shake=Math.min(12,game.shake+2);
+    playSfx("hit");
     if(b.hp<=0)downBird(b,"combat");
   }
   function fireWeapon(){
@@ -228,6 +277,7 @@
     }
     particles(p.x+p.fx*35,p.y+p.fy*35,w.color,9,6);
     if(w.pellets)game.shake+=5;
+    playSfx(w.pellets?"shotgun":"uzi");
   }
   function throwGrenade(){
     if(state!=="running"||game.player.grenades<1)return;
@@ -235,6 +285,7 @@
     game.bombs.push({x:p.x+p.fx*22,y:p.y+p.fy*22,
       vx:p.fx*10+p.vx*.3,vy:p.fy*10+p.vy*.3,life:56});
     say("GRENADE OUT! THIS IS FINE.",100);
+    playSfx("grenade");
   }
   function boom(x,y){
     game.explosions.push({x,y,r:0,life:22});
@@ -250,6 +301,7 @@
     const p=game.player,d=Math.hypot(p.x-x,p.y-y);
     if(d<110)p.hp-=Math.max(4,25*(1-d/120));
     game.shake=16;say("BOOM. ANTARCTICA FILES A FORMAL COMPLAINT.",155);
+    playSfx("boom");
   }
   function moveProjectiles(){
     for(const bullet of game.bullets){
@@ -260,7 +312,7 @@
         if(b.down||bullet.life<=0)continue;
         const dx=bullet.x-ox,dy=bullet.y-oy,den=dx*dx+dy*dy;
         const t=clamp(den?((b.x-ox)*dx+(b.y-oy)*dy)/den:0,0,1);
-        if(Math.hypot(b.x-(ox+t*dx),b.y-(oy+t*dy))<(b.variant==="bruiser"?24:17)){
+        if(Math.hypot(b.x-(ox+t*dx),b.y-(oy+t*dy))<(b.variant==="boss"?42:b.variant==="bruiser"?24:17)){
           const n=norm(dx,dy);
           smack(b,bullet.damage*(game.player.rage>0?1.5:1),n.x*5,n.y*5);
           bullet.life=0;break;
@@ -299,6 +351,7 @@
       else if(k==="ammo"){p.ammo.uzi+=100;p.ammo.shotgun+=16;say("AMMO RESTOCKED.",110);}
       else if(k==="grenade"){p.grenades+=3;say("THREE MORE GRENADES. NO ONE TELL THE PENGUINS.",150);}
       else if(k==="coffee"){p.rage=900;p.stamina=100;p.temp=clamp(p.temp+16,0,100);say("CAFFEINATED RAGE: 15 SECONDS OF POOR JUDGMENT.",180);}
+      playSfx(k==="medkit"||k==="parka"?"heal":"collect");
       floatText(drop.x,drop.y-35,k.toUpperCase()+"!",DROP_COLORS[k]);
       particles(drop.x,drop.y,DROP_COLORS[k],20,5);
     }
@@ -314,6 +367,7 @@
     p.swing=9;p.swingReach=w.reach;p.swingColor=w.color;
     p.swingId++;p.provocation++;
     particles(p.x+p.fx*w.reach,p.y+p.fy*w.reach,w.color,12,4);
+    playSfx("melee");
   }
 
   function downBird(bird, reason) {
@@ -323,6 +377,11 @@
     if (reason !== "ice") {
       game.score++;
       game.player.provocation += 2;
+      if(bird.variant==="boss"){
+        say("THE KING IS DEAD. LONG LIVE YOUR TERRIBLE DECISIONS.",280);
+        game.drops.push(makeDrop("medkit",bird.x-35,bird.y),makeDrop("ammo",bird.x+35,bird.y),makeDrop("grenade",bird.x,bird.y+40));
+        playSfx("wave");
+      }
       game.player.combo++;
       game.player.comboTime=180;
       if(game.player.combo%5===0)floatText(bird.x,bird.y-55,game.player.combo+"x COMBO!");
@@ -358,7 +417,7 @@
     else p.stamina += .22;
     p.stamina = clamp(p.stamina, 0, 100);
     if (mx !== 0 || my !== 0) {
-      p.fx = move.x; p.fy = move.y;
+      if(!pointerAim.active){p.fx=move.x;p.fy=move.y;}
       const acceleration = sprint ? .72 : .43;
       p.vx += move.x * acceleration * terrainSlow;
       p.vy += move.y * acceleration * terrainSlow;
@@ -372,6 +431,11 @@
     p.vy *= friction;
     p.x = clamp(p.x + p.vx, PR, WORLD_W - PR);
     p.y = clamp(p.y + p.vy, PR, WORLD_H - PR);
+    if(pointerAim.active){
+      const camX=clamp(p.x-W/2,0,WORLD_W-W),camY=clamp(p.y-H/2,0,WORLD_H-H);
+      const face=norm(pointerAim.x+camX-p.x,pointerAim.y+camY-p.y);
+      if(face.x!==0||face.y!==0){p.fx=face.x;p.fy=face.y;}
+    }
     if (p.shoveCD > 0) p.shoveCD--;
     if(p.muzzle>0)p.muzzle--;
     if(p.rage>0)p.rage--;
@@ -425,6 +489,10 @@
         b.downTimer--;
         continue;
       }
+      if(b.variant==="boss"){
+        b.state="mob";
+        b.aggression=2;
+      }
       const dx = player.x - b.x, dy = player.y - b.y;
       const dist = Math.hypot(dx, dy);
       let nearby = 0, cx = 0, cy = 0, sx = 0, sy = 0;
@@ -440,7 +508,9 @@
       }
       if (nearby) { cx /= nearby; cy /= nearby; }
       const mobChance = b.aggression + player.provocation * .018 + nearby * .018;
-      if (dist < 80 && nearby >= 4 && Math.random() < mobChance * .045) {
+      if (b.variant==="boss"){
+        b.state="mob";b.panic=Math.max(b.panic,40);
+      } else if (dist < 80 && nearby >= 4 && Math.random() < mobChance * .045) {
         b.state = "mob";
         b.panic = Math.max(b.panic, 80);
       } else if (dist < 155 && b.state !== "mob") {
@@ -478,7 +548,7 @@
       ay += sy + w.y * .004;
       if (b.panic > 0) { b.panic--; ax *= 1.25; ay *= 1.25; }
       b.vx += ax; b.vy += ay;
-      const v = Math.hypot(b.vx, b.vy), maxSpeed = ((b.state === "flee" || b.state === "mob") ? 3 : 1.55) * (b.variant==="berserker"?1.65:b.variant==="bruiser"?.75:1);
+      const v = Math.hypot(b.vx, b.vy), maxSpeed = ((b.state === "flee" || b.state === "mob") ? 3 : 1.55) * (b.variant==="boss"?.95:b.variant==="berserker"?1.65:b.variant==="bruiser"?.75:1);
       if (v > maxSpeed) { b.vx *= maxSpeed / v; b.vy *= maxSpeed / v; }
       b.vx *= .94; b.vy *= .94;
       b.x = clamp(b.x + b.vx, ER, WORLD_W - ER);
@@ -515,7 +585,7 @@
         b.y -= ny * overlap * .58;
         if (b.state === "mob" && b.peckCD <= 0) {
           b.peckCD = Math.floor(rand(35, 70));
-          p.hp -= rand(4, 9)*(b.variant==="bruiser"?1.7:1);
+          p.hp -= rand(4, 9)*(b.variant==="boss"?2.5:b.variant==="bruiser"?1.7:1);
           p.vx += nx * rand(1.5, 2.8);
           p.vy += ny * rand(1.5, 2.8);
           particles(p.x - nx * 14, p.y - ny * 14, C.red, 8, 2.3);
@@ -526,7 +596,7 @@
       if (p.swing > 0 && b.lastSwing !== p.swingId) {
         const rx = p.x + p.fx * p.swingReach - b.x, ry = p.y + p.fy * p.swingReach - b.y;
         const toward = norm(b.x - p.x, b.y - p.y);
-        if (Math.hypot(rx, ry) < 43 && toward.x * p.fx + toward.y * p.fy > .15) {
+        if (Math.hypot(rx, ry) < (b.variant==="boss"?62:43) && toward.x * p.fx + toward.y * p.fy > .15) {
           b.lastSwing = p.swingId; // Exactly one hit per penguin per shove.
           const push = norm(b.x - p.x, b.y - p.y);
           const w=ARMORY[p.weapon];
@@ -536,6 +606,36 @@
       }
     }
     if (p.hp <= 0) finish("Got swarmed by furious tuxedo linebackers");
+  }
+  function spawnBoss(){
+    // Position within the arena, away from the player and from any water holes.
+    const p=game.player;
+    let x=p.x,y=p.y;
+    for(let attempt=0;attempt<24;attempt++){
+      const a=rand(0,Math.PI*2),r=rand(330,480);
+      x=clamp(p.x+Math.cos(a)*r,60,WORLD_W-60);
+      y=clamp(p.y+Math.sin(a)*r,80,WORLD_H-80);
+      if(game.holes.every(h=>Math.hypot(x-h.x,y-h.y)>h.r+75))break;
+    }
+    const b=penguin(x,y);
+    b.variant="boss";b.hp=650+game.wave*75;
+    b.mass=4.4;b.aggression=2;b.fear=0;b.state="mob";b.peckCD=30;
+    game.birds.push(b);
+    game.drops.push(makeDrop("medkit",clamp(p.x+100,20,WORLD_W-20),clamp(p.y+70,20,WORLD_H-20)));
+    say("BOSS ALERT: THE EMPEROR OF BAD DECISIONS HAS ARRIVED!",290);
+    playSfx("boss");
+    game.shake=13;
+  }
+  function waveDirector(){
+    if(game.score<game.nextWaveAt)return;
+    game.wave++;
+    game.nextWaveAt+=10+Math.min(20,(game.wave-1)*2);
+    game.waveBanner=205;
+    game.player.temp=clamp(game.player.temp+10,0,100);
+    game.drops.push(makeDrop("ammo",clamp(game.player.x+65,40,WORLD_W-40),clamp(game.player.y+55,40,WORLD_H-40)));
+    say("WAVE "+game.wave+": THE ROOKERY REQUESTS REINFORCEMENTS.",230);
+    playSfx("wave");
+    if(game.wave%2===0){game.bossWave=game.wave;spawnBoss();}
   }
   function maintainPopulation() {
     let living = 0;
@@ -579,7 +679,9 @@
     collisions();
     moveProjectiles();
     collectDrops();
+    waveDirector();
     maintainPopulation();
+    if(game.waveBanner>0)game.waveBanner--;
     if(game.clock%650===0){const p=game.player;game.drops.push(makeDrop(["ammo","medkit","coffee","grenade","parka"][Math.floor(rand(0,5))],clamp(p.x+rand(-300,300),35,WORLD_W-35),clamp(p.y+rand(-280,280),35,WORLD_H-35)));}
     if(game.shake>0)game.shake=Math.max(0,game.shake-.65);
     for (const particle of game.particles) {
