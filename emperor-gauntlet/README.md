@@ -2,15 +2,21 @@
 
 > One unarmed man. A lot of penguins. Antarctica does most of the killing.
 
-A one-file Python/Pygame arcade prototype inspired by the question: **"How many penguins could you kill in hand-to-hand combat on their turf?"**
+An arcade survival game inspired by the question: **"How many penguins could you kill in hand-to-hand combat on their turf?"**
 
-You play the human. The penguins generally try to avoid you, but things can escalate. The ice, cold, wind, and exhaustion are less interested in negotiating.
+**Creator's personal best: 37 penguins down before freezing to death.**
 
-**Current personal best: 37 penguins down before freezing to death.**
+## Browser edition (new)
 
-## Run locally
+- [Play on GitHub Pages](https://danieloculus0-bot.github.io/FUN/) after Pages is enabled in this repository.
+- **Play offline:** Download [play.html](play.html) as a file and open it in a modern browser. The game, styling, and graphics are included in that single HTML file.
+- Web source: [HTML](../docs/index.html), [JavaScript](../docs/game.js), [CSS](../docs/style.css). It uses native Canvas and does not require Pygame or third-party scripts.
 
-Requires **Python 3** and **Pygame**. In a terminal in this directory:
+The browser version adds touch controls, a saved personal best, and combat scoring fixes: one hit per penguin per shove, with accidental ice falls tracked separately.
+
+## Original Pygame version
+
+Requires Python 3 and Pygame.
 
 **Windows (PowerShell):**
 
@@ -26,30 +32,21 @@ python3 -m pip install -r requirements.txt
 python3 emperor_gauntlet.py
 ```
 
-If Python or Pygame isn't installed, install Python first and run the Pygame installation command above.
-
 ## Controls
 
 | Key | Action |
 | --- | --- |
 | WASD / Arrow keys | Move |
-| Left Shift | Sprint |
-| Space | Shove / grapple attempt |
+| Shift | Sprint |
+| Space | Shove |
+| P / Esc (browser) | Pause |
 | R | Restart after game over |
-| Esc | Quit |
+| Touch arrows / sprint / shove (browser) | Play on phones and tablets |
 
-## Gameplay
+## What's modeled
 
-- Body temperature, stamina, and health
-- Blizzards, wind, snowdrifts, thin ice, and pressure cracks
-- Penguin wandering, fleeing, huddling, panic, and occasional retaliation
-- Increasing penguin population as the score climbs
-- Comically unfortunate game-over messages
+Player temperature, stamina, health, blizzards, wind, terrain, pressure cracks, penguin wandering, fleeing, huddling, panic, and occasional mobbing.
 
-## Status
+This is a stylized arcade prototype, **not** a calibrated biological or physiological simulation.
 
-**Local Pygame prototype.** This is a game, not a calibrated biological combat model. Source has been syntax-checked, but a full interactive gameplay test has not been performed as part of this repository upload.
-
-### Browser edition (planned)
-
-A future HTML/WebAssembly version could use a browser-compatible Pygame runtime such as `pygbag`, with an adapted asynchronous event loop and GitHub Pages deployment. **Browser play is not currently available.** The original local version is preserved here for that work.
+The Python code is preserved as contributed. The browser edition was checked for JavaScript syntax and tested with a simulated game loop, including shove damage, environmental scoring, pause/resume, and freezing. A full interactive cross-browser run has not yet been verified.
