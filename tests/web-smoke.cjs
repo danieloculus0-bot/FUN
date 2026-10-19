@@ -11,7 +11,7 @@ assert.ok(source.includes(last), "Game entrypoint missing");
 // Test instrumentation is only applied in Node. The browser game is unchanged.
 source = source.replace(last,
   "  requestAnimationFrame(frame);\n" +
-  "  globalThis.__test = { get game() { return game; }, get state() { return state; }, start, pause, shove, tick, downBird };\n" +
+  "  globalThis.__test = { get game() { return game; }, get state() { return state; }, start, pause, shove, tick, downBird, throwGrenade, selectWeapon, cycleWeapon };\n" +
   "})();"
 );
 const events = new Map();
@@ -32,7 +32,7 @@ function element() {
 const names = [
   "game", "overlay", "overlay-kicker", "overlay-title", "overlay-copy",
   "overlay-hint", "play-button", "pause-button", "fullscreen-button",
-  "game-status", "game-frame", "touch-shove"
+  "game-status", "game-frame", "touch-shove", "touch-grenade", "touch-swap"
 ];
 const nodes = Object.fromEntries(names.map(name => [name, element()]));
 const document = {
@@ -58,6 +58,7 @@ vm.runInNewContext(source, sandbox, { filename: "game.js" });
 const g = sandbox.__test;
 assert.equal(g.state, "menu");
 assert.equal(g.game.birds.length, 22);
+assert.ok(g.game.drops.length >= 8, "Gear must exist in the arena");
 nodes["play-button"].handlers.click();
 assert.equal(g.state, "running");
 assert.equal(nodes.overlay.hidden, true);
@@ -95,6 +96,25 @@ assert.equal(nodes.overlay.hidden, false);
 g.start();
 assert.equal(g.state, "running");
 assert.equal(nodes.overlay.hidden, true);
+// New weapon and inventory regression checks.
+g.start();
+const armed = g.game.player;
+armed.x = 275; armed.y = 230;
+g.tick();
+assert.equal(armed.weapon, "uzi", "Walking over Uzi pickup equips it");
+assert.equal(armed.owned.uzi, true);
+const ammoBefore = armed.ammo.uzi;
+g.shove();
+assert.equal(armed.ammo.uzi, ammoBefore - 1, "Uzi fires one round");
+assert.ok(g.game.bullets.length > 0, "Uzi projectile spawned");
+const grenadesBefore = armed.grenades;
+g.throwGrenade();
+assert.equal(armed.grenades, grenadesBefore - 1, "Grenade removed from inventory");
+assert.equal(g.game.bombs.length, 1, "Grenade projectile spawned");
+for (let i=0; i<57; i++) g.tick();
+assert.equal(g.game.bombs.length, 0, "Grenade fuse expired");
+assert.ok(g.game.explosions.length > 0, "Grenade detonated");
+assert.equal(g.selectWeapon("fists"), true, "Previous weapons remain available");
 g.game.player.temp = 0.001;
 g.tick();
 assert.equal(g.state, "over", "The player must be able to freeze");
