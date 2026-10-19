@@ -440,7 +440,7 @@
       y.rage=Math.max(0,y.rage-1);
       const n=norm(p.x-y.x,p.y-y.y);
       y.vx=n.x*3.9;y.vy=n.y*3.9;
-      if(Math.hypot(p.x-y.x,p.y-y.y)<83&&y.attackCooldown<=0){
+      if(Math.hypot(p.x-y.x,p.y-y.y)<105&&y.attackCooldown<=0){
         y.attackCooldown=68;
         p.hp-=rand(18,28);
         p.vx+=n.x*10;p.vy+=n.y*10;p.slip=22;
@@ -464,7 +464,7 @@
       bullet.x+=bullet.vx;bullet.y+=bullet.vy;bullet.life--;
       if(bullet.ion){
         const hit=game.birds.some(b=>!b.down&&Math.hypot(b.x-bullet.x,b.y-bullet.y)<(b.variant==="boss"?55:28));
-        const yetiHit=game.yeti?.alive&&Math.hypot(game.yeti.x-bullet.x,game.yeti.y-bullet.y)<62;
+        const yetiHit=game.yeti?.alive&&Math.hypot(game.yeti.x-bullet.x,game.yeti.y-bullet.y)<103;
         if(hit||yetiHit||bullet.life<=0||
           bullet.x<=35||bullet.y<=35||bullet.x>=WORLD_W-35||bullet.y>=WORLD_H-35){
           ionDetonate(bullet.x,bullet.y);
@@ -477,7 +477,7 @@
       if(yeti?.alive&&bullet.life>0){
         const dx=bullet.x-ox,dy=bullet.y-oy,den=dx*dx+dy*dy;
         const t=clamp(den?((yeti.x-ox)*dx+(yeti.y-oy)*dy)/den:0,0,1);
-        if(Math.hypot(yeti.x-(ox+t*dx),yeti.y-(oy+t*dy))<53){
+        if(Math.hypot(yeti.x-(ox+t*dx),yeti.y-(oy+t*dy))<105){
           hurtYeti(bullet.damage);
           bullet.life=0;
         }
@@ -820,7 +820,7 @@
     if(yeti?.alive&&p.swing>0&&yeti.lastSwing!==p.swingId){
       const dx=yeti.x-p.x,dy=yeti.y-p.y;
       const n=norm(dx,dy);
-      if(Math.hypot(dx-p.fx*p.swingReach,dy-p.fy*p.swingReach)<75&&
+      if(Math.hypot(dx-p.fx*p.swingReach,dy-p.fy*p.swingReach)<111&&
          n.x*p.fx+n.y*p.fy>.15){
         yeti.lastSwing=p.swingId;
         hurtYeti(ARMORY[p.weapon].damage*(p.rage>0?1.5:1));
@@ -1084,42 +1084,68 @@
     text(item.kind.toUpperCase(),x,y+28,11,"#19384a","center",950);
   }
   function drawYeti(y){
-    ctx.save();ctx.translate(y.x,y.y);
+    // A truly enormous white ape: ~210px across and ~300px tall.
+    // Draw its warmth field first, so the rest of the world remains readable.
     const enraged=y.rage>0;
-    const bob=Math.sin(game.clock*.08)*4;
-    ellipse(0,35,50,16,"#25465d77");
-    ellipse(-28,26,20,13,"#ced5df");ellipse(28,26,20,13,"#ced5df");
-    ellipse(-37,1+bob,18,40,"#e1f2fa");
-    ellipse(37,1+bob,18,40,"#e1f2fa");
-    ellipse(0,-2+bob,50,56,"#bed7e4");
-    ellipse(0,10+bob,37,44,"#e6f1f8");
-    circle(0,-58+bob,36,"#d7e7ef");
-    // Chunky icy fur, horns, furry brows and the grin that becomes a roar.
-    for(let i=0;i<8;i++){
-      const px=(i-3.5)*11;
-      ctx.beginPath();ctx.moveTo(px,-86+bob);
-      ctx.lineTo(px+5,-97+Math.sin(i*2+game.clock*.04)*4+bob);
-      ctx.lineTo(px+10,-84+bob);
-      ctx.fillStyle="#eff8ff";ctx.fill();
+    const swing=Math.sin(game.clock*.065);
+    circle(y.x,y.y,205,enraged?"#ff406b20":"#ffc54b1c");
+    circle(y.x,y.y,125,enraged?"#ff406b17":"#ffcd6420");
+    ctx.save();
+    ctx.translate(y.x,y.y);
+    ctx.scale(2.15,2.15);
+    const bob=Math.sin(game.clock*.07)*2.8;
+    ellipse(0,47,60,14,"#183f566e");
+    // Enormous ape legs and snow-claw feet.
+    ellipse(-27,29+bob,22,37,"#b8d3e1");
+    ellipse(26,29+bob,22,37,"#b8d3e1");
+    ellipse(-31,53+bob,27,12,"#edf8ff");
+    ellipse(31,53+bob,27,12,"#edf8ff");
+    for(const sx of [-1,1]){
+      // Gorilla-length arms nearly touching the ground.
+      ellipse(sx*48,-3+bob,22,50,"#c9e4f1");
+      ellipse(sx*50,34+bob,20,18,"#edf8ff");
+      for(let i=0;i<3;i++)circle(sx*(40+i*8),44+bob,6,"#d1e9f5");
     }
-    ellipse(-14,-65+bob,9,5,enraged?"#a83348":"#395260");
-    ellipse(14,-65+bob,9,5,enraged?"#a83348":"#395260");
-    circle(-12,-65+bob,4,enraged?"#ff2549":"#a7e6ff");
-    circle(12,-65+bob,4,enraged?"#ff2549":"#a7e6ff");
-    ellipse(0,-49+bob,10,7,enraged?"#571527":"#4e7080");
-    ctx.strokeStyle="#fff";ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(-9,-46+bob);ctx.lineTo(-3,-42+bob);
-    ctx.moveTo(8,-46+bob);ctx.lineTo(2,-42+bob);ctx.stroke();
-    if(y.flash>0)ellipse(0,-5,56,65,"#ff4d6f69");
+    // Broad chest, massive shoulders, shaggy white pelt.
+    ellipse(0,-3+bob,55,59,"#a2c3d3");
+    ellipse(0,-6+bob,50,55,"#f2f9ff");
+    ellipse(0,1+bob,35,45,"#d7ecf6");
+    for(let i=0;i<15;i++){
+      const angle=i*Math.PI*2/15;
+      const tx=Math.cos(angle)*48,ty=-10+Math.sin(angle)*53+bob;
+      ctx.beginPath();ctx.moveTo(tx-7,ty-4);
+      ctx.lineTo(tx+Math.cos(angle)*15,ty+Math.sin(angle)*16);
+      ctx.lineTo(tx+7,ty+4);ctx.closePath();
+      ctx.fillStyle=i%2?"#e0f1fb":"#b9d7e6";ctx.fill();
+    }
+    // Huge gorilla head, protruding muzzle, brow ridge, toothy mouth.
+    circle(0,-66+bob,40,"#b3d0df");
+    ellipse(0,-65+bob,37,34,"#eff8ff");
+    ellipse(0,-55+bob,29,25,"#638594");
+    ellipse(0,-47+bob,25,16,"#aac5cf");
+    ellipse(-15,-66+bob,12,9,"#243945");
+    ellipse(15,-66+bob,12,9,"#243945");
+    circle(-13,-64+bob,5,enraged?"#fc3349":"#c3eeff");
+    circle(13,-64+bob,5,enraged?"#fc3349":"#c3eeff");
+    ellipse(-9,-49+bob,5,4,"#1a3745");
+    ellipse(9,-49+bob,5,4,"#1a3745");
+    ellipse(0,-37+bob,19,enraged?11:5,enraged?"#781c29":"#365768");
     if(enraged){
-      ctx.strokeStyle="#fc4853";ctx.lineWidth=4;
-      ctx.beginPath();ctx.arc(0,0,74,0,Math.PI*2);ctx.stroke();
-      text("HOSTILE YETI",0,-108,17,C.red,"center",1000);
-    }else{
-      circle(0,0,85,"#ffca3930");
-      text("FRIENDLY / WARMTH",0,-108,15,C.yellow,"center",950);
+      for(let i=0;i<5;i++)rect(-14+i*6,-42+bob,3,9,"#fff5f6");
     }
+    for(let i=0;i<9;i++){
+      const tx=(i-4)*9;
+      ctx.beginPath();ctx.moveTo(tx,-93+bob);
+      ctx.lineTo(tx+5,-114+Math.sin(i*2.4+game.clock*.04)*3+bob);
+      ctx.lineTo(tx+10,-92+bob);ctx.closePath();
+      ctx.fillStyle=i%2?"#d7ebf8":"#f9fdff";ctx.fill();
+    }
+    if(y.flash>0)ellipse(0,-6+bob,57,61,"#ff3b6599");
     ctx.restore();
+    // Labels keep normal text size, outside the scaled sprite.
+    const labelY=y.y-219;
+    rect(y.x-106,labelY-16,212,31,enraged?"#4b142bdc":"#143746d9");
+    text(enraged?"ENRAGED YETI +1000":"FRIENDLY YETI · HEAT",y.x,labelY,15,enraged?C.red:C.yellow,"center",1000);
   }
   function drawBird(b) {
     ctx.save();ctx.translate(b.x,b.y);
