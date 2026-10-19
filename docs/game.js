@@ -148,7 +148,7 @@
       ],
       fires:CAMP_SITES.map((site,i)=>({x:site.x,y:site.y,phase:i*1.87,life:Infinity,kind:"campfire"})),
       particles: [], stains: [], gibs:[], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
-      seal:{x:425,y:365,phase:0,vx:.7,vy:.25,hurtCooldown:0,scared:0,lastSwing:-1},
+      seal:{x:350,y:270,phase:0,vx:.7,vy:.25,hurtCooldown:0,scared:0,lastSwing:-1},
       sealWarnings:0, yetiEats:0, goreBursts:0,
       wave:1, waveBanner:0, bossWave:0, nextWaveAt:10,
       night:false,nightNotice:0,
@@ -685,6 +685,8 @@
     // The Yeti gets hungry. Its dinner NEVER adds to the player's score,
     // combo, kills, ice falls or wave progression.
     if(reason==="yeti"){
+      bird.eaten=true;
+      bird.downTimer=0;
       game.yetiEats++;
       particles(bird.x,bird.y,"#f6fcff",18,2.5);
       floatText(bird.x,bird.y-28,"YETI SNACK · +0",C.cyan);
@@ -1195,7 +1197,8 @@
     }
     for(const fire of game.fires)drawCampfire(fire);
     for(const item of game.drops)drawDrop(item);
-    for(const b of game.birds)drawBird(b);
+    for(const b of game.birds)if(!b.eaten)drawBird(b);
+    if(game.seal)drawSeal(game.seal);
     if(game.yeti?.alive)drawYeti(game.yeti);
     drawPlayer(game.player);
     for(const bullet of game.bullets){
@@ -1245,6 +1248,28 @@
       text(icons[item.kind]||"?",x,y,22,"#132231","center",1000);
     }
     text(item.kind.toUpperCase(),x,y+28,11,"#19384a","center",950);
+  }
+  function drawSeal(seal){
+    const x=seal.x,y=seal.y,bob=Math.sin(game.clock*.1+seal.phase)*2;
+    const scared=seal.scared>0;
+    ellipse(x,y+14,34,8,"#416b8166");
+    // A visible round white seal pup and a clear warning label.
+    ellipse(x-21,y+6+bob,13,8,"#e9f4f9");
+    ellipse(x+24,y+8+bob,13,9,"#d2e9f1");
+    ellipse(x,y+bob,35,20,"#f4fdff");
+    ellipse(x+23,y-7+bob,19,17,"#f7fcff");
+    ellipse(x+26,y+1+bob,11,7,"#d4ecf4");
+    circle(x+30,y-11+bob,4.5,"#1e3844");
+    circle(x+31,y-12+bob,1.6,"#f8ffff");
+    ellipse(x+38,y+bob,4,2.8,"#1c3d48");
+    for(const sy of [-1,1]){
+      ctx.strokeStyle="#638696";ctx.lineWidth=1.4;ctx.beginPath();
+      ctx.moveTo(x+37,y+3+bob);
+      ctx.lineTo(x+44,y+3+sy*6+bob);ctx.stroke();
+    }
+    rect(x-108,y-55,216,24,"#173848dc");
+    text(scared?"THE YETI IS WATCHING":"BABY SEAL · DON'T CLUB",
+      x,y-43,12,scared?C.orange:C.cyan,"center",1000);
   }
   function drawYeti(y){
     // Side-profile Bigfoot: roughly the size of an Emperor boss penguin,
@@ -1299,8 +1324,8 @@
     ellipse(36,-77+bob,9,7,"#244251");
     circle(39,-77+bob,3.2,angry?"#ff314c":"#aeedff");
     ellipse(64,-63+bob,5,4,"#1d3a49");
-    if(angry){
-      ellipse(52,-48+bob,18,8,"#6c2436");
+    if(angry||y.munch>0){
+      ellipse(52,-48+bob,18,y.munch>0?13:8,"#6c2436");
       for(let i=0;i<4;i++)rect(42+i*7,-54+bob,3,8,"#fff8f2");
     }else{
       ctx.beginPath();ctx.arc(49,-53+bob,9,.2,Math.PI*.82);
@@ -1317,7 +1342,7 @@
     ctx.restore();
     const labelY=y.y-127;
     rect(y.x-100,labelY-15,200,29,angry?"#551729de":"#163844e6");
-    text(angry?"ENRAGED YETI +1000":"FRIENDLY YETI · WARMTH",
+    text(angry?"ENRAGED YETI +1000":y.munch>0?"YETI MUNCHING · +0":"FRIENDLY YETI · WARMTH",
       y.x,labelY,14,angry?C.red:C.yellow,"center",1000);
   }
   function drawBird(b) {
