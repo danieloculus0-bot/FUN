@@ -11,7 +11,7 @@ assert.ok(source.includes(last), "Game entrypoint missing");
 // Test instrumentation is only applied in Node. The browser game is unchanged.
 source = source.replace(last,
   "  requestAnimationFrame(frame);\n" +
-  "  globalThis.__test = { get game() { return game; }, get state() { return state; }, start, pause, shove, tick, downBird, throwGrenade, selectWeapon, cycleWeapon, hurtYeti, warnSeal, yetiSnack, collisions };\n" +
+  "  globalThis.__test = { get game() { return game; }, get state() { return state; }, start, pause, shove, tick, downBird, throwGrenade, selectWeapon, cycleWeapon, hurtYeti, warnSeal, yetiSnack, collisions, pressed, pointerAim };\n" +
   "})();"
 );
 const events = new Map();
@@ -39,9 +39,15 @@ function element() {
 const names = [
   "game", "overlay", "overlay-kicker", "overlay-title", "overlay-copy",
   "overlay-hint", "play-button", "pause-button", "fullscreen-button",
-  "game-status", "game-frame", "touch-shove", "touch-grenade", "touch-swap", "sound-button"
+  "game-status", "game-frame", "touch-shove", "touch-grenade", "touch-swap", "sound-button",
+  "touch-prev", "touch-next", "touch-select", "touch-start"
 ];
 const nodes = Object.fromEntries(names.map(name => [name, element()]));
+const holdButtons=["up","down","left","right","sprint"].map(hold=>{
+  const button=element();
+  button.dataset={hold};
+  return button;
+});
 const document = {
   hidden: false,
   getElementById(name) { return nodes[name]; },
@@ -49,7 +55,7 @@ const document = {
     assert.equal(tag,"canvas","Nightfall may only create an offscreen canvas");
     return {width:1000,height:640,getContext(){return ctx;}};
   },
-  querySelectorAll() { return []; },
+  querySelectorAll(selector) { return selector==="[data-hold]"?holdButtons:[]; },
   addEventListener(name, fn) { events.set("document:" + name, fn); }
 };
 const window = {
@@ -300,6 +306,56 @@ assert.equal(g.game.score,beforeSealKills,"Seal doesn't count as a penguin");
 assert.equal(g.game.points,beforeSealPoints,"Seal doesn't award points");
 assert.equal(g.warnSeal(),false,"Cooldown prevents repeated warning slaps");
 assert.equal(armed.hp,40,"Repeated seal hit cannot drain health immediately");
+
+// Mobile handheld controls must work without affecting desktop behavior.
+const handheldHtml=fs.readFileSync(path.join(__dirname,"../docs/index.html"),"utf8");
+const handheldCss=fs.readFileSync(path.join(__dirname,"../docs/style.css"),"utf8");
+assert.ok(handheldHtml.includes('class="arena-stage"'),"Mobile gameplay is separated from controller deck");
+assert.ok(handheldHtml.includes('aria-label="SNES-style handheld game controller"'));
+assert.ok(handheldHtml.includes('data-hold="up"')&&handheldHtml.includes('data-hold="sprint"'));
+for(const id of ["touch-prev","touch-next","touch-select","touch-start","touch-grenade","touch-swap","touch-shove"]){
+  assert.ok(handheldHtml.includes('id="'+id+'"'),"Handheld button exists: "+id);
+  assert.equal(typeof nodes[id].handlers.pointerdown,"function","Button is interactive: "+id);
+}
+assert.ok(handheldCss.includes("height:100dvh")&&handheldCss.includes("overscroll-behavior:none"),
+  "Mobile screen is fixed and cannot scroll the page");
+assert.ok(handheldCss.includes("orientation:landscape"),"Landscape game/controller arrangement exists");
+assert.ok(handheldCss.includes(".touch-controls .dpad"),"Mobile D-pad has custom styling");
+const eTouch={pointerType:"touch",pointerId:7,clientX:725,clientY:195,
+  cancelable:true,preventDefault(){this.prevented=true;}};
+holdButtons[0].handlers.pointerdown(eTouch);
+assert.equal(g.pressed.has("up"),true,"D-pad holds move");
+holdButtons[0].handlers.pointerup();
+assert.equal(g.pressed.has("up"),false,"D-pad releases move");
+holdButtons[4].handlers.pointerdown(eTouch);
+assert.equal(g.pressed.has("sprint"),true,"A button holds sprint");
+holdButtons[4].handlers.pointerup();
+assert.equal(g.pressed.has("sprint"),false,"A button releases sprint");
+nodes["touch-shove"].handlers.pointerdown({...eTouch});
+assert.equal(g.pressed.has("attack"),true,"B button holds fire");
+nodes.game.handlers.pointerdown({...eTouch});
+assert.equal(g.pointerAim.active,true,"Touching canvas aims");
+assert.ok(g.pointerAim.x>500,"Aim uses the touch position");
+nodes.game.handlers.pointerup({pointerType:"touch"});
+assert.equal(g.pressed.has("attack"),true,"Releasing aim does not cancel held B button");
+nodes.game.handlers.pointerleave({pointerType:"touch"});
+assert.equal(g.pointerAim.active,true,"Touch aim is retained after finger release");
+nodes["touch-shove"].handlers.pointerup();
+assert.equal(g.pressed.has("attack"),false,"B button stops firing on release");
+let blockedScroll=false;
+nodes["game-frame"].handlers.touchmove({cancelable:true,preventDefault(){blockedScroll=true;}});
+assert.equal(blockedScroll,true,"Swipe to scroll is blocked inside game cabinet");
+nodes["touch-start"].handlers.pointerdown({...eTouch});
+assert.equal(g.state,"paused","START pauses");
+nodes["touch-start"].handlers.pointerdown({...eTouch});
+assert.equal(g.state,"running","START resumes");
+const priorWeapon=g.game.player.weapon;
+nodes["touch-next"].handlers.pointerdown({...eTouch});
+assert.notEqual(g.game.player.weapon,priorWeapon,"R shoulder cycles weapons");
+nodes["touch-prev"].handlers.pointerdown({...eTouch});
+assert.equal(g.game.player.weapon,priorWeapon,"L shoulder cycles back");
+nodes["touch-select"].handlers.pointerdown({...eTouch});
+assert.notEqual(g.game.player.weapon,priorWeapon,"SELECT cycles weapons");
 
 // Mouse target coordinates are converted from CSS pixels to canvas world space.
 const pointerMove = nodes.game.handlers.pointermove;
