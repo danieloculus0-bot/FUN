@@ -1,4 +1,4 @@
-# Emperor Gauntlet v2.5: cross-agent finishing notes
+# Emperor Gauntlet v2.6: cross-agent finishing notes
 
 **Repository:** danieloculus0-bot/FUN
 **Active playable edition:** `docs/index.html`, `docs/game.js`, `docs/style.css`
@@ -64,3 +64,9 @@ Weapon preferences: Uzi by day (when owned), flamethrower at onset of night. A f
 Original rectangular water trenches replaced by five precomputed irregular river paths. Their drawing and collision share sampled centerlines, uneven widths and jagged banks. Small ice bridges provide safe crossings; penguins entering water count as ice kills. Leopard seals partially emerge from two holes and ambush nearby players; they have twice the current Emperor boss HP. They can be hurt by ordinary bullets, melee, grenades, plasma blasts, rockets and flamethrower. Their defeat gives 650 bonus points separately from penguin waves.
 
 Browser smoke tests now include river/channel count, seal health scaling, ion availability, rocket/flame pickups, temporary fuel-fire heat and expiration, timed dusk/night/dawn progression, night flashlight light-rendering, Uzi/flame automatic equipment, and existing core scoring. The game remains **top-down**; FPS is only a possible future experiment and has not been implemented.
+
+## v2.6 handheld mobile screen lock and SNES-inspired controls
+
+The `docs/index.html` game frame has a dedicated `arena-stage` wrapper around the canvas and overlay. The sibling `touch-controls` panel is **not layered on top of the battlefield**. When `(pointer:coarse) and (max-width:1180px)` matches, the layout fixes `html/body/.shell` to the visible mobile viewport with `100dvh`, disables overscroll/touch movement on the game frame, hides marketing and desktop content, and displays a textured separate gamepad. Portrait places the game above the controller; small landscape viewports put the game to the left of a compact right-hand controller. The SNES-style pad includes D-pad movement, A sprint, B held fire, X grenade, Y weapon cycle, shoulder L/R previous/next weapon, SELECT previous weapon, START pause/resume. Mobile canvas pointerdown and pointermove perform drag-to-aim. Touch pointer release/leave must *not* cancel B-held fire or reset the last chosen aim direction. Desktop keyboard/mouse behavior is retained. CSS canvas sizing uses intrinsic aspect ratio constrained by max-width and max-height, not a stretched/letterboxed element that would make pointer coordinates inconsistent. iPhone safe-area top inset is accommodated. 
+
+Tests in `tests/web-smoke.cjs` assert the existence and actions of the SNES controls, screen-lock CSS, touch held movement, touch aiming, independent held fire, shoulders and START. Keep standalone `emperor-gauntlet/play.html` regenerated whenever mobile HTML/CSS/JS changes, and browser-verify touch actions and iOS Safari in portrait and landscape when possible.
