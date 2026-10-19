@@ -105,6 +105,58 @@
   };
   const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
   const within = (x, y, r) => x >= r.x && y >= r.y && x <= r.x + r.w && y <= r.y + r.h;
+  // Precomputed winding polylines: exactly the same coordinates define river
+  // painting and hazard collision. No fake rectangular collision geometry.
+  const RIVER_ROUTES=[
+    {points:[[705,160],[665,265],[725,387],[676,515],[725,632],[689,835]],width:29},
+    {points:[[1150,786],[1305,738],[1450,820],[1615,750],[1790,827],[1900,793]],width:35},
+    {points:[[1712,125],[1772,240],[1715,360],[1770,493],[1698,665]],width:29},
+    {points:[[340,1252],[536,1200],[700,1280],[858,1223],[1070,1287],[1200,1240]],width:34},
+    {points:[[2060,850],[2000,1020],[2075,1145],[1995,1250],[2100,1405],[2055,1600]],width:34}
+  ];
+  function makeRiver(route,index){
+    const samples=[];
+    for(let j=0;j<route.points.length-1;j++){
+      const a=route.points[j],b=route.points[j+1],len=Math.hypot(b[0]-a[0],b[1]-a[1]);
+      const steps=Math.max(3,Math.ceil(len/18));
+      for(let i=0;i<steps;i++){
+        const t=i/steps,k=j+t;
+        const jag=(Math.sin(k*13.4+index*6.2)+Math.sin(k*29.8+index))*2.5;
+        const n=norm(b[1]-a[1],a[0]-b[0]);
+        const x=a[0]+(b[0]-a[0])*t+n.x*jag;
+        const y=a[1]+(b[1]-a[1])*t+n.y*jag;
+        const width=route.width*(.86+.21*Math.sin(k*4.1+index*.8)+.1*Math.sin(k*13.2));
+        samples.push({x,y,width});
+      }
+    }
+    const last=route.points[route.points.length-1];
+    samples.push({x:last[0],y:last[1],width:route.width});
+    const xs=samples.map(p=>p.x),ys=samples.map(p=>p.y);
+    return {samples,minX:Math.min(...xs)-80,maxX:Math.max(...xs)+80,
+      minY:Math.min(...ys)-80,maxY:Math.max(...ys)+80,seed:index};
+  }
+  const RIVERS=RIVER_ROUTES.map(makeRiver);
+  function riverDistance(x,y,river){
+    if(x<river.minX||x>river.maxX||y<river.minY||y>river.maxY)return Infinity;
+    let best=Infinity;
+    const a=river.samples;
+    for(let i=0;i<a.length-1;i++){
+      const q=a[i],r=a[i+1],dx=r.x-q.x,dy=r.y-q.y,d2=dx*dx+dy*dy;
+      const t=clamp(d2?((x-q.x)*dx+(y-q.y)*dy)/d2:0,0,1);
+      const width=q.width+(r.width-q.width)*t;
+      best=Math.min(best,Math.hypot(x-q.x-t*dx,y-q.y-t*dy)/width);
+    }
+    return best;
+  }
+  function onIceBridge(x,y){
+    return game.bridges.some(b=>Math.hypot(x-b.x,y-b.y)<b.safeRadius);
+  }
+  function riverExposure(x,y){
+    if(onIceBridge(x,y))return Infinity;
+    let d=Infinity;
+    for(const river of game.rivers)d=Math.min(d,riverDistance(x,y,river));
+    return d;
+  }
   const held = name => pressed.has(name);
 
   function penguin(x, y) {
@@ -138,13 +190,10 @@
         { x: 1850, y: 1180, w: 260, h: 150 },
         { x: 2100, y: 650, w: 210, h: 105 }
       ],
-      cracks: [
-        { x: 690, y: 220, w: 28, h: 540, depth: .8 },
-        { x: 1230, y: 780, w: 580, h: 24, depth: .7 },
-        { x: 1730, y: 170, w: 24, h: 420, depth: .6 },
-        { x: 410, y: 1240, w: 680, h: 24, depth: .9 },
-        { x: 2040, y: 930, w: 30, h: 470, depth: 1 }
-      ],
+      rivers:RIVERS, cracks:[],
+      bridges:[{x:710,y:396,safeRadius:31},{x:1460,y:805,safeRadius:34},
+        {x:1760,y:485,safeRadius:31},{x:700,y:1280,safeRadius:33},
+        {x:2080,y:1160,safeRadius:30}],
       holes: [
         { x: 1040, y: 470, r: 58 }, { x: 1540, y: 1120, r: 72 },
         { x: 2200, y: 350, r: 52 }, { x: 540, y: 910, r: 48 }
@@ -856,7 +905,17 @@
     }
   }
   function checkTerrain() {
-    const p = game.player;
+    const p=game.player;
+    const riverDepth=riverExposure(p.x,p.y);
+    if(riverDepth<.63){
+      finish("Fell into a winding Antarctic channel. That water is not a spa.");
+      return;
+    }
+    if(riverDepth<1.38){
+      p.wet=Math.max(p.wet,175);
+      p.slip=Math.max(p.slip,18);
+      p.vx*=.95;p.vy*=.95;
+    }
     for (const hole of game.holes) {
       const d = Math.hypot(p.x - hole.x, p.y - hole.y);
       if (d < hole.r * .78) {
@@ -959,6 +1018,7 @@
       b.y = clamp(b.y + b.vy, ER, WORLD_H - ER);
       if (b.peckCD > 0) b.peckCD--;
       if (b.flash > 0) b.flash--;
+      if(riverExposure(b.x,b.y)<.64){downBird(b,"ice");continue;}
       for (const hole of game.holes) {
         if (Math.hypot(b.x - hole.x, b.y - hole.y) < hole.r * .72) {
           downBird(b, "ice");
@@ -1264,6 +1324,58 @@
       ctx.beginPath();ctx.arc(x,y,36,0,Math.PI*2);ctx.stroke();
     }
   }
+  function riverPath(river,extra){
+    const samples=river.samples;
+    ctx.beginPath();
+    for(let i=0;i<samples.length;i++){
+      const q=samples[i],before=samples[Math.max(0,i-1)],after=samples[Math.min(samples.length-1,i+1)];
+      const tangent=norm(after.x-before.x,after.y-before.y);
+      const nx=-tangent.y,ny=tangent.x;
+      const w=q.width+extra+Math.sin(i*2.4+river.seed)*2.1;
+      if(i===0)ctx.moveTo(q.x+nx*w,q.y+ny*w);
+      else ctx.lineTo(q.x+nx*w,q.y+ny*w);
+    }
+    for(let i=samples.length-1;i>=0;i--){
+      const q=samples[i],before=samples[Math.max(0,i-1)],after=samples[Math.min(samples.length-1,i+1)];
+      const tangent=norm(after.x-before.x,after.y-before.y),nx=-tangent.y,ny=tangent.x;
+      const w=q.width+extra+Math.cos(i*2.9+river.seed)*2.6;
+      ctx.lineTo(q.x-nx*w,q.y-ny*w);
+    }
+    ctx.closePath();
+  }
+  function drawRiver(river){
+    riverPath(river,13);ctx.fillStyle="#f8ffff";ctx.fill();
+    riverPath(river,8);ctx.fillStyle="#7ea9bc";ctx.fill();
+    riverPath(river,1);ctx.fillStyle="#173c51";ctx.fill();
+    riverPath(river,-8);ctx.fillStyle="#071d2e";ctx.fill();
+    // Foaming moving water and drifting ice flakes inside the actual channel.
+    const a=river.samples;
+    for(let i=4;i<a.length-4;i+=7){
+      const q=a[i],drift=Math.sin(game.clock*.035+i*2+river.seed)*q.width*.3;
+      circle(q.x+drift,q.y,2.2,"#b9e8f19c");
+      ctx.beginPath();ctx.moveTo(q.x-9+drift,q.y-3);
+      ctx.lineTo(q.x+8+drift,q.y-3);
+      ctx.lineWidth=1.3;ctx.strokeStyle="#75b4cf7d";ctx.stroke();
+    }
+  }
+  function drawIceBridge(bridge){
+    const river=game.rivers.find(r=>riverDistance(bridge.x,bridge.y,r)<1.3);
+    if(!river)return;
+    const pts=river.samples;let best=0,dist=Infinity;
+    for(let i=0;i<pts.length;i++){
+      const d=Math.hypot(bridge.x-pts[i].x,bridge.y-pts[i].y);
+      if(d<dist){dist=d;best=i;}
+    }
+    const before=pts[Math.max(0,best-1)],after=pts[Math.min(pts.length-1,best+1)];
+    const angle=Math.atan2(after.y-before.y,after.x-before.x);
+    ctx.save();ctx.translate(bridge.x,bridge.y);ctx.rotate(angle);
+    rect(-29,-52,58,104,"#d8eff7");
+    rect(-25,-44,50,88,"#effbff");
+    ctx.strokeStyle="#85bdce";ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(-18,-36);ctx.lineTo(-8,-12);
+    ctx.lineTo(-14,9);ctx.lineTo(4,30);ctx.stroke();
+    ctx.restore();
+  }
   function drawWorld(camX, camY) {
     rect(0, 0, W, H, C.ice);
     const grd = ctx.createLinearGradient(0, 0, W, H);
@@ -1287,6 +1399,8 @@
       ctx.strokeStyle = "#b5d9e3";
       ctx.stroke();
     }
+    for(const river of game.rivers)drawRiver(river);
+    for(const bridge of game.bridges)drawIceBridge(bridge);
     for (const c of [...game.cracks,...game.ionCracks]) {
       rect(c.x, c.y, c.w, c.h, c.ion?"#193b69":C.darkIce);
       rect(c.x + 3, c.y + 3, Math.max(1, c.w - 6), Math.max(1, c.h - 6), c.ion?"#4fe4f1":"#2d7189");
