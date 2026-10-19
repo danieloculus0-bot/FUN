@@ -2,7 +2,7 @@
 
 Weird experiments, tiny games, and dramatically overengineered answers to ridiculous questions.
 
-## Emperor Gauntlet: CHAOS BUILD (v2)
+## Emperor Gauntlet: CHAOS BUILD (v2.1)
 
 > One deranged explorer. An army of penguins. Antarctica does most of the killing.
 
@@ -25,7 +25,10 @@ The browser game is the actively developed main edition in [`docs/`](docs/). The
 - **Survival gear:** parkas, first-aid kits, ice cleats, ammo, caffeine rage boosts
 - **Better characters:** illustrated Antarctic explorer, animated penguins, bruisers and berserkers
 - **Effects:** blood splatter, blood trails, explosions, damage numbers, combos and screen shake
-- **Cross-device:** keyboard/mouse, touch controls, browser-local personal best
+- **Cross-device:** keyboard/mouse, click-to-fire aiming, touch controls, browser-local personal best
+- **Waves and bosses:** escalating waves, giant crowned Emperor boss, boss health bar and reward drops
+- **Audio:** optional synthesized arcade effects (off by default, no external sound files)
+- **Navigation:** compass points toward the nearest equipment pickup
 - **Environment:** blizzards, pressure cracks, dangerous ice, fatigue, cold
 
 ### Controls
@@ -35,6 +38,8 @@ The browser game is the actively developed main edition in [`docs/`](docs/). The
 | WASD / arrow keys | Move |
 | Shift | Sprint |
 | Space / mouse click | Attack; hold for automatic attacks |
+| Mouse movement over the arena | Aim in any direction; movement alone controls facing otherwise |
+| SOUND button | Toggle generated arcade sounds |
 | G | Throw grenade |
 | Q / E | Switch between owned weapons |
 | 1 through 6 | Select a weapon slot |
@@ -54,6 +59,6 @@ node tests/web-smoke.cjs
 
 GitHub Actions runs those checks and deploys `docs/` to Pages if **Settings > Pages > Source > GitHub Actions** is enabled. The GitHub deployment **has not been confirmed live**.
 
-This is a deliberately unpolished chaos build. Cross-browser controls, game balance, sprite polishing and deployment verification are next-pass work, suitable for Replit or independent review with Claude.
+This is a deliberately unpolished chaos build. Cross-browser controls, game balance, boss and wave difficulty, sprite polishing and deployment verification are next-pass work, suitable for Replit or independent review with Claude.
 
 **No real penguins were harmed.**
