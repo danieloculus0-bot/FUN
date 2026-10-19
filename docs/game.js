@@ -508,16 +508,16 @@
       game.drops.splice(i,1);
       const k=drop.kind;
       if(ARMORY[k]){
+        const hadUzi=!!p.owned.uzi;
         p.owned[k]=true;
         if(k==="uzi")p.ammo.uzi+=130;
         if(k==="shotgun")p.ammo.shotgun+=18;
         if(k==="ion")p.ammo.ion+=8;
-        // Once the Uzi is owned it is the default. Other pickups never steal
-        // selection. Players may deliberately select any owned weapon.
-        const hadUzi=p.owned.uzi && k!=="uzi";
-        if(k==="uzi")p.weapon="uzi";
-        else if(!hadUzi && !p.owned.uzi)p.weapon=k;
-        say("PICKED UP: "+ARMORY[k].name+(k==="uzi"?" · DEFAULT WEAPON":". PRESS Q/E TO EQUIP."),190);
+        // First Uzi pickup makes it the default. Later pickups must not
+        // interrupt a weapon the player explicitly chose.
+        if(k==="uzi"&&!hadUzi)p.weapon="uzi";
+        else if(!p.owned.uzi)p.weapon=k;
+        say("PICKED UP: "+ARMORY[k].name+(k==="uzi"&&!hadUzi?" · NOW YOUR DEFAULT":". CHOOSE WITH Q/E OR NUMBER KEYS."),190);
       }else if(k==="parka"){p.parka=Math.min(3,p.parka+1);p.temp=clamp(p.temp+30,0,100);say("PARKA EQUIPPED. COLD RESISTANCE UP.",145);}
       else if(k==="medkit"){p.hp=clamp(p.hp+50,0,100);say("FIRST AID KIT: +50 HEALTH.",120);}
       else if(k==="cleats"){p.cleats=true;say("ICE CLEATS. TRACTION, YOU BEAUTIFUL BASTARD.",125);}
