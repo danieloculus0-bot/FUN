@@ -241,10 +241,12 @@ assert.equal(g.game.score,killsBeforeYeti,"Yeti is separate from penguin count")
 // A punished seal attack summons a guardian, halves current health,
 // leaves a visible message, and never earns any kill/points.
 armed.hp=80;
+g.game.seal.hurtCooldown=0;
+const warningCountBefore=g.game.sealWarnings;
 const beforeSealKills=g.game.score, beforeSealPoints=g.game.points;
 assert.equal(g.warnSeal(),true,"Seal attack triggers a warning smack");
 assert.equal(armed.hp,40,"Seal warning takes exactly half current health");
-assert.equal(g.game.sealWarnings,1,"Warning is recorded separately");
+assert.equal(g.game.sealWarnings,warningCountBefore+1,"Warning is recorded separately");
 assert.ok(g.game.yeti?.alive,"Yeti appears to defend the seal");
 assert.equal(g.game.yeti.rage,0,"Guardian stays friendly after warning");
 assert.ok(g.game.guardianNotice>0,"Warning is visible in the HUD");
