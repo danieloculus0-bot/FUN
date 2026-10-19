@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#08131f">
   <meta name="description" content="Emperor Gauntlet: free Antarctic arcade carnage with an Uzi, nighttime flamethrower, rocket launcher, winding ice rivers, leopard seals, Yeti and polar nights.">
   <title>Emperor Gauntlet | FUN</title>
@@ -13,7 +13,7 @@
   <main class="shell">
     <header class="masthead">
       <a class="brand" href="https://github.com/danieloculus0-bot/FUN" aria-label="FUN on GitHub"><span class="brand-symbol">F<span>U</span>N</span><span class="brand-sub">UNREASONABLE EXPERIMENTS</span></a>
-      <span class="edition">BROWSER EDITION <span class="edition-dot"></span> v2.5 · POLAR FIRE</span>
+      <span class="edition">BROWSER EDITION <span class="edition-dot"></span> v2.6 · HANDHELD</span>
     </header>
     <section class="game-section" aria-label="Emperor Gauntlet">
       <div class="title-row">
@@ -21,6 +21,8 @@
         <div class="record">THE LEGENDARY RECORD <strong>37</strong> <span>PENGUINS</span></div>
       </div>
       <div class="game-frame" id="game-frame">
+        <div class="mobile-topbar" aria-hidden="true"><strong>EG <span>✦</span> HANDHELD</strong><span>ANTARCTICA · SURVIVE</span></div>
+        <div class="arena-stage" id="arena-stage">
         <canvas id="game" width="1000" height="640" aria-label="Emperor Gauntlet game arena. Use WASD or arrow keys to move, Shift to sprint, Space or click to attack, G for grenades, Q and E to switch weapons."></canvas>
         <div class="overlay" id="overlay">
           <div class="overlay-card">
@@ -31,19 +33,28 @@
             <p class="overlay-hint" id="overlay-hint">WASD: MOVE &nbsp; · &nbsp; MOUSE: AIM &nbsp; · &nbsp; SPACE / CLICK: ATTACK &nbsp; · &nbsp; G: GRENADE</p>
           </div>
         </div>
-        <div class="touch-controls" aria-label="Touch game controls">
-          <div class="dpad">
-            <button class="touch-btn up" data-hold="up" aria-label="Move up">▲</button>
-            <button class="touch-btn left" data-hold="left" aria-label="Move left">◀</button>
-            <button class="touch-btn down" data-hold="down" aria-label="Move down">▼</button>
-            <button class="touch-btn right" data-hold="right" aria-label="Move right">▶</button>
+        </div>
+        <div class="touch-controls" aria-label="SNES-style handheld game controller">
+          <button type="button" class="shoulder shoulder-left touch-btn" id="touch-prev" aria-label="Previous weapon">L <small>WEAPON</small></button>
+          <div class="dpad" aria-label="Movement D-pad">
+            <button type="button" class="touch-btn up" data-hold="up" aria-label="Move up">▲</button>
+            <button type="button" class="touch-btn left" data-hold="left" aria-label="Move left">◀</button>
+            <span class="dpad-hub" aria-hidden="true"></span>
+            <button type="button" class="touch-btn right" data-hold="right" aria-label="Move right">▶</button>
+            <button type="button" class="touch-btn down" data-hold="down" aria-label="Move down">▼</button>
           </div>
-          <div class="action-pad">
-            <button class="touch-btn sprint" data-hold="sprint">SPRINT</button>
-            <button class="touch-btn swap" id="touch-swap">SWAP</button>
-            <button class="touch-btn grenade" id="touch-grenade">BOOM</button>
-            <button class="touch-btn shove" id="touch-shove">FIRE</button>
+          <div class="system-pad">
+            <button type="button" class="touch-btn system-key" id="touch-select" aria-label="Previous weapon">SELECT</button>
+            <button type="button" class="touch-btn system-key" id="touch-start" aria-label="Pause or resume game">START</button>
           </div>
+          <div class="action-pad" aria-label="Action buttons">
+            <button type="button" class="touch-btn face x" id="touch-grenade" aria-label="X: Throw grenade">X<small>BOOM</small></button>
+            <button type="button" class="touch-btn face y" id="touch-swap" aria-label="Y: Change weapon">Y<small>SWAP</small></button>
+            <button type="button" class="touch-btn face b" id="touch-shove" aria-label="B: Hold to fire">B<small>FIRE</small></button>
+            <button type="button" class="touch-btn face a" data-hold="sprint" aria-label="A: Hold to sprint">A<small>RUN</small></button>
+          </div>
+          <button type="button" class="shoulder shoulder-right touch-btn" id="touch-next" aria-label="Next weapon">R <small>WEAPON</small></button>
+          <div class="pad-legend" aria-hidden="true">DRAG ON THE ICE TO AIM · HOLD B TO FIRE</div>
         </div>
       </div>
       <div class="below-game">
@@ -56,7 +67,7 @@
       <div class="control-grid">
         <span><kbd>W A S D</kbd> MOVE</span><span><kbd>SHIFT</kbd> SPRINT</span>
         <span><kbd>MOUSE</kbd> AIM · <kbd>SPACE / CLICK</kbd> ATTACK</span><span><kbd>G</kbd> GRENADE</span>
-        <span><kbd>Q / E</kbd> SWITCH WEAPONS</span><span><kbd>1 - 9</kbd> DIRECT WEAPON SLOTS</span>
+        <span><kbd>Q / E</kbd> SWITCH WEAPONS</span><span><kbd>1 - 9</kbd> DIRECT WEAPON SLOTS</span><span><kbd>MOBILE</kbd> SNES D-PAD + ABXY · DRAG TO AIM</span>
         <span><kbd>P</kbd> PAUSE</span><span><kbd>WALK OVER GEAR</kbd> PICK IT UP</span>
         <span><kbd>SOUND</kbd> OPTIONAL SYNTH EFFECTS</span>
       </div>
