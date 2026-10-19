@@ -11,7 +11,7 @@ assert.ok(source.includes(last), "Game entrypoint missing");
 // Test instrumentation is only applied in Node. The browser game is unchanged.
 source = source.replace(last,
   "  requestAnimationFrame(frame);\n" +
-  "  globalThis.__test = { get game() { return game; }, get state() { return state; }, start, pause, shove, tick, downBird, throwGrenade, selectWeapon, cycleWeapon, hurtYeti, warnSeal, yetiSnack };\n" +
+  "  globalThis.__test = { get game() { return game; }, get state() { return state; }, start, pause, shove, tick, downBird, throwGrenade, selectWeapon, cycleWeapon, hurtYeti, warnSeal, yetiSnack, collisions };\n" +
   "})();"
 );
 const events = new Map();
@@ -101,14 +101,14 @@ bird.vx = 0; bird.vy = 0;
 bird.hp = 66;
 g.shove();
 const id = player.swingId;
-g.tick();
+g.collisions();
 const firstHit = bird.hp;
 assert.ok(firstHit <= 44 && firstHit >= 28, "One shove must cause normal damage");
 for (let i = 0; i < 9; i++) {
   bird.x = player.x + 40;
   bird.y = player.y;
   bird.vx = bird.vy = 0;
-  g.tick();
+  g.collisions();
 }
 assert.equal(bird.hp, firstHit, "A shove must not damage the same bird twice");
 assert.equal(bird.lastSwing, id);
