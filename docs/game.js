@@ -434,8 +434,12 @@
         smack(b,Math.max(25,480*(1-d/300)),n.x*24,n.y*24);
       }
     }
+    // A guardian Yeti freshly summoned by a seal warning must not also
+    // get accidentally hit by the very same plasma detonation.
+    const yetiBeforeImpact=game.yeti?.alive?game.yeti:null;
     if(game.seal&&Math.hypot(game.seal.x-x,game.seal.y-y)<245)warnSeal();
-    if(game.yeti&&game.yeti.alive&&Math.hypot(game.yeti.x-x,game.yeti.y-y)<240){
+    if(yetiBeforeImpact&&game.yeti===yetiBeforeImpact&&
+       game.yeti.alive&&Math.hypot(game.yeti.x-x,game.yeti.y-y)<240){
       const d=Math.hypot(game.yeti.x-x,game.yeti.y-y);
       hurtYeti(Math.max(90,550*(1-d/260)));
     }
