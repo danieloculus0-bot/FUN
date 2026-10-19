@@ -11,7 +11,7 @@ assert.ok(source.includes(last), "Game entrypoint missing");
 // Test instrumentation is only applied in Node. The browser game is unchanged.
 source = source.replace(last,
   "  requestAnimationFrame(frame);\n" +
-  "  globalThis.__test = { get game() { return game; }, get state() { return state; }, start, pause, shove, tick, downBird, throwGrenade, selectWeapon, cycleWeapon, hurtYeti };\n" +
+  "  globalThis.__test = { get game() { return game; }, get state() { return state; }, start, pause, shove, tick, downBird, throwGrenade, selectWeapon, cycleWeapon, hurtYeti, warnSeal, yetiSnack };\n" +
   "})();"
 );
 const events = new Map();
@@ -70,6 +70,7 @@ const g = sandbox.__test;
 assert.equal(g.state, "menu");
 assert.equal(g.game.birds.length, 22);
 assert.ok(g.game.drops.length >= 8, "Gear must exist in the arena");
+assert.ok(g.game.seal && g.game.seal.x>=300, "Baby seal is spawned near first gameplay view");
 assert.equal(g.game.fires.length, 8, "Eight warming campfires exist");
 assert.ok(g.game.yetiNext<=210, "The Yeti first appears quickly");
 nodes["play-button"].handlers.click();
@@ -182,6 +183,9 @@ assert.ok(boss.maxHp >= 800, "Emperor must have meaningful boss HP");
 const beforeRewards = g.game.drops.length;
 g.downBird(boss, "combat");
 assert.ok(g.game.drops.length >= beforeRewards + 3, "Boss defeat must award supplies");
+assert.ok(g.game.goreBursts>=1,"Penguin kills produce gore");
+assert.ok(g.game.gibs.length>=26,"Killing an Emperor produces a cartoon gore explosion");
+assert.ok(g.game.stains.length>=22,"Big penguins stain the ice with blood");
 
 // Night lasts for wave 3, day returns for wave 4, and night recurs at wave 6.
 assert.equal(g.game.night,false,"Wave two is daytime");
@@ -218,12 +222,36 @@ armed.x=yeti.x;armed.y=yeti.y;armed.vx=armed.vy=0;armed.temp=55;
 g.tick();
 assert.ok(armed.temp>55,"Peaceful Yeti grants warmth");
 assert.equal(armed.yetiWarming,true);
+// Yeti eats ordinary penguins but its meal must never count toward your record.
+const snackTarget=g.game.birds.find(b=>!b.down&&b.variant!=="boss");
+assert.ok(snackTarget,"Penguin target exists for Yeti snack");
+const preSnackScore=g.game.score,preSnackPoints=g.game.points,preSnackGore=g.game.goreBursts;
+assert.equal(g.yetiSnack(snackTarget),true,"Peaceful Yeti consumes a penguin");
+assert.equal(g.game.yetiEats,1,"Separate Yeti meal counter increments");
+assert.equal(g.game.score,preSnackScore,"Yeti's food earns no player kill");
+assert.equal(g.game.points,preSnackPoints,"Yeti's food earns no player points");
+assert.equal(g.game.goreBursts,preSnackGore,"Eating is not counted as player's gore burst");
+assert.equal(g.yetiSnack(snackTarget),false,"Same penguin cannot be eaten twice");
 g.hurtYeti(10);
 assert.ok(yeti.rage>0,"Attacking the Yeti provokes it");
 const pointsBeforeYeti=g.game.points, killsBeforeYeti=g.game.score;
 g.hurtYeti(10000);
 assert.equal(g.game.points,pointsBeforeYeti+1000,"Yeti defeat awards 1000 points");
 assert.equal(g.game.score,killsBeforeYeti,"Yeti is separate from penguin count");
+// A punished seal attack summons a guardian, halves current health,
+// leaves a visible message, and never earns any kill/points.
+armed.hp=80;
+const beforeSealKills=g.game.score, beforeSealPoints=g.game.points;
+assert.equal(g.warnSeal(),true,"Seal attack triggers a warning smack");
+assert.equal(armed.hp,40,"Seal warning takes exactly half current health");
+assert.equal(g.game.sealWarnings,1,"Warning is recorded separately");
+assert.ok(g.game.yeti?.alive,"Yeti appears to defend the seal");
+assert.equal(g.game.yeti.rage,0,"Guardian stays friendly after warning");
+assert.ok(g.game.guardianNotice>0,"Warning is visible in the HUD");
+assert.equal(g.game.score,beforeSealKills,"Seal doesn't count as a penguin");
+assert.equal(g.game.points,beforeSealPoints,"Seal doesn't award points");
+assert.equal(g.warnSeal(),false,"Cooldown prevents repeated warning slaps");
+assert.equal(armed.hp,40,"Repeated seal hit cannot drain health immediately");
 
 // Mouse target coordinates are converted from CSS pixels to canvas world space.
 const pointerMove = nodes.game.handlers.pointermove;
