@@ -13,7 +13,8 @@
     uzi: {name:"UZI",type:"gun",damage:26,cooldown:5,velocity:24,spread:.11,color:"#ffeb80"},
     shotgun: {name:"SHOTGUN",type:"gun",damage:26,cooldown:39,velocity:20,spread:.37,pellets:7,color:"#ffc16d"},
     ion: {name:"ION CANNON",type:"gun",damage:420,cooldown:85,velocity:12,spread:0,color:"#73f4ff"},
-    rocket: {name:"ROCKET LAUNCHER",type:"gun",damage:340,cooldown:52,velocity:15,spread:.025,color:"#ff9d51"}
+    rocket: {name:"ROCKET LAUNCHER",type:"gun",damage:340,cooldown:52,velocity:15,spread:.025,color:"#ff9d51"},
+    flame: {name:"FLAMETHROWER",type:"gun",damage:19,cooldown:3,velocity:0,spread:.40,color:"#ff6b28"}
   };
   const WEAPON_ORDER = Object.keys(ARMORY);
   // Permanent survival campfires keep the cold mechanic playable during extended waves.
@@ -26,7 +27,7 @@
   const MIN_DAY_TICKS=180*FPS;
   const DROP_COLORS = {uzi:"#f9cb5d",shotgun:"#f4a575",knife:"#dcebf5",
     nunchucks:"#ffdf6e",staff:"#caa47b",parka:"#77e0f5",medkit:"#f76879",
-    grenade:"#f1af51",ammo:"#ffe48b",coffee:"#dbafff",cleats:"#afff7a",ion:"#73f4ff",ioncell:"#99f5ff",rocket:"#ff9d51",rockets:"#ffa64c"};
+    grenade:"#f1af51",ammo:"#ffe48b",coffee:"#dbafff",cleats:"#afff7a",ion:"#73f4ff",ioncell:"#99f5ff",rocket:"#ff9d51",rockets:"#ffa64c",flame:"#ff6b28",fuel:"#ffd36c"};
   const C = {
     snow: "#e8f4f7", ice: "#b0dce9", darkIce: "#123b51", blueIce: "#57a7c8",
     white: "#f3f8f9", black: "#0b1319", gray: "#4c6270", red: "#dd5c63",
@@ -53,7 +54,7 @@
   function playSfx(type){
     if(!soundOn||!audio||!game)return;
     const tick=game.clock;
-    const repeatLimit={uzi:4,shotgun:20,hit:3,collect:12,boss:40,boom:5,melee:8};
+    const repeatLimit={uzi:4,shotgun:20,hit:3,collect:12,boss:40,boom:5,melee:8,flame:9};
     if(lastSfxTick[type]!==undefined&&tick-lastSfxTick[type]<(repeatLimit[type]||2))return;
     lastSfxTick[type]=tick;
     try{
@@ -64,7 +65,7 @@
         melee:[350,90,.09,"triangle"],hit:[195,55,.095,"square"],
         collect:[480,880,.17,"sine"],boom:[95,23,.36,"sawtooth"],
         boss:[150,52,.45,"sawtooth"],wave:[360,640,.28,"triangle"],
-        heal:[450,850,.26,"sine"],grenade:[310,160,.12,"square"]
+        heal:[450,850,.26,"sine"],grenade:[310,160,.12,"square"],flame:[250,75,.16,"sawtooth"]
       };
       const t=tones[type]||tones.melee;
       osc.type=t[3];
@@ -179,9 +180,9 @@
         x: 170, y: 200, vx: 0, vy: 0, fx: 1, fy: 0,
         temp: 100, hp: 100, stamina: 100, wet: 0, slip: 0,
         shoveCD: 0, swing: 0, swingId: 0, provocation: 0,
-        weapon:"fists",owned:{fists:true},ammo:{uzi:120,shotgun:20,ion:0,rocket:0},
+        weapon:"fists",owned:{fists:true},ammo:{uzi:120,shotgun:20,ion:0,rocket:0,flame:0},
         grenades:2,parka:0,cleats:false,rage:0,combo:0,comboTime:0,
-        swingReach:43,swingColor:"#fbb667",muzzle:0,warming:false
+        swingReach:43,swingColor:"#fbb667",muzzle:0,warming:false,flameActive:0,flameFireCD:0,flameMeltCD:0
       },
       birds: [], leopardSeals:[], leopardKills:0, drifts: [
         { x: 360, y: 300, w: 270, h: 120 },
@@ -227,7 +228,7 @@
       makeDrop("nunchucks",780,505),makeDrop("shotgun",1050,590),
       makeDrop("staff",1260,440),makeDrop("cleats",1460,620),makeDrop("coffee",840,270),
       makeDrop("ion",510,320),makeDrop("ion",1660,1200),
-      makeDrop("rocket",655,300));
+      makeDrop("rocket",655,300),makeDrop("flame",575,230),makeDrop("fuel",625,215));
     return g;
   }
 
@@ -372,12 +373,77 @@
     playSfx("hit");
     if(b.hp<=0)downBird(b,"combat");
   }
+  function dropFuelFire(x,y){
+    // Flames from spilled fuel on intact ice, NOT from blood or penguin corpses.
+    x=clamp(x,36,WORLD_W-36);y=clamp(y,36,WORLD_H-36);
+    if(riverExposure(x,y)<1.6||game.holes.some(h=>Math.hypot(h.x-x,h.y-y)<h.r+34))return false;
+    const current=game.fires.find(f=>f.kind==="fuel"&&Math.hypot(f.x-x,f.y-y)<65);
+    if(current){current.life=Math.max(current.life,720);return true;}
+    game.fires.push({x,y,kind:"fuel",phase:rand(0,6.28),life:720});
+    // Limit temporary fires independently so permanent camps are never removed.
+    const temporary=game.fires.filter(f=>f.kind==="fuel");
+    if(temporary.length>14)game.fires.splice(game.fires.indexOf(temporary[0]),1);
+    return true;
+  }
+  function sprayFlame(p){
+    p.flameActive=9;
+    p.temp=clamp(p.temp+.13,0,100);
+    const range=157,angle=.44;
+    const facing=Math.atan2(p.fy,p.fx);
+    const hits=(x,y,radius)=>{
+      const dx=x-p.x,dy=y-p.y,d=Math.hypot(dx,dy);
+      if(d>range+radius)return false;
+      const n=norm(dx,dy);
+      return d<33 || n.x*p.fx+n.y*p.fy>Math.cos(angle+Math.atan2(radius,Math.max(25,d)));
+    };
+    for(const b of game.birds){
+      if(b.down)continue;
+      if(hits(b.x,b.y,b.variant==="boss"?41:b.variant==="bruiser"?23:15)){
+        const n=norm(b.x-p.x,b.y-p.y);
+        smack(b,19*(p.rage>0?1.5:1),n.x*.95,n.y*.95);
+      }
+    }
+    for(const leopard of game.leopardSeals){
+      if(!leopard.dead&&leopard.emerge>.28&&hits(leopard.x,leopard.y,32))
+        hurtLeopard(leopard,16);
+    }
+    if(game.yeti?.alive&&hits(game.yeti.x,game.yeti.y,52))hurtYeti(9);
+    if(game.seal&&hits(game.seal.x,game.seal.y,19))warnSeal();
+    if(p.flameFireCD<=0){
+      const x=p.x+p.fx*rand(112,147),y=p.y+p.fy*rand(112,147);
+      if(dropFuelFire(x,y))p.flameFireCD=75;
+      else p.flameFireCD=20;
+    }
+    // Ice can scorch and fracture, but don't create a hole beneath a warming fire.
+    if(p.flameMeltCD<=0){
+      const x=clamp(p.x+p.fx*170,40,WORLD_W-40);
+      const y=clamp(p.y+p.fy*170,40,WORLD_H-40);
+      if(!onIceBridge(x,y)&&riverExposure(x,y)>2 &&
+         game.holes.every(h=>Math.hypot(h.x-x,h.y-y)>100)&&
+         game.fires.every(f=>Math.hypot(f.x-x,f.y-y)>90)){
+        game.ionCracks.push({x:x-8,y:y-23,w:16,h:46,depth:.5,ion:true});
+        if(game.ionCracks.length>28)game.ionCracks.shift();
+      }
+      p.flameMeltCD=420;
+    }
+    for(let i=0;i<15;i++){
+      const a=facing+rand(-angle,angle),d=rand(12,range);
+      game.particles.push({x:p.x+p.fx*23+Math.cos(a)*d,
+        y:p.y+p.fy*23+Math.sin(a)*d,
+        vx:Math.cos(a)*rand(1,4),vy:Math.sin(a)*rand(1,4),
+        life:rand(6,17),radius:rand(2.5,8),
+        color:i%6===0?"#fff0ac":i%2===0?"#ffbd43":"#f64a22"});
+    }
+    if(game.particles.length>1500)game.particles.splice(0,game.particles.length-1500);
+    playSfx("flame");
+  }
   function fireWeapon(){
     const p=game.player,w=ARMORY[p.weapon];
     if(p.ammo[p.weapon]<=0){
       p.shoveCD=18;say("CLICK. EMPTY. FIND AMMO OR SWITCH WEAPONS.",120);return;
     }
     p.ammo[p.weapon]--;p.shoveCD=w.cooldown;p.provocation+=.8;p.muzzle=5;
+    if(p.weapon==="flame"){sprayFlame(p);return;}
     if(p.weapon==="rocket"){
       const angle=Math.atan2(p.fy,p.fx);
       game.bullets.push({x:p.x+p.fx*35,y:p.y+p.fy*35,
@@ -823,16 +889,19 @@
         if(k==="uzi")p.ammo.uzi+=130;
         if(k==="shotgun")p.ammo.shotgun+=18;
         if(k==="ion")p.ammo.ion+=10;
+        if(k==="flame")p.ammo.flame+=225;
         if(k==="rocket")p.ammo.rocket+=8;
         // First Uzi pickup makes it the default. Later pickups must not
         // interrupt a weapon the player explicitly chose.
-        if(k==="uzi"&&!hadUzi)p.weapon="uzi";
-        else if(!p.owned.uzi)p.weapon=k;
+        if(k==="uzi"&&!hadUzi && game.phase!=="night")p.weapon="uzi";
+        else if(k==="flame"&&game.phase==="night")p.weapon="flame";
+        else if(!p.owned.uzi&&!p.owned.flame)p.weapon=k;
         say("PICKED UP: "+ARMORY[k].name+(k==="uzi"&&!hadUzi?" · NOW YOUR DEFAULT":". CHOOSE WITH Q/E OR NUMBER KEYS."),190);
       }else if(k==="parka"){p.parka=Math.min(3,p.parka+1);p.temp=clamp(p.temp+30,0,100);say("PARKA EQUIPPED. COLD RESISTANCE UP.",145);}
       else if(k==="medkit"){p.hp=clamp(p.hp+50,0,100);say("FIRST AID KIT: +50 HEALTH.",120);}
       else if(k==="cleats"){p.cleats=true;say("ICE CLEATS. TRACTION, YOU BEAUTIFUL BASTARD.",125);}
-      else if(k==="ammo"){p.ammo.uzi+=100;p.ammo.shotgun+=16;p.ammo.ion+=3;p.ammo.rocket+=3;say("AMMO RESTOCKED.",110);}
+      else if(k==="ammo"){p.ammo.uzi+=100;p.ammo.shotgun+=16;p.ammo.ion+=3;p.ammo.rocket+=3;p.ammo.flame+=80;say("AMMO RESTOCKED.",110);}
+      else if(k==="fuel"){p.ammo.flame+=160;say("FLAMETHROWER FUEL +160. THE PENGUIN BLOOD IS NOT THE FUEL.",140);}
       else if(k==="rockets"){p.ammo.rocket+=5;say("FIVE MORE ROCKETS. ANTARCTICA IS WORRIED.",150);}
       else if(k==="ioncell"){p.ammo.ion+=3;say("PLASMA ION CELLS +3. ANTARCTICA IS FUCKED.",160);}
       else if(k==="grenade"){p.grenades+=3;say("THREE MORE GRENADES. NO ONE TELL THE PENGUINS.",150);}
@@ -943,6 +1012,9 @@
     }
     if (p.shoveCD > 0) p.shoveCD--;
     if(p.muzzle>0)p.muzzle--;
+    if(p.flameActive>0)p.flameActive--;
+    if(p.flameFireCD>0)p.flameFireCD--;
+    if(p.flameMeltCD>0)p.flameMeltCD--;
     if(p.rage>0)p.rage--;
     if(p.comboTime>0)p.comboTime--;else p.combo=0;
     if (p.swing > 0) p.swing--;
@@ -958,8 +1030,9 @@
     let fireHeat=0;
     for(const fire of game.fires){
       const d=Math.hypot(p.x-fire.x,p.y-fire.y);
-      if(d<WARMTH_RADIUS){
-        const gain=.30*(1-d/WARMTH_RADIUS);
+      const radius=fire.kind==="fuel"?107:WARMTH_RADIUS;
+      if(d<radius){
+        const gain=(fire.kind==="fuel"?.39:.30)*(1-d/radius);
         fireHeat=Math.max(fireHeat,gain);
       }
     }
@@ -1219,6 +1292,11 @@
       if(g.phaseTicks>=DUSK_TICKS){
         g.phase="night";g.phaseTicks=0;g.night=true;g.darkness=.88;
         g.nightCycles++;g.nightNotice=175;
+        // Night default: flamethrower. Grant a fueled one if missed.
+        const p=g.player;
+        if(!p.owned.flame){p.owned.flame=true;p.ammo.flame+=230;}
+        if(p.ammo.flame<100)p.ammo.flame+=160;
+        p.weapon="flame";p.shoveCD=0;
         say("NIGHTFALL! 59 SECONDS. FLASHLIGHT, FIRE AND LUCK.",230);
       }
     }else if(g.phase==="night"){
@@ -1233,6 +1311,9 @@
       if(g.phaseTicks>=DAWN_TICKS){
         g.phase="day";g.phaseTicks=0;g.darkness=0;
         g.nextNightAllowed=g.clock+MIN_DAY_TICKS;
+        // Day default: Uzi if the player has collected one.
+        const p=g.player;
+        if(p.owned.uzi){p.weapon="uzi";p.shoveCD=0;}
         g.nightNotice=120;
       }
     }
@@ -1242,7 +1323,11 @@
     game.wave++;
     game.nextWaveAt+=10+Math.min(20,(game.wave-1)*2);
     game.waveBanner=205;
-    if(game.wave%3===0)game.nightQueue++;
+    if(game.wave%3===0){
+      game.nightQueue++;
+      const p=game.player;
+      game.drops.push(makeDrop("flame",clamp(p.x+72,40,WORLD_W-40),clamp(p.y-58,40,WORLD_H-40)));
+    }
     // A milestone queues darkness. Timing is independent of how fast kills
     // happen, so full night always lasts precisely 59 gameplay seconds.
     game.player.temp=clamp(game.player.temp+10,0,100);
@@ -1251,6 +1336,10 @@
       const p=game.player;
       game.drops.push(makeDrop("ion",clamp(p.x+110,40,WORLD_W-40),clamp(p.y+55,40,WORLD_H-40)));
       game.drops.push(makeDrop("ioncell",clamp(p.x+140,40,WORLD_W-40),clamp(p.y+35,40,WORLD_H-40)));
+    }
+    if(game.wave===2||game.wave%3===0){
+      const p=game.player;
+      game.drops.push(makeDrop("fuel",clamp(p.x-70,40,WORLD_W-40),clamp(p.y-90,40,WORLD_H-40)));
     }
     if(game.wave%2===0){
       const p=game.player;game.drops.push(makeDrop("rocket",clamp(p.x-100,40,WORLD_W-40),clamp(p.y+75,40,WORLD_H-40)));
@@ -1318,7 +1407,7 @@
     if(game.guardianNotice>0)game.guardianNotice--;
     if(game.clock%480===0){
       const p=game.player;
-      const kinds=["ammo","medkit","coffee","grenade","parka","ion","ioncell","rocket","rockets"];
+      const kinds=["ammo","medkit","coffee","grenade","parka","ion","ioncell","rocket","rockets","flame","fuel","fuel"];
       game.drops.push(makeDrop(kinds[Math.floor(rand(0,kinds.length))],
         clamp(p.x+rand(-180,180),35,WORLD_W-35),clamp(p.y+rand(-180,180),35,WORLD_H-35)));
     }
@@ -1558,7 +1647,7 @@
       rect(-6,2,4,11,"#374c53");
       ctx.restore();
     }else{
-      const icons={medkit:"+",parka:"J",cleats:"C",ammo:"A",grenade:"G",coffee:"!",ioncell:"⚡",rockets:"R"};
+      const icons={medkit:"+",parka:"J",cleats:"C",ammo:"A",grenade:"G",coffee:"!",ioncell:"⚡",rockets:"R",fuel:"F"};
       text(icons[item.kind]||"?",x,y,22,"#132231","center",1000);
     }
     text(item.kind.toUpperCase(),x,y+28,11,"#19384a","center",950);
@@ -1767,7 +1856,12 @@
     ctx.restore();
     // Weapon points along the movement direction.
     const fx=p.fx,fy=p.fy,x=p.x+fx*23,y=p.y+fy*23;
-    if(p.weapon==="rocket"){
+    if(p.weapon==="flame"){
+      ctx.strokeStyle="#48595f";ctx.lineWidth=13;
+      ctx.beginPath();ctx.moveTo(x-fx*13,y-fy*13);
+      ctx.lineTo(x+fx*35,y+fy*35);ctx.stroke();
+      circle(x+fx*35,y+fy*35,8,p.flameActive>0?"#ffe082":"#aa714b");
+    }else if(p.weapon==="rocket"){
       ctx.strokeStyle="#3f4748";ctx.lineWidth=17;
       ctx.beginPath();ctx.moveTo(x-fx*15,y-fy*15);
       ctx.lineTo(x+fx*42,y+fy*42);ctx.stroke();
@@ -1956,10 +2050,11 @@
       nightCtx.moveTo(0,0);nightCtx.lineTo(355,-116);
       nightCtx.quadraticCurveTo(400,0,355,116);
       nightCtx.closePath();nightCtx.fill();nightCtx.restore();
-      for(const fire of game.fires)light(fire.x,fire.y,180);
+      for(const fire of game.fires)light(fire.x,fire.y,fire.kind==="fuel"?125:180);
       if(game.yeti?.alive)light(game.yeti.x,game.yeti.y,145);
       for(const b of game.bullets)if(b.ion||b.rocket)light(b.x,b.y,b.ion?155:85);
       for(const b of game.explosions)light(b.x,b.y,b.ion?260:160);
+      if(p.flameActive>0)light(p.x+p.fx*98,p.y+p.fy*98,185);
       nightCtx.globalCompositeOperation="source-over";
       ctx.drawImage(nightCanvas,0,0);
     }else{
@@ -2033,7 +2128,7 @@
   window.addEventListener("keydown", e => {
     const k = keyName(e);
     const space = e.code === "Space";
-    if (k || space || ["g","q","e","1","2","3","4","5","6","7","8"].includes(e.key.toLowerCase())) e.preventDefault();
+    if (k || space || ["g","q","e","1","2","3","4","5","6","7","8","9"].includes(e.key.toLowerCase())) e.preventDefault();
     if (k && state === "running") pressed.add(k);
     if (e.repeat) return;
     if (e.key.toLowerCase() === "p" || e.key === "Escape") {
@@ -2045,7 +2140,7 @@
       throwGrenade();
     } else if (state === "running" && (e.key.toLowerCase() === "q" || e.key.toLowerCase() === "e")) {
       cycleWeapon(e.key.toLowerCase()==="e"?1:-1);
-    } else if (state === "running" && /^[1-8]$/.test(e.key)) {
+    } else if (state === "running" && /^[1-9]$/.test(e.key)) {
       selectWeapon(WEAPON_ORDER[Number(e.key)-1]);
     } else if (e.key.toLowerCase() === "r" && state === "over") {
       start();
