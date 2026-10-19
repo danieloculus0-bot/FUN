@@ -21,6 +21,8 @@
     {x:1920,y:1420},{x:420,y:1440},{x:1160,y:1450},{x:2250,y:1500}
   ];
   const WARMTH_RADIUS=145;
+  const DUSK_TICKS=15*FPS, NIGHT_TICKS=59*FPS, DAWN_TICKS=15*FPS;
+  const MIN_DAY_TICKS=180*FPS;
   const DROP_COLORS = {uzi:"#f9cb5d",shotgun:"#f4a575",knife:"#dcebf5",
     nunchucks:"#ffdf6e",staff:"#caa47b",parka:"#77e0f5",medkit:"#f76879",
     grenade:"#f1af51",ammo:"#ffe48b",coffee:"#dbafff",cleats:"#afff7a",ion:"#73f4ff",ioncell:"#99f5ff"};
@@ -151,7 +153,8 @@
       seal:{x:350,y:270,phase:0,vx:.7,vy:.25,hurtCooldown:0,scared:0,lastSwing:-1},
       sealWarnings:0, yetiEats:0, goreBursts:0, guardianNotice:0,
       wave:1, waveBanner:0, bossWave:0, nextWaveAt:10,
-      night:false,nightNotice:0,
+      night:false,nightNotice:0,phase:"day",phaseTicks:0,
+      darkness:0,nightQueue:0,nextNightAllowed:0,nightCycles:0,
       points:0, ionCracks:[], ionShots:0, yeti:null, yetiNext:190, yetiVisits:0,yetiBanner:0,
       score: 0, falls: 0, clock: 0,
       windAngle: rand(0, Math.PI * 2), windStrength: rand(.3, 1),
@@ -775,6 +778,10 @@
     if (p.swing > 0) p.swing--;
     let loss = .018 + (game.blizzardTimer > 0 ? .04 : 0) - (sprint ? .008 : 0);
     if (p.wet > 0) { p.wet--; loss += .058; }
+    // Dusk chills; night is brutally cold. Daylight restores a little heat.
+    const climate=game.darkness/.88;
+    loss*=1+2.0*climate;
+    if(game.phase==="day")loss-=.013;
     loss*=1-p.parka*.2;
     // Standing in the golden ring turns the fire into a real warming station.
     // It offsets blizzards and even wet clothing if you move in close enough.
@@ -1004,17 +1011,53 @@
     playSfx("boss");
     game.shake=13;
   }
+  function updateSkyCycle(){
+    const g=game;
+    if(g.phase==="day"){
+      g.darkness=0;g.night=false;
+      if(g.nightQueue>0 && g.clock>=g.nextNightAllowed){
+        g.nightQueue--;
+        g.phase="dusk";g.phaseTicks=0;g.nightNotice=190;
+        say("POLAR DUSK: 15 SECONDS UNTIL DARKNESS.",170);
+      }
+      return;
+    }
+    g.phaseTicks++;
+    if(g.phase==="dusk"){
+      g.darkness=.88*clamp(g.phaseTicks/DUSK_TICKS,0,1);
+      g.night=false;
+      if(g.phaseTicks>=DUSK_TICKS){
+        g.phase="night";g.phaseTicks=0;g.night=true;g.darkness=.88;
+        g.nightCycles++;g.nightNotice=175;
+        say("NIGHTFALL! 59 SECONDS. FLASHLIGHT, FIRE AND LUCK.",230);
+      }
+    }else if(g.phase==="night"){
+      g.darkness=.88;g.night=true;
+      if(g.phaseTicks>=NIGHT_TICKS){
+        g.phase="dawn";g.phaseTicks=0;g.night=false;g.nightNotice=190;
+        say("DAWN! THE SUN REMEMBERS THIS CONTINENT.",175);
+      }
+    }else if(g.phase==="dawn"){
+      g.darkness=.88*(1-clamp(g.phaseTicks/DAWN_TICKS,0,1));
+      g.night=false;
+      if(g.phaseTicks>=DAWN_TICKS){
+        g.phase="day";g.phaseTicks=0;g.darkness=0;
+        g.nextNightAllowed=g.clock+MIN_DAY_TICKS;
+        g.nightNotice=120;
+      }
+    }
+  }
   function waveDirector(){
     if(game.score<game.nextWaveAt)return;
     game.wave++;
     game.nextWaveAt+=10+Math.min(20,(game.wave-1)*2);
     game.waveBanner=205;
-    const wasNight=game.night;
-    game.night=game.wave%3===0;
-    if(game.night!==wasNight)game.nightNotice=210;
+    if(game.wave%3===0)game.nightQueue++;
+    // A milestone queues darkness. Timing is independent of how fast kills
+    // happen, so full night always lasts precisely 59 gameplay seconds.
     game.player.temp=clamp(game.player.temp+10,0,100);
     game.drops.push(makeDrop("ammo",clamp(game.player.x+65,40,WORLD_W-40),clamp(game.player.y+55,40,WORLD_H-40)));
-    say(game.night?"WAVE "+game.wave+": NIGHTFALL. FOLLOW THE FIRES.":
+    say(game.wave%3===0?"WAVE "+game.wave+": SUNSET INCOMING. KEEP YOUR FLASHLIGHT READY.":
       "WAVE "+game.wave+": THE ROOKERY REQUESTS REINFORCEMENTS.",230);
     playSfx("wave");
     if(game.wave%2===0){game.bossWave=game.wave;spawnBoss();}
@@ -1036,6 +1079,7 @@
   function tick() {
     if (state !== "running") return;
     game.clock++;
+    updateSkyCycle();
     if (Math.random() < .002 && game.blizzardTimer <= 0) {
       game.blizzardTimer = Math.floor(rand(420, 900));
       game.windStrength = rand(1.2, 2.2);
@@ -1506,7 +1550,8 @@
     text("EMPEROR GAUNTLET",18,24,23,C.white);
     text("PENGUINS: "+game.score,310,24,19,C.red);
     text("ICE: "+game.falls,579,24,17,C.cyan);
-    text("WAVE "+game.wave+(game.night?" · NIGHT":""),856,24,15,game.night?C.cyan:C.yellow);
+    const phaseName=game.phase.toUpperCase();
+    text("WAVE "+game.wave+" · "+phaseName,839,24,14,game.darkness>.5?C.cyan:C.yellow);
     const p=game.player;
     bar(18,53,192,p.hp,C.red,"HEALTH");
     bar(247,53,192,p.temp,p.warming?C.orange:C.cyan,p.warming?"TEMP + HEAT":"TEMPERATURE");
@@ -1542,8 +1587,10 @@
     drawObjectiveCompass();
     // Notifications, boss warnings and wave announcements all share the bottom band.
     const notice=game.guardianNotice>0?"YETI PROTECTS BABY SEAL · WARNING SLAP: -50% HP":
-      game.nightNotice>0?(game.night?
-      "NIGHTFALL · WAVE "+game.wave+" · FOLLOW THE FIRES":"DAYBREAK · WAVE "+game.wave):
+      game.nightNotice>0?(game.phase==="dusk"?"DUSK: 15 SECONDS TO DARK":
+        game.phase==="night"?"59 SECOND POLAR NIGHT: USE YOUR FLASHLIGHT":
+        game.phase==="dawn"?"THE SUN IS COMING BACK":"DAYLIGHT RETURNS"):
+
       game.yetiBanner>0?"FRIENDLY YETI SPOTTED · HE'S A WALKING HEATER":
       game.waveBanner>0?"WAVE "+game.wave+" · "+
       (game.wave%2===0?"THE EMPEROR COMETH":"THE ROOKERY WANTS REVENGE"):
@@ -1570,7 +1617,7 @@
   }
   let nightCanvas=null,nightCtx=null;
   function drawNight(camX,camY){
-    if(!game.night)return;
+    if(game.darkness<=0)return;
     // A separate compositing surface keeps spotlight transparency from
     // erasing the actual world. The gameplay HUD renders afterward.
     if(!nightCanvas&&typeof document.createElement==="function"){
@@ -1581,7 +1628,7 @@
     if(nightCtx){
       nightCtx.clearRect(0,0,W,H);
       nightCtx.globalCompositeOperation="source-over";
-      nightCtx.fillStyle="rgba(4,11,28,0.80)";
+      nightCtx.fillStyle="rgba(4,11,28,"+game.darkness.toFixed(3)+")";
       nightCtx.fillRect(0,0,W,H);
       nightCtx.globalCompositeOperation="destination-out";
       const light=(wx,wy,r)=>{
@@ -1595,16 +1642,28 @@
         nightCtx.arc(x,y,r,0,Math.PI*2);nightCtx.fill();
       };
       const p=game.player;
-      light(p.x,p.y,145);
+      light(p.x,p.y,63); // Tiny immediate visibility ring. Beam does the scanning.
+      const px=p.x-camX,py=p.y-camY,a=Math.atan2(p.fy,p.fx);
+      // Directional flashlight: penguins outside this cone are obscured unless
+      // near a campfire or a brief energy/explosion glow.
+      nightCtx.save();nightCtx.translate(px,py);nightCtx.rotate(a);
+      const beam=nightCtx.createLinearGradient(0,0,390,0);
+      beam.addColorStop(0,"rgba(0,0,0,.98)");
+      beam.addColorStop(.7,"rgba(0,0,0,.9)");
+      beam.addColorStop(1,"rgba(0,0,0,0)");
+      nightCtx.fillStyle=beam;nightCtx.beginPath();
+      nightCtx.moveTo(0,0);nightCtx.lineTo(355,-116);
+      nightCtx.quadraticCurveTo(400,0,355,116);
+      nightCtx.closePath();nightCtx.fill();nightCtx.restore();
       for(const fire of game.fires)light(fire.x,fire.y,180);
-      if(game.yeti?.alive)light(game.yeti.x,game.yeti.y,205);
-      for(const b of game.bullets)if(b.ion)light(b.x,b.y,155);
+      if(game.yeti?.alive)light(game.yeti.x,game.yeti.y,145);
+      for(const b of game.bullets)if(b.ion||b.rocket)light(b.x,b.y,b.ion?155:85);
       for(const b of game.explosions)light(b.x,b.y,b.ion?260:160);
       nightCtx.globalCompositeOperation="source-over";
       ctx.drawImage(nightCanvas,0,0);
     }else{
       // Headless tests and older canvas implementations have a safe fallback.
-      rect(0,120,W,H-225,"#071427ad");
+      rect(0,120,W,H-225,"rgba(7,20,39,"+game.darkness.toFixed(3)+")");
     }
     // Specks of Antarctic night sky visible in the far ice horizon.
     for(let i=0;i<35;i++){
