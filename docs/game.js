@@ -148,7 +148,7 @@
       ],
       fires:CAMP_SITES.map((site,i)=>({x:site.x,y:site.y,phase:i*1.87,life:Infinity,kind:"campfire"})),
       particles: [], stains: [], gibs:[], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
-      seal:{x:425,y:365,phase:0,vx:.7,vy:.25,hurtCooldown:0,scared:0},
+      seal:{x:425,y:365,phase:0,vx:.7,vy:.25,hurtCooldown:0,scared:0,lastSwing:-1},
       sealWarnings:0, yetiEats:0, goreBursts:0,
       wave:1, waveBanner:0, bossWave:0, nextWaveAt:10,
       night:false,nightNotice:0,
@@ -361,6 +361,7 @@
     const p=game.player,d=Math.hypot(p.x-x,p.y-y);
     if(d<110)p.hp-=Math.max(4,25*(1-d/120));
     if(game.yeti?.alive&&Math.hypot(game.yeti.x-x,game.yeti.y-y)<155)hurtYeti(140);
+    if(game.seal&&Math.hypot(game.seal.x-x,game.seal.y-y)<120)warnSeal();
     game.shake=16;say("BOOM. ANTARCTICA FILES A FORMAL COMPLAINT.",155);
     playSfx("boom");
   }
@@ -433,6 +434,7 @@
         smack(b,Math.max(25,480*(1-d/300)),n.x*24,n.y*24);
       }
     }
+    if(game.seal&&Math.hypot(game.seal.x-x,game.seal.y-y)<245)warnSeal();
     if(game.yeti&&game.yeti.alive&&Math.hypot(game.yeti.x-x,game.yeti.y-y)<240){
       const d=Math.hypot(game.yeti.x-x,game.yeti.y-y);
       hurtYeti(Math.max(90,550*(1-d/260)));
@@ -455,12 +457,75 @@
       y=clamp(p.y+rand(-55,55),135,WORLD_H-105);
     }
     game.yeti={x,y,hp:6000,maxHp:6000,vx:-side*1.15,vy:rand(-.2,.2),
-      life:1500,rage:0,attackCooldown:0,flash:0,lastSwing:-1,alive:true};
+      life:1500,rage:0,attackCooldown:0,flash:0,lastSwing:-1,alive:true,
+      snackCooldown:Math.floor(rand(180,400)),munch:0,guardian:0};
     game.yetiVisits++;
     game.yetiNext=game.clock+rand(2300,3200);
     say("ENORMOUS FRIENDLY YETI APPROACHING! WALK NEAR IT TO WARM UP.",260);
     game.yetiBanner=195;
     playSfx("collect");
+  }
+  function warnSeal(){
+    const seal=game.seal;
+    if(!seal||seal.hurtCooldown>0)return false;
+    seal.hurtCooldown=750;
+    seal.scared=180;
+    game.sealWarnings++;
+    const p=game.player;
+    // Protective Yeti's slap halves CURRENT health but cannot kill.
+    p.hp=Math.max(1,p.hp*.5);
+    p.slip=Math.max(20,p.slip);
+    const dx=p.x-seal.x,dy=p.y-seal.y,n=norm(dx,dy);
+    p.vx+=n.x*11;p.vy+=n.y*11;
+    particles(p.x,p.y,C.white,43,9);
+    floatText(p.x,p.y-42,"YETI WARNING! -50% HP",C.orange);
+    game.shake=Math.max(19,game.shake);
+    game.explosions.push({x:p.x,y:p.y,r:0,life:20,maxR:100,warning:true});
+    if(!game.yeti?.alive)spawnYeti();
+    const yeti=game.yeti;
+    if(yeti){
+      yeti.x=clamp(p.x+95,65,WORLD_W-65);
+      yeti.y=clamp(p.y-18,105,WORLD_H-80);
+      yeti.vx=-1.1;yeti.vy=0;
+      yeti.guardian=100;
+      yeti.rage=0; // This is a warning. He stays friendly afterward.
+      yeti.life=Math.max(yeti.life,500);
+    }
+    game.yetiBanner=150;
+    say("YOU CLUBBED A BABY SEAL! YETI WARNING SHOT: HALF YOUR HEALTH. LEAVE THE PUP ALONE.",250);
+    playSfx("boss");
+    return true;
+  }
+  function updateSeal(){
+    const seal=game.seal;
+    if(!seal)return;
+    seal.phase+=.027;
+    if(seal.hurtCooldown>0)seal.hurtCooldown--;
+    if(seal.scared>0){
+      seal.scared--;
+      const p=game.player,n=norm(seal.x-p.x,seal.y-p.y);
+      seal.vx+=n.x*.34;seal.vy+=n.y*.34;
+    }else{
+      seal.vx+=Math.cos(seal.phase)*.06;
+      seal.vy+=Math.sin(seal.phase*.7)*.06;
+    }
+    seal.vx=clamp(seal.vx,-2.2,2.2)*.97;
+    seal.vy=clamp(seal.vy,-2.2,2.2)*.97;
+    seal.x=clamp(seal.x+seal.vx,45,WORLD_W-45);
+    seal.y=clamp(seal.y+seal.vy,65,WORLD_H-65);
+  }
+  function yetiSnack(b){
+    const y=game.yeti;
+    if(!y?.alive||y.rage>0||!b||b.down||b.variant==="boss")return false;
+    downBird(b,"yeti");
+    y.snackCooldown=Math.floor(rand(450,800));
+    y.munch=80;
+    game.shake=Math.max(game.shake,3);
+    floatText(y.x,y.y-128,"GULP! - NO POINTS",C.white);
+    // No kill credit or rewards: this is the Yeti's snack, not a player kill.
+    say("THE YETI JUST ATE A PENGUIN. THAT ONE DOESN'T COUNT.",140);
+    playSfx("collect");
+    return true;
   }
   function updateYeti(){
     if(!game.yeti){
@@ -473,6 +538,9 @@
     y.life--;
     if(y.flash>0)y.flash--;
     if(y.attackCooldown>0)y.attackCooldown--;
+    if(y.snackCooldown>0)y.snackCooldown--;
+    if(y.munch>0)y.munch--;
+    if(y.guardian>0)y.guardian--;
     if(y.rage>0){
       y.rage=Math.max(0,y.rage-1);
       const n=norm(p.x-y.x,p.y-y.y);
@@ -488,8 +556,23 @@
         if(p.hp<=0)finish("Got rearranged by the Yeti you decided to shoot");
       }
     } else {
-      y.vx+=rand(-.15,.15);y.vy+=rand(-.17,.17);
-      y.vx=clamp(y.vx,-1.8,1.8);y.vy=clamp(y.vy,-1.1,1.1);
+      // Whenever he gets hungry, stalk the nearest ordinary penguin
+      // and occasionally snap one up. He NEVER awards player credit.
+      const nearby=game.birds.filter(b=>!b.down&&b.variant!=="boss");
+      let target=null,dist=Infinity;
+      for(const b of nearby){
+        const d=Math.hypot(y.x-b.x,y.y-b.y);
+        if(d<dist){dist=d;target=b;}
+      }
+      if(y.snackCooldown<=0&&target&&dist<420){
+        const n=norm(target.x-y.x,target.y-y.y);
+        y.vx=clamp(y.vx+n.x*.20,-2.5,2.5);
+        y.vy=clamp(y.vy+n.y*.20,-2.5,2.5);
+        if(dist<68)yetiSnack(target);
+      }else{
+        y.vx+=rand(-.15,.15);y.vy+=rand(-.17,.17);
+        y.vx=clamp(y.vx,-1.8,1.8);y.vy=clamp(y.vy,-1.1,1.1);
+      }
     }
     y.x=clamp(y.x+y.vx,45,WORLD_W-45);
     y.y=clamp(y.y+y.vy,70,WORLD_H-70);
@@ -510,6 +593,14 @@
         continue;
       }
       if(bullet.x<0||bullet.y<0||bullet.x>WORLD_W||bullet.y>WORLD_H)bullet.life=0;
+      const seal=game.seal;
+      if(seal&&bullet.life>0){
+        const dx=bullet.x-ox,dy=bullet.y-oy,den=dx*dx+dy*dy;
+        const t=clamp(den?((seal.x-ox)*dx+(seal.y-oy)*dy)/den:0,0,1);
+        if(Math.hypot(seal.x-(ox+t*dx),seal.y-(oy+t*dy))<22){
+          warnSeal();bullet.life=0;
+        }
+      }
       const yeti=game.yeti;
       if(yeti?.alive&&bullet.life>0){
         const dx=bullet.x-ox,dy=bullet.y-oy,den=dx*dx+dy*dy;
@@ -861,6 +952,15 @@
         }
       }
     }
+    const seal=game.seal;
+    if(seal&&p.swing>0&&seal.lastSwing!==p.swingId){
+      const dx=seal.x-p.x,dy=seal.y-p.y,n=norm(dx,dy);
+      if(Math.hypot(dx-p.fx*p.swingReach,dy-p.fy*p.swingReach)<40&&
+         n.x*p.fx+n.y*p.fy>.15){
+        seal.lastSwing=p.swingId;
+        warnSeal();
+      }
+    }
     const yeti=game.yeti;
     if(yeti?.alive&&p.swing>0&&yeti.lastSwing!==p.swingId){
       const dx=yeti.x-p.x,dy=yeti.y-p.y;
@@ -952,6 +1052,7 @@
     checkTerrain();
     if (state !== "running") return;
     updateBirds();
+    updateSeal();
     updateYeti();
     if(state!=="running")return;
     if(held("attack"))shove();
