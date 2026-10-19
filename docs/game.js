@@ -808,9 +808,9 @@
     // Second row: the active weapon, ammunition, throwable inventory and combo feedback.
     rect(0,83,W,36,"#0b2330e8");
     const p=game.player;
-    const w=ARMORY[p.weapon];
-    text("WEAPON: "+w.name,18,100,17,w.color);
-    text(w.type==="gun"?"AMMO: "+p.ammo[p.weapon]:"MELEE / UNLIMITED",310,100,15,C.white);
+    const weaponSpec=ARMORY[p.weapon];
+    text("WEAPON: "+weaponSpec.name,18,100,17,weaponSpec.color);
+    text(weaponSpec.type==="gun"?"AMMO: "+p.ammo[p.weapon]:"MELEE / UNLIMITED",310,100,15,C.white);
     text("GRENADES: "+p.grenades,500,100,15,C.orange);
     text(p.combo>1?p.combo+"x COMBO":"PICK UP THE GLOWING GEAR",695,100,15,p.combo>1?C.yellow:C.white);
         if (game.messageTimer > 0 && game.message) {
