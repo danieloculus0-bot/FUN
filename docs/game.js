@@ -149,7 +149,7 @@
       fires:CAMP_SITES.map((site,i)=>({x:site.x,y:site.y,phase:i*1.87,life:Infinity,kind:"campfire"})),
       particles: [], stains: [], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
       wave:1, waveBanner:0, bossWave:0, nextWaveAt:10,
-      points:0, ionCracks:[], ionShots:0, yeti:null, yetiNext:950, yetiVisits:0,
+      points:0, ionCracks:[], ionShots:0, yeti:null, yetiNext:190, yetiVisits:0,yetiBanner:0,
       score: 0, falls: 0, clock: 0,
       windAngle: rand(0, Math.PI * 2), windStrength: rand(.3, 1),
       blizzardTimer: 0, message: "GET GEAR. FIND AN UZI. RAISE HELL.",
@@ -408,15 +408,21 @@
   }
   function spawnYeti(){
     const p=game.player;
-    const side=Math.random()<.5?-1:1;
-    let x=clamp(p.x+side*rand(310,450),65,WORLD_W-65);
-    let y=clamp(p.y+rand(-150,150),90,WORLD_H-90);
-    if(game.holes.some(h=>Math.hypot(x-h.x,y-h.y)<h.r+85))y=clamp(y+175,90,WORLD_H-90);
-    game.yeti={x,y,hp:6000,maxHp:6000,vx:-side*1.5,vy:rand(-.35,.35),
-      life:1200,rage:0,attackCooldown:0,flash:0,lastSwing:-1,alive:true};
+    // Place the huge creature in the visible gameplay region, not off-camera.
+    const side=p.x<330?1:p.x>WORLD_W-330?-1:(Math.random()<.5?-1:1);
+    let x=clamp(p.x+side*195,105,WORLD_W-105);
+    let y=clamp(p.y+rand(-25,25),130,WORLD_H-100);
+    for(let attempt=0;attempt<15;attempt++){
+      if(game.holes.every(h=>Math.hypot(x-h.x,y-h.y)>h.r+120))break;
+      x=clamp(p.x+side*rand(150,230),105,WORLD_W-105);
+      y=clamp(p.y+rand(-55,55),135,WORLD_H-105);
+    }
+    game.yeti={x,y,hp:6000,maxHp:6000,vx:-side*1.15,vy:rand(-.2,.2),
+      life:1500,rage:0,attackCooldown:0,flash:0,lastSwing:-1,alive:true};
     game.yetiVisits++;
-    game.yetiNext=game.clock+rand(2400,3400);
-    say("A PEACEFUL YETI IS PASSING THROUGH. STAY CLOSE FOR WARMTH. DO NOT SHOOT IT.",240);
+    game.yetiNext=game.clock+rand(2300,3200);
+    say("ENORMOUS FRIENDLY YETI APPROACHING! WALK NEAR IT TO WARM UP.",260);
+    game.yetiBanner=195;
     playSfx("collect");
   }
   function updateYeti(){
@@ -615,7 +621,7 @@
     p.x = clamp(p.x + p.vx, PR, WORLD_W - PR);
     p.y = clamp(p.y + p.vy, PR, WORLD_H - PR);
     if(pointerAim.active){
-      const camX=clamp(p.x-W/2,0,WORLD_W-W),camY=clamp(p.y-H/2,0,WORLD_H-H);
+      const camX=p.x-W/2,camY=p.y-(H/2+25);
       const face=norm(pointerAim.x+camX-p.x,pointerAim.y+camY-p.y);
       if(face.x!==0||face.y!==0){p.fx=face.x;p.fy=face.y;}
     }
@@ -906,6 +912,7 @@
     waveDirector();
     maintainPopulation();
     if(game.waveBanner>0)game.waveBanner--;
+    if(game.yetiBanner>0)game.yetiBanner--;
     if(game.clock%650===0){const p=game.player;game.drops.push(makeDrop(["ammo","medkit","coffee","grenade","parka"][Math.floor(rand(0,5))],clamp(p.x+rand(-300,300),35,WORLD_W-35),clamp(p.y+rand(-280,280),35,WORLD_H-35)));}
     if(game.shake>0)game.shake=Math.max(0,game.shake-.65);
     for (const particle of game.particles) {
@@ -1343,8 +1350,10 @@
   }
   function draw() {
     if (!game) return;
-    const camX = clamp(game.player.x - W / 2, 0, WORLD_W - W);
-    const camY = clamp(game.player.y - H / 2, 0, WORLD_H - H);
+    // Don't clamp camera at world edges. The player always stays centered
+    // in the unobscured game area instead of sliding behind HUD panels.
+    const camX=game.player.x-W/2;
+    const camY=game.player.y-(H/2+25);
     ctx.save();
     if(game.shake>0)ctx.translate(rand(-game.shake,game.shake),rand(-game.shake,game.shake));
     drawWorld(camX,camY);
