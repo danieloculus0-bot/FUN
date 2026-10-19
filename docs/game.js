@@ -48,7 +48,7 @@
   const gameFrame = document.getElementById("game-frame");
   const pressed = new Set();
   // Mouse aim is optional. Keyboard and touch users retain move-to-face aiming.
-  const pointerAim={active:false,x:500,y:320};
+  const pointerAim={active:false,touch:false,x:500,y:320};
   const soundButton=document.getElementById("sound-button");
   let audio=null, soundOn=false, lastSfxTick={};
   function playSfx(type){
@@ -991,7 +991,8 @@
     else p.stamina += .22;
     p.stamina = clamp(p.stamina, 0, 100);
     if (mx !== 0 || my !== 0) {
-      if(!pointerAim.active){p.fx=move.x;p.fy=move.y;}
+      // On mobile the D-pad is the PRIMARY steering and aiming control.
+      if(!pointerAim.active||pointerAim.touch){p.fx=move.x;p.fy=move.y;}
       const acceleration = sprint ? .72 : .43;
       p.vx += move.x * acceleration * terrainSlow;
       p.vy += move.y * acceleration * terrainSlow;
@@ -1005,7 +1006,8 @@
     p.vy *= friction;
     p.x = clamp(p.x + p.vx, PR, WORLD_W - PR);
     p.y = clamp(p.y + p.vy, PR, WORLD_H - PR);
-    if(pointerAim.active){
+    // Finger aiming is optional. Any held D-pad direction overrides it.
+    if(pointerAim.active&&!(pointerAim.touch&&(mx!==0||my!==0))){
       const camX=p.x-W/2,camY=p.y-385;
       const face=norm(pointerAim.x+camX-p.x,pointerAim.y+camY-p.y);
       if(face.x!==0||face.y!==0){p.fx=face.x;p.fy=face.y;}
@@ -2233,6 +2235,7 @@
     pointerAim.x=clamp((e.clientX-box.left)*W/box.width,0,W);
     pointerAim.y=clamp((e.clientY-box.top)*H/box.height,0,H);
     pointerAim.active=true;
+    pointerAim.touch=e.pointerType==="touch";
   };
   canvas.addEventListener("pointermove",e=>{
     if(e.pointerType==="touch"&&state!=="running")return;
@@ -2250,13 +2253,21 @@
     if(e.button!==0)return;
     pressed.add("attack");shove();
   });
-  // Touch aiming must NOT release the separate B button's held fire state.
-  const releasePointer=e=>{if(e?.pointerType!=="touch")pressed.delete("attack");};
+  // Touch aiming is optional and never overrides the D-pad. Releasing a
+  // pointing finger must not release the separate B button's held-fire state.
+  const releasePointer=e=>{
+    if(e?.pointerType==="touch"){
+      pointerAim.active=false;
+      pointerAim.touch=false;
+      return;
+    }
+    pressed.delete("attack");
+  };
   canvas.addEventListener("pointerup",releasePointer);
   canvas.addEventListener("pointercancel",releasePointer);
   canvas.addEventListener("pointerleave",e=>{
-    if(e?.pointerType==="touch")return; // keep last thumb aim after lifting
-    releasePointer(e);pointerAim.active=false;
+    releasePointer(e);
+    if(e?.pointerType!=="touch")pointerAim.active=false;
   });
   playButton.addEventListener("click", start);
   pauseButton.addEventListener("click", pause);
