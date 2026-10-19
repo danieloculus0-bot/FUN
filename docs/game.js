@@ -874,19 +874,26 @@
     if (k === "arrowleft" || k === "a") return "left";
     if (k === "arrowright" || k === "d") return "right";
     if (k === "shift") return "sprint";
+    if (event.code === "Space") return "attack";
     return "";
   }
   window.addEventListener("keydown", e => {
     const k = keyName(e);
     const space = e.code === "Space";
-    if (k || space) e.preventDefault();
-    if (k) pressed.add(k);
+    if (k || space || ["g","q","e","1","2","3","4","5","6"].includes(e.key.toLowerCase())) e.preventDefault();
+    if (k && state === "running") pressed.add(k);
     if (e.repeat) return;
     if (e.key.toLowerCase() === "p" || e.key === "Escape") {
       if (state === "running" || state === "paused") pause();
     } else if (space) {
       if (state === "running") shove();
       else if (state === "menu" || state === "over" || state === "paused") start();
+    } else if (state === "running" && e.key.toLowerCase() === "g") {
+      throwGrenade();
+    } else if (state === "running" && (e.key.toLowerCase() === "q" || e.key.toLowerCase() === "e")) {
+      cycleWeapon(e.key.toLowerCase()==="e"?1:-1);
+    } else if (state === "running" && /^[1-6]$/.test(e.key)) {
+      selectWeapon(WEAPON_ORDER[Number(e.key)-1]);
     } else if (e.key.toLowerCase() === "r" && state === "over") {
       start();
     } else if (e.key === "Enter" && state !== "running") {
@@ -918,10 +925,31 @@
     button.addEventListener("pointercancel", release);
     button.addEventListener("lostpointercapture", release);
   });
-  document.getElementById("touch-shove").addEventListener("pointerdown", e => {
+  const attackTouch = document.getElementById("touch-shove");
+  attackTouch.addEventListener("pointerdown",e=>{
     e.preventDefault();
+    if(state!=="running")return;
+    attackTouch.setPointerCapture?.(e.pointerId);
+    pressed.add("attack");
     shove();
   });
+  const releaseAttack=()=>pressed.delete("attack");
+  attackTouch.addEventListener("pointerup",releaseAttack);
+  attackTouch.addEventListener("pointercancel",releaseAttack);
+  attackTouch.addEventListener("lostpointercapture",releaseAttack);
+  const grenadeTouch=document.getElementById("touch-grenade");
+  if(grenadeTouch)grenadeTouch.addEventListener("pointerdown",e=>{e.preventDefault();throwGrenade();});
+  const swapTouch=document.getElementById("touch-swap");
+  if(swapTouch)swapTouch.addEventListener("pointerdown",e=>{e.preventDefault();cycleWeapon(1);});
+  canvas.addEventListener("pointerdown",e=>{
+    if(state!=="running"||e.pointerType==="touch")return;
+    if(e.button!==0)return;
+    pressed.add("attack");shove();
+  });
+  const releasePointer=()=>pressed.delete("attack");
+  canvas.addEventListener("pointerup",releasePointer);
+  canvas.addEventListener("pointercancel",releasePointer);
+  canvas.addEventListener("pointerleave",releasePointer);
   playButton.addEventListener("click", start);
   pauseButton.addEventListener("click", pause);
   fullButton.addEventListener("click", () => {
