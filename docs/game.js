@@ -621,7 +621,7 @@
     p.x = clamp(p.x + p.vx, PR, WORLD_W - PR);
     p.y = clamp(p.y + p.vy, PR, WORLD_H - PR);
     if(pointerAim.active){
-      const camX=p.x-W/2,camY=p.y-(H/2+25);
+      const camX=p.x-W/2,camY=p.y-385;
       const face=norm(pointerAim.x+camX-p.x,pointerAim.y+camY-p.y);
       if(face.x!==0||face.y!==0){p.fx=face.x;p.fy=face.y;}
     }
@@ -1262,7 +1262,6 @@
       const d=Math.hypot(item.x-player.x,item.y-player.y);
       if(d<minDist){nearest=item;minDist=d;}
     }
-    // Below half temperature, point to a real fire instead of ammunition.
     if(player.temp<48&&(game.fires.length||game.yeti?.alive)){
       nearest=null;minDist=Infinity;
       for(const fire of game.fires){
@@ -1271,8 +1270,13 @@
       }
       if(game.yeti?.alive&&game.yeti.rage<=0){
         const d=Math.hypot(game.yeti.x-player.x,game.yeti.y-player.y);
-        if(d<minDist){nearest={x:game.yeti.x,y:game.yeti.y,kind:"YETI WARMTH"};minDist=d;}
+        if(d<minDist){nearest={x:game.yeti.x,y:game.yeti.y,kind:"YETI"};minDist=d;}
       }
+    }
+    if(!nearest&&game.yeti?.alive){
+      const y=game.yeti;
+      nearest={x:y.x,y:y.y,kind:y.rage>0?"ANGRY YETI":"FRIENDLY YETI"};
+      minDist=Math.hypot(y.x-player.x,y.y-player.y);
     }
     if(!nearest){
       const boss=game.birds.find(b=>b.variant==="boss"&&!b.down);
@@ -1280,84 +1284,67 @@
     }
     if(!nearest)return;
     const angle=Math.atan2(nearest.y-player.y,nearest.x-player.x);
-    rect(712,126,275,45,"#0a2232d4");
-    circle(737,148,15,"#294a57");
-    ctx.save();
-    ctx.translate(737,148);ctx.rotate(angle);
-    ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(-6,-7);ctx.lineTo(-3,0);ctx.lineTo(-6,7);ctx.closePath();
-    ctx.fillStyle=C.yellow;ctx.fill();
-    ctx.restore();
-    text("NEAREST "+nearest.kind.toUpperCase(),760,141,13,C.white);
-    text(Math.round(minDist)+"m · FOLLOW THE ARROW",760,158,11,C.cyan);
+    // Compass now lives entirely in the lower HUD, not over the arena.
+    rect(711,H-102,281,43,"#1b3546");
+    circle(735,H-80,15,"#3b5968");
+    ctx.save();ctx.translate(735,H-80);ctx.rotate(angle);
+    ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(-6,-7);ctx.lineTo(-3,0);
+    ctx.lineTo(-6,7);ctx.closePath();ctx.fillStyle=C.yellow;ctx.fill();ctx.restore();
+    text("NEAREST "+nearest.kind.toUpperCase(),757,H-87,12,C.white);
+    text(Math.round(minDist)+"m · FOLLOW THE ARROW",757,H-70,11,C.cyan);
   }
-  function drawHud() {
-    rect(0, 0, W, 84, "#091925f2");
-    rect(0, 82, W, 2, "#425c69");
-    text("EMPEROR GAUNTLET", 18, 24, 23, C.white);
-    text("PENGUINS DOWN: " + game.score, 310, 24, 19, C.red);
-    text("ICE FALLS: " + game.falls, 580, 24, 17, C.cyan);
-    text("WAVE " + game.wave, 858, 23, 17, C.yellow);
-    bar(18, 53, 192, game.player.hp, C.red, "HEALTH");
-    bar(247, 53, 192, game.player.temp, game.player.warming?C.orange:C.cyan,game.player.warming?"TEMPERATURE + WARMING":"TEMPERATURE");
-    bar(476, 53, 192, game.player.stamina, C.green, "STAMINA");
-    ctx.beginPath();
-    ctx.arc(776, 56, 19, 0, Math.PI * 2);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "#607c8c";
-    ctx.stroke();
-    const w = wind(), n = norm(w.x, w.y);
-    ctx.beginPath();
-    ctx.moveTo(776, 56);
-    ctx.lineTo(776 + n.x * 18, 56 + n.y * 18);
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = C.yellow;
-    ctx.stroke();
-    circle(776 + n.x * 18, 56 + n.y * 18, 3, C.yellow);
-    text("WIND", 748, 21, 12, C.white);
-    text(game.blizzardTimer > 0 ? "BLIZZARD" : "CLEAR-ISH", 843, 57, 17,
-      game.blizzardTimer > 0 ? C.yellow : C.white);
-    // Second row: the active weapon, ammunition, throwable inventory and combo feedback.
-    rect(0,83,W,36,"#0b2330e8");
+  function drawHud(){
+    // The entire HUD sits in two opaque bands. Nothing floats over the player.
+    rect(0,0,W,120,"#091925f4");
+    rect(0,118,W,2,"#59798a");
+    rect(0,H-105,W,105,"#091925f5");
+    rect(0,H-105,W,2,"#59798a");
+    text("EMPEROR GAUNTLET",18,24,23,C.white);
+    text("PENGUINS: "+game.score,310,24,19,C.red);
+    text("ICE: "+game.falls,579,24,17,C.cyan);
+    text("WAVE "+game.wave,856,24,17,C.yellow);
     const p=game.player;
-    const weaponSpec=ARMORY[p.weapon];
-    text("WEAPON: "+weaponSpec.name,18,100,17,weaponSpec.color);
-    text(weaponSpec.type==="gun"?"AMMO: "+p.ammo[p.weapon]:"MELEE / UNLIMITED",310,100,15,C.white);
+    bar(18,53,192,p.hp,C.red,"HEALTH");
+    bar(247,53,192,p.temp,p.warming?C.orange:C.cyan,p.warming?"TEMP + HEAT":"TEMPERATURE");
+    bar(476,53,192,p.stamina,C.green,"STAMINA");
+    const w=wind(),n=norm(w.x,w.y);
+    circle(776,56,19,"#354c5b");
+    ctx.beginPath();ctx.moveTo(776,56);
+    ctx.lineTo(776+n.x*16,56+n.y*16);
+    ctx.lineWidth=3;ctx.strokeStyle=C.yellow;ctx.stroke();
+    text(game.blizzardTimer>0?"BLIZZARD":"CLEAR-ISH",843,57,17,
+      game.blizzardTimer>0?C.yellow:C.white);
+    rect(0,83,W,35,"#173241");
+    const wp=ARMORY[p.weapon];
+    text("WEAPON: "+wp.name,18,100,16,wp.color);
+    text(wp.type==="gun"?"AMMO: "+p.ammo[p.weapon]:"MELEE / UNLIMITED",310,100,15,C.white);
     text("GRENADES: "+p.grenades,500,100,15,C.orange);
-    text(p.yetiWarming?"YETI HEAT ACTIVE":p.warming?"FIRE WARMTH ACTIVE":p.combo>1?p.combo+"x COMBO":"FIND HEAT TO WARM UP",695,100,15,p.warming?C.orange:p.combo>1?C.yellow:C.white);
-        if (game.messageTimer > 0 && game.message) {
-      rect(80, H - 47, W - 160, 34, "#091925ed");
-      ctx.strokeStyle = C.yellow;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(80, H - 47, W - 160, 34);
-      text(game.message, W / 2, H - 30, game.message.length > 80 ? 12 : 15, C.white, "center");
-    }
+    text(p.yetiWarming?"YETI WARMTH":p.warming?"CAMPFIRE WARMTH":
+      p.combo>1?p.combo+"x COMBO":"FIND HEAT TO SURVIVE",695,100,14,
+      p.warming?C.orange:C.white);
+    text("POINTS: "+game.points,18,H-80,16,C.yellow);
+    text("BEST: "+best,18,H-61,13,C.cyan);
+    const angry=game.yeti?.alive&&game.yeti.rage>0?game.yeti:null;
     const boss=game.birds.find(b=>b.variant==="boss"&&!b.down);
-    if(boss){
-      const x=300,y=H-98,w=400;
-      rect(x-3,y-18,w+6,40,"#081523d9");
-      text("THE EMPEROR OF BAD DECISIONS",W/2,y-8,15,C.yellow,"center");
-      rect(x,y,400,13,"#582b3d");
-      rect(x,y,400*clamp(boss.hp/Math.max(1,boss.maxHp),0,1),13,C.red);
-      ctx.strokeStyle="#ffe58b";ctx.lineWidth=1.5;ctx.strokeRect(x,y,w,13);
+    if(angry||boss){
+      const target=angry||boss;
+      const hp=target.hp/Math.max(1,target.maxHp);
+      text(angry?"HOSTILE YETI · +1000":"THE EMPEROR OF BAD DECISIONS",
+        499,H-91,13,angry?C.red:C.yellow,"center");
+      rect(321,H-76,355,14,"#562c3a");
+      rect(321,H-76,355*clamp(hp,0,1),14,angry?C.red:C.orange);
+      ctx.strokeStyle="#f4e2aa";ctx.lineWidth=1;ctx.strokeRect(321,H-76,355,14);
     }
     drawObjectiveCompass();
-    if(game.waveBanner>0){
-      const alpha=clamp(game.waveBanner/55,0,1);
-      ctx.save();ctx.globalAlpha=alpha;
-      text("WAVE " + game.wave,W/2,200,64,C.yellow,"center",1000);
-      text(game.wave%2===0?"THE EMPEROR COMETH":"THE ROOKERY WANTS REVENGE",W/2,243,20,C.white,"center",900);
-      ctx.restore();
+    // Notifications, boss warnings and wave announcements all share the bottom band.
+    const notice=game.yetiBanner>0?"MASSIVE YETI SPOTTED · FRIENDLY UNTIL PROVOKED":
+      game.waveBanner>0?"WAVE "+game.wave+" · "+
+      (game.wave%2===0?"THE EMPEROR COMETH":"THE ROOKERY WANTS REVENGE"):
+      game.messageTimer>0?game.message:"";
+    if(notice){
+      text(notice,W/2,H-27,notice.length>80?12:15,
+        game.yetiBanner>0?C.yellow:C.white,"center");
     }
-    const yeti=game.yeti;
-    if(yeti?.alive&&yeti.rage>0){
-      const x=315,y=H-145,w=370;
-      rect(x-3,y-19,w+6,42,"#081523e9");
-      text("VERY ANGRY YETI · +1000 POINTS",W/2,y-9,15,C.red,"center");
-      rect(x,y,w,13,"#582b3d");
-      rect(x,y,w*clamp(yeti.hp/Math.max(1,yeti.maxHp),0,1),13,C.red);
-    }
-    text("POINTS: "+game.points,20,H-72,18,C.yellow);
-    text("BEST: " + best + "   /   TARGET: 37", W - 14, H - 72, 15, "#14384a", "right");
   }
   function drawBlizzard() {
     if (game.blizzardTimer <= 0) return;
@@ -1379,8 +1366,12 @@
     // Don't clamp camera at world edges. The player always stays centered
     // in the unobscured game area instead of sliding behind HUD panels.
     const camX=game.player.x-W/2;
-    const camY=game.player.y-(H/2+25);
+    const camY=game.player.y-385;
     ctx.save();
+    // Keep all moving actors inside a clearly defined gameplay viewport.
+    ctx.beginPath();
+    ctx.rect(0,120,W,H-225);
+    ctx.clip();
     if(game.shake>0)ctx.translate(rand(-game.shake,game.shake),rand(-game.shake,game.shake));
     drawWorld(camX,camY);
     drawBlizzard();
