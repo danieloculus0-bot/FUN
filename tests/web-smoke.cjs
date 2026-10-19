@@ -15,9 +15,14 @@ source = source.replace(last,
   "})();"
 );
 const events = new Map();
+let nightLightRenders=0;
 const ctx = new Proxy({}, {
   get(_target, prop) {
     if (prop === "createLinearGradient") return () => ({ addColorStop() {} });
+    if (prop === "createRadialGradient") return () => {
+      nightLightRenders++;
+      return { addColorStop() {} };
+    };
     return () => {};
   }
 });
@@ -40,6 +45,10 @@ const nodes = Object.fromEntries(names.map(name => [name, element()]));
 const document = {
   hidden: false,
   getElementById(name) { return nodes[name]; },
+  createElement(tag) {
+    assert.equal(tag,"canvas","Nightfall may only create an offscreen canvas");
+    return {width:1000,height:640,getContext(){return ctx;}};
+  },
   querySelectorAll() { return []; },
   addEventListener(name, fn) { events.set("document:" + name, fn); }
 };
@@ -173,6 +182,30 @@ assert.ok(boss.maxHp >= 800, "Emperor must have meaningful boss HP");
 const beforeRewards = g.game.drops.length;
 g.downBird(boss, "combat");
 assert.ok(g.game.drops.length >= beforeRewards + 3, "Boss defeat must award supplies");
+
+// Night lasts for wave 3, day returns for wave 4, and night recurs at wave 6.
+assert.equal(g.game.night,false,"Wave two is daytime");
+g.game.score=g.game.nextWaveAt;
+g.tick();
+assert.equal(g.game.wave,3,"Third wave begins at its kill threshold");
+assert.equal(g.game.night,true,"Every third wave is a night level");
+const nightBefore=nightLightRenders;
+const nightFrame=frames.shift();
+assert.equal(typeof nightFrame,"function","Animation continues during night");
+nightFrame(900);
+assert.ok(nightLightRenders>nightBefore,"Night draws gradient spotlights");
+g.game.score=g.game.nextWaveAt;
+g.tick();
+assert.equal(g.game.wave,4);
+assert.equal(g.game.night,false,"Daybreak returns on wave four");
+g.game.score=g.game.nextWaveAt;
+g.tick();
+assert.equal(g.game.wave,5);
+assert.equal(g.game.night,false,"Wave five remains daylight");
+g.game.score=g.game.nextWaveAt;
+g.tick();
+assert.equal(g.game.wave,6);
+assert.equal(g.game.night,true,"Wave six is night, even with a boss");
 
 // Peaceful Yeti is warm, non-colliding, and dangerous only when attacked.
 g.game.clock=949;
