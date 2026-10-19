@@ -647,65 +647,129 @@
     for (const s of game.stains) {
       circle(s.x, s.y, Math.max(2, s.radius * clamp(s.life / 900, .25, 1)), s.color);
     }
-    for (const b of game.birds) drawBird(b);
+    for(const item of game.drops)drawDrop(item);
+    for(const b of game.birds)drawBird(b);
     drawPlayer(game.player);
+    for(const bullet of game.bullets){
+      const n=norm(bullet.vx,bullet.vy);
+      ctx.beginPath();ctx.moveTo(bullet.x-n.x*13,bullet.y-n.y*13);
+      ctx.lineTo(bullet.x+n.x*5,bullet.y+n.y*5);
+      ctx.strokeStyle=bullet.color;ctx.lineWidth=4;ctx.stroke();
+    }
+    for(const bomb of game.bombs){
+      circle(bomb.x,bomb.y,8,"#293e3b");
+      circle(bomb.x-2,bomb.y-3,3,C.yellow);
+    }
+    for(const blast of game.explosions){
+      circle(blast.x,blast.y,blast.r,"#ef7b2633");
+      ctx.beginPath();ctx.arc(blast.x,blast.y,blast.r,0,Math.PI*2);
+      ctx.strokeStyle="#ffcb59";ctx.lineWidth=7;ctx.stroke();
+    }
     for (const p of game.particles) circle(p.x, p.y, p.radius, p.color);
+    for(const ft of game.floats)text(ft.label,ft.x,ft.y,17,ft.color,"center",1000);
     ctx.restore();
+  }
+  function drawDrop(item){
+    const bob=Math.sin(game.clock*.09+item.spin)*5;
+    const x=item.x,y=item.y+bob,c=DROP_COLORS[item.kind];
+    circle(x,y+7,19,"#153d5150");
+    circle(x,y,18,c+"66");
+    ctx.strokeStyle=c;ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(x,y,17,0,Math.PI*2);ctx.stroke();
+    if(ARMORY[item.kind]){
+      ctx.save();ctx.translate(x,y);ctx.rotate(-.38);
+      rect(-11,-4,22,8,"#1b2a31");rect(4,-3,6,8,c);
+      rect(-6,2,4,11,"#374c53");
+      ctx.restore();
+    }else{
+      const icons={medkit:"+",parka:"J",cleats:"C",ammo:"A",grenade:"G",coffee:"!"};
+      text(icons[item.kind]||"?",x,y,22,"#132231","center",1000);
+    }
+    text(item.kind.toUpperCase(),x,y+28,11,"#19384a","center",950);
   }
   function drawBird(b) {
-    ctx.save();
-    ctx.translate(b.x, b.y);
-    if (b.down) {
-      ellipse(0, 0, 22, 10, C.black);
-      ellipse(0, 1, 14, 5, C.white);
-      circle(21, 0, 5, C.orange);
-      ctx.restore();
-      return;
+    ctx.save();ctx.translate(b.x,b.y);
+    if(b.down){
+      ellipse(0,5,24,8,"#557d92");
+      ellipse(0,0,23,12,C.black);
+      ellipse(0,0,15,7,C.white);
+      circle(22,2,5,C.orange);
+      ctx.restore();return;
     }
-    const bob = Math.sin(game.clock * .11 + b.phase) * 3;
-    ellipse(0, bob + 12, 13, 5, "#5e899e");
-    ellipse(0, bob, 14, 21, C.black);
-    ellipse(1, bob + 4, 8, 14, "#f5fafb");
-    circle(0, bob - 24, 13, C.black);
-    circle(4, bob - 28, 4, C.white);
-    circle(5, bob - 28, 2, C.black);
-    ctx.beginPath();
-    ctx.moveTo(11, bob - 24);
-    ctx.lineTo(26, bob - 20);
-    ctx.lineTo(11, bob - 17);
-    ctx.closePath();
-    ctx.fillStyle = C.orange;
-    ctx.fill();
-    ctx.strokeStyle = C.orange;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(-8, bob + 19); ctx.lineTo(-16, bob + 26);
-    ctx.moveTo(8, bob + 19); ctx.lineTo(16, bob + 26);
-    ctx.stroke();
-    if (b.state === "mob") {
-      ctx.beginPath();
-      ctx.arc(5, bob - 28, 5, 0, Math.PI * 2);
-      ctx.strokeStyle = C.red;
-      ctx.lineWidth = 2;
-      ctx.stroke();
+    const bruiser=b.variant==="bruiser",psycho=b.variant==="berserker";
+    const scale=bruiser?1.32:psycho?.88:1;
+    const bob=Math.sin(game.clock*(psycho?.23:.11)+b.phase)*3;
+    ctx.translate(0,bob);ctx.scale(scale,scale);
+    ellipse(0,21,19,7,"#466d8290");
+    // Tiny flippers with real silhouettes, feet, belly, and a beak.
+    ellipse(-13,3,7,19,C.black);ellipse(13,3,7,19,C.black);
+    ellipse(-10,24,8,5,C.orange);ellipse(11,24,8,5,C.orange);
+    ellipse(0,0,15,22,C.black);
+    ellipse(2,4,10,16,C.white);
+    ellipse(-8,-2,2.5,10,"#f8d774");ellipse(10,-1,2.5,9,"#f8d774");
+    circle(0,-23,14,C.black);
+    ellipse(1,-27,9,5,"#363f45");
+    circle(-5,-26,4,C.white);circle(6,-26,4,C.white);
+    circle(-4,-26,2.1,C.black);circle(7,-26,2.1,C.black);
+    ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(14,-16);ctx.lineTo(0,-13);
+    ctx.closePath();ctx.fillStyle=C.orange;ctx.fill();
+    if(bruiser){
+      ctx.beginPath();ctx.moveTo(-14,-34);ctx.lineTo(14,-34);
+      ctx.lineWidth=5;ctx.strokeStyle="#b14b59";ctx.stroke();
+      text("!",0,-44,15,C.red,"center",900);
+    }
+    if(psycho){ctx.strokeStyle=C.red;ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(-10,-30);ctx.lineTo(-2,-26);
+      ctx.moveTo(13,-30);ctx.lineTo(3,-26);ctx.stroke();}
+    if(b.flash>0){ellipse(0,-1,16,24,"#ff4f6599");b.flash--;}
+    if(b.state==="mob"){
+      circle(-4,-26,2.5,C.red);circle(7,-26,2.5,C.red);
     }
     ctx.restore();
   }
-  function drawPlayer(p) {
-    circle(p.x, p.y + 4, PR + 3, "#334954");
-    circle(p.x, p.y, PR, p.temp > 35 ? "#d29c70" : "#91bcd9");
-    ctx.strokeStyle = C.black;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, PR, 0, Math.PI * 2);
-    ctx.stroke();
-    circle(p.x + p.fx * 16, p.y + p.fy * 16, 4, C.black);
-    if (p.swing > 0) {
-      ctx.beginPath();
-      ctx.arc(p.x + p.fx * 36, p.y + p.fy * 36, 26, 0, Math.PI * 2);
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = C.orange;
-      ctx.stroke();
+  function drawPlayer(p){
+    ctx.save();ctx.translate(p.x,p.y);
+    const angle=Math.atan2(p.fy,p.fx);
+    ctx.rotate(angle+Math.PI/2);
+    ellipse(0,10,21,9,"#30526c99");
+    // Legs and boots.
+    rect(-12,11,10,17,"#1e3039");rect(3,11,10,17,"#1e3039");
+    ellipse(-9,25,8,5,"#111d26");ellipse(9,25,8,5,"#111d26");
+    // Arms and gloves.
+    ellipse(-19,0,8,14,"#375564");ellipse(19,0,8,14,"#375564");
+    circle(-20,-8,6,"#212a2d");circle(20,-8,6,"#212a2d");
+    // Upgradeable expedition jacket.
+    const jacket=p.parka>0?"#f1a834":"#417c87";
+    ellipse(0,0,20,22,"#18333e");
+    ellipse(0,0,16,20,jacket);
+    rect(-3,-19,6,37,"#ecf4dd");
+    rect(-14,2,28,4,"#263c41");
+    // Hood, goggles, and expressive head.
+    circle(0,-14,15,p.parka>0?"#f3e7bc":"#cbd2c8");
+    circle(0,-14,12,"#253942");
+    ellipse(0,-14,11,6,"#a4e6ff");
+    rect(-9,-16,18,4,"#152532");
+    circle(0,-8,5,"#d1a481");
+    if(p.rage>0){ctx.strokeStyle=C.red;ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(0,-13,19,0,Math.PI*2);ctx.stroke();}
+    ctx.restore();
+    // Weapon points along the movement direction.
+    const fx=p.fx,fy=p.fy,x=p.x+fx*23,y=p.y+fy*23;
+    if(p.weapon==="uzi"||p.weapon==="shotgun"){
+      const nx=-fy,ny=fx,len=p.weapon==="shotgun"?32:22;
+      ctx.beginPath();ctx.moveTo(x-fx*8,y-fy*8);
+      ctx.lineTo(x+fx*len,y+fy*len);
+      ctx.lineWidth=p.weapon==="shotgun"?8:7;ctx.strokeStyle="#202d34";ctx.stroke();
+      if(p.muzzle>0){circle(x+fx*(len+4),y+fy*(len+4),rand(7,13),C.yellow);}
+    }else if(p.weapon==="staff"||p.weapon==="nunchucks"||p.weapon==="knife"){
+      ctx.beginPath();ctx.moveTo(x-fx*10,y-fy*10);
+      ctx.lineTo(x+fx*(p.weapon==="staff"?44:24),y+fy*(p.weapon==="staff"?44:24));
+      ctx.lineWidth=p.weapon==="staff"?6:4;
+      ctx.strokeStyle=ARMORY[p.weapon].color;ctx.stroke();
+    }
+    if(p.swing>0){
+      ctx.beginPath();ctx.arc(p.x+fx*p.swingReach,p.y+fy*p.swingReach,25,0,Math.PI*2);
+      ctx.lineWidth=5;ctx.strokeStyle=p.swingColor;ctx.stroke();
     }
   }
   function bar(x, y, width, percent, color, label) {
@@ -741,7 +805,15 @@
     text("WIND", 748, 21, 12, C.white);
     text(game.blizzardTimer > 0 ? "BLIZZARD" : "CLEAR-ISH", 843, 57, 17,
       game.blizzardTimer > 0 ? C.yellow : C.white);
-    if (game.messageTimer > 0 && game.message) {
+    // Second row: the active weapon, ammunition, throwable inventory and combo feedback.
+    rect(0,83,W,36,"#0b2330e8");
+    const p=game.player;
+    const w=ARMORY[p.weapon];
+    text("WEAPON: "+w.name,18,100,17,w.color);
+    text(w.type==="gun"?"AMMO: "+p.ammo[p.weapon]:"MELEE / UNLIMITED",310,100,15,C.white);
+    text("GRENADES: "+p.grenades,500,100,15,C.orange);
+    text(p.combo>1?p.combo+"x COMBO":"PICK UP THE GLOWING GEAR",695,100,15,p.combo>1?C.yellow:C.white);
+        if (game.messageTimer > 0 && game.message) {
       rect(80, H - 47, W - 160, 34, "#091925ed");
       ctx.strokeStyle = C.yellow;
       ctx.lineWidth = 2;
@@ -769,8 +841,11 @@
     if (!game) return;
     const camX = clamp(game.player.x - W / 2, 0, WORLD_W - W);
     const camY = clamp(game.player.y - H / 2, 0, WORLD_H - H);
-    drawWorld(camX, camY);
+    ctx.save();
+    if(game.shake>0)ctx.translate(rand(-game.shake,game.shake),rand(-game.shake,game.shake));
+    drawWorld(camX,camY);
     drawBlizzard();
+    ctx.restore();
     drawHud();
   }
   function frame(now) {
