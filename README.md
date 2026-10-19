@@ -57,7 +57,7 @@ node --check docs/game.js
 node tests/web-smoke.cjs
 ```
 
-GitHub Actions runs those checks and deploys `docs/` to Pages if **Settings > Pages > Source > GitHub Actions** is enabled. The GitHub deployment **has not been confirmed live**.
+GitHub Actions runs the JavaScript checks. The website publishes directly from **`main` / `/docs`** using GitHub Pages' native branch publishing. One-time setup: **Settings > Pages > Source: Deploy from a branch > Branch: main > Folder: /docs > Save.** After activation, future pushes to `main/docs` will publish automatically. Live site not yet confirmed.
 
 This is a deliberately unpolished chaos build. Cross-browser controls, game balance, boss and wave difficulty, sprite polishing and deployment verification are next-pass work, suitable for Replit or independent review with Claude.
 
