@@ -11,3 +11,60 @@
 .action-pad .shove{background:#e7ed69ed;color:#111b18}
 @media(max-width:850px){.control-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.controls-guide{padding:13px}.control-grid{gap:9px}.control-grid span{font-size:10px}.action-pad{gap:3px}.action-pad .swap,.action-pad .grenade,.action-pad .sprint,.action-pad .shove{min-width:45px;height:39px;font-size:9px}}
+
+/* Mobile-only fixed SNES-inspired game cabinet. Never overlaps the arena. */
+.mobile-topbar{display:none}.arena-stage{position:relative;width:100%}.dpad-hub{display:none}
+@media(pointer:coarse) and (max-width:1180px){
+ html,body{position:fixed;inset:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-text-size-adjust:100%}
+ body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+ .shell{position:fixed;inset:0;height:100%;height:100dvh;width:100%;max-width:none;margin:0;padding:0;overflow:hidden}
+ .masthead,.title-row,.below-game,.controls-guide,.details,footer{display:none!important}
+ .game-section{padding:0;position:relative;width:100%;height:100%}
+ .game-frame{position:relative;display:flex;flex-direction:column;width:100%;height:100%;min-height:0;margin:0;border:0;border-radius:0;box-shadow:none;overflow:hidden;touch-action:none}
+ .game-frame:after{display:none}
+ .mobile-topbar{display:flex;flex:0 0 32px;align-items:center;justify-content:space-between;gap:8px;padding:0 max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left));background:#1a2634;border-bottom:2px solid #546574;color:#d5e7eb;font-size:10px;font-weight:900;letter-spacing:1px}
+ .mobile-topbar strong span{color:#e9be6f}.mobile-topbar>span{font-size:9px;white-space:nowrap}
+ .arena-stage{flex:1 1 auto;min-width:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(145deg,#a7cddd,#a7cddd 26px,#a0c4d5 26px,#a0c4d5 52px)}
+ .arena-stage canvas{display:block;width:100%;height:auto;max-height:100%;aspect-ratio:1000/640;object-fit:contain;touch-action:none}
+ .arena-stage .overlay{inset:0;padding:8px;overflow:hidden;align-items:center}
+ .arena-stage .overlay-card{width:min(510px,98%);max-height:100%;padding:9px 12px;overflow:auto}
+ .arena-stage .overlay-kicker,.arena-stage .overlay-hint{display:none}
+ .arena-stage .overlay h2{font-size:clamp(23px,5vw,35px);margin:7px 0}
+ .arena-stage .overlay p#overlay-copy{font-size:clamp(10px,2.3vw,13px);line-height:1.25;margin:4px auto 9px}
+ .arena-stage .primary-button{font-size:12px;padding:9px 15px;min-height:36px}
+ .touch-controls{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(64px,.65fr) minmax(0,1fr);grid-template-rows:27px minmax(0,1fr) 20px;gap:4px;align-items:center;flex:0 0 clamp(198px,30dvh,247px);width:100%;min-height:0;max-height:48%;left:auto;right:auto;bottom:auto;margin:0;padding:5px max(9px,env(safe-area-inset-right)) max(3px,env(safe-area-inset-bottom)) max(9px,env(safe-area-inset-left));background:linear-gradient(#cfd3d7,#a7acb4 55%,#78828e);border-top:4px solid #45505e;box-shadow:inset 0 5px 9px #ffffff70;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none}
+ .touch-controls .touch-btn{position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;min-width:0;min-height:0;width:100%;height:100%;border:2px solid #353a43;border-radius:50%;color:#f8faff;background:#373c47;text-shadow:0 1px 1px #0009;font-weight:1000;font-size:clamp(14px,3.5vw,23px);box-shadow:inset 0 -3px 2px #0004,0 3px 2px #45505a;touch-action:none;-webkit-tap-highlight-color:transparent}
+ .touch-controls .touch-btn small{font-size:clamp(6px,1.4vw,9px);font-weight:900;margin-top:2px}
+ .touch-controls .touch-btn:active,.touch-controls .touch-btn.pressed{transform:translateY(2px);box-shadow:inset 0 3px 4px #0008;background:#667187;color:white}
+ .touch-controls .shoulder{grid-row:1;width:min(100%,98px);height:26px;border-radius:14px;font-size:12px;flex-direction:row;gap:4px;background:#53596a}
+ .touch-controls .shoulder small{margin:0;font-size:7px}
+ .touch-controls .shoulder-left{grid-column:1;justify-self:start}
+ .touch-controls .shoulder-right{grid-column:3;justify-self:end}
+ .touch-controls .dpad{grid-area:2/1;display:grid;justify-self:center;align-self:center;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:1px;width:min(36vw,156px);height:auto;aspect-ratio:1/1;margin:0}
+ .touch-controls .dpad .touch-btn{border-radius:7px;background:#333947;border-width:1px;font-size:16px}
+ .touch-controls .dpad .up{grid-area:1/2}.touch-controls .dpad .left{grid-area:2/1}.touch-controls .dpad .down{grid-area:3/2}.touch-controls .dpad .right{grid-area:2/3}
+ .touch-controls .dpad-hub{display:block;grid-area:2/2;background:#333947;border:1px solid #282e3b;border-radius:5px;pointer-events:none}
+ .touch-controls .action-pad{grid-area:2/3;display:grid;align-self:center;justify-self:center;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:2px;width:min(39vw,161px);height:auto;aspect-ratio:1/1;margin:0}
+ .touch-controls .action-pad .face{width:100%;height:100%;min-width:0;min-height:0;border-radius:50%;font-size:clamp(16px,4.2vw,24px)}
+ .touch-controls .action-pad .x{grid-area:1/2;background:#4d5c88}.touch-controls .action-pad .y{grid-area:2/1;background:#655281}.touch-controls .action-pad .a{grid-area:2/3;background:#3f746b}.touch-controls .action-pad .b{grid-area:3/2;background:#985169}
+ .touch-controls .system-pad{grid-area:2/2;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:13px}
+ .touch-controls .system-key{width:min(100%,73px);height:25px;min-height:25px;border-radius:13px;background:#696f7d;font-size:9px;transform:rotate(-15deg)}
+ .touch-controls .system-key:active{transform:rotate(-15deg) translateY(2px)}
+ .touch-controls .pad-legend{grid-area:3/1/4/4;justify-self:center;color:#2f3c46;align-self:center;font-size:9px;letter-spacing:.65px;font-weight:900;white-space:nowrap}
+}
+@media(pointer:coarse) and (max-width:1180px) and (orientation:landscape) and (max-height:620px){
+ .game-frame{display:grid;grid-template-columns:minmax(0,1fr) clamp(205px,28vw,252px);grid-template-rows:1fr}
+ .mobile-topbar{display:none}
+ .arena-stage{grid-area:1/1;width:100%;height:100%;min-width:0;min-height:0}
+ .arena-stage canvas{width:100%;max-height:100%}
+ .arena-stage .overlay p#overlay-copy{font-size:10px;line-height:1.14}
+ .arena-stage .overlay h2{font-size:24px}.arena-stage .overlay-card{padding:7px}
+ .touch-controls{grid-area:1/2;grid-template-columns:1fr 1fr;grid-template-rows:27px minmax(0,1fr) 40px;height:100%;max-height:none;width:100%;flex:none;padding:5px max(7px,env(safe-area-inset-right)) 7px 7px;border-top:0;border-left:3px solid #454d57;gap:3px}
+ .touch-controls .shoulder-left{grid-area:1/1}.touch-controls .shoulder-right{grid-area:1/2}
+ .touch-controls .dpad{grid-area:2/1;width:min(100%,110px)}
+ .touch-controls .action-pad{grid-area:2/2;width:min(100%,112px)}
+ .touch-controls .system-pad{grid-area:3/1/4/3;flex-direction:row;gap:14px}
+ .touch-controls .system-key{height:24px;width:66px;flex:none}
+ .touch-controls .pad-legend{display:none}
+ .touch-controls .face small{font-size:6px}
+}
