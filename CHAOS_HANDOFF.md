@@ -1,4 +1,4 @@
-# Emperor Gauntlet v2.3: cross-agent finishing notes
+# Emperor Gauntlet v2.4: cross-agent finishing notes
 
 **Repository:** danieloculus0-bot/FUN
 **Active playable edition:** `docs/index.html`, `docs/game.js`, `docs/style.css`
@@ -44,3 +44,13 @@ The Yeti now appears about 3 seconds after starting (`yetiNext=190` frames), rou
 ## v2.3: Side-profile Yeti and polar night
 
 The Yeti is now a **boss-penguin-sized, side-profile Bigfoot**. The sprite has hunched shoulders, long gorilla arms, single-profile eye, projecting muzzle and oversized snow feet. It remains white and warm when unprovoked, red-eyed when enraged. Bullet/melee hit radii were shrunk to match the smaller sprite while preserving the health and 1,000-point reward. Night happens for waves 3, 6, 9, and all waves divisible by three, with daybreak immediately the next wave. Night masks only the gameplay area and illuminates around the player, campfires, Yeti, ion projectiles and explosions using an offscreen compositing mask (with a safe fallback for headless tests). The HUD is rendered on top, remains bright, and displays NIGHT plus a daybreak/nightfall announcement inside the HUD bands. The offline HTML must be regenerated when these files change. Night transitions and spotlight rendering are covered by automated regression tests.
+
+## v2.4 Bloodbath: Gore, protected seal and Yeti feeding
+
+Cartoon gore is now intentionally high-intensity by default: boss and bruiser penguin kills generate large red particle blasts, spinning illustrated fragments, copious blood decals on snow, blood-colored explosion rings, popup text, and stronger camera shake. Limits apply to particle, gib and stain arrays to preserve performance. These are stylized Canvas effects, not realistic imagery.
+
+A baby seal begins near the player's starting area and wanders in view. It has a clearly marked name and is not collectible. A direct melee hit, firearm projectile, grenade blast, or ion explosion will trigger `warnSeal`; the pup isn't killed, and the Yeti gives a nonlethal warning slap costing exactly half of current health. The warning has a cooldown to avoid stacking every frame, includes a priority notice inside the lower HUD, and spawns or repositions a protective Yeti. The guardian is temporarily shielded from accidental melee retaliation by the same swing that provoked it.
+
+The Yeti randomly grows hungry, stalks normal penguins and consumes them. Such penguins are marked eaten and removed from the drawing loop; their deaths generate no player kills, points, combo, ice-fall count or wave credit. A separate `yetiEats` counter records these meals. The Yeti's mouth animates while munching; snacks do not create player-triggered gore bursts. Direct attacks against the Yeti still enrage it and defeating it still awards 1000 points.
+
+Automated gameplay checks cover the Emperor gore output, Yeti meals with zero player rewards, seal warning health and cooldown, and continued original combat mechanics. Hosted source lives in `docs/`; regenerate the offline HTML using the same inline CSS and game JavaScript.
