@@ -1,4 +1,4 @@
-# Emperor Gauntlet v2.1: cross-agent finishing notes
+# Emperor Gauntlet v2.2.1: cross-agent finishing notes
 
 **Repository:** danieloculus0-bot/FUN
 **Active playable edition:** `docs/index.html`, `docs/game.js`, `docs/style.css`
@@ -36,3 +36,7 @@ JavaScript syntax and mocked Canvas event/render/gameplay loops have passed in t
 ## v2.1 engineering note
 
 Wave two begins at ten combat defeats. Each subsequent wave needs incrementally more kills and even-numbered waves spawn a crowned Emperor boss. Bosses have different hit and contact radii, increased health and damage, and guaranteed supply drops. Audio uses the browser's Web Audio API, is opt-in, and should be tested across Chromium, Safari, Firefox and mobile. Mouse aim is relative to the canvas element's displayed size and accounts for scrolling camera movement; touch users retain directional movement-facing. The on-screen pickup compass helps players find scattered supplies. Validate boss health, collision radius, aiming transform, audio playback and offline parity during the finishing pass.
+
+## Yeti + HUD visibility fix (v2.2.1)
+
+The Yeti now appears about 3 seconds after starting (`yetiNext=190` frames), roughly 195 world units away from the player, rather than far off-screen at 950 frames. It is a large, clearly rendered white ape-like creature with a normal-size status label. Boss and Yeti encounter announcements, compass, and health displays stay entirely in opaque top/bottom bands; gameplay viewport is clipped to y=120..535 on the 1000x640 canvas. The camera tracks the player's screen position at (500,385), including near world boundaries, with mouse aim using the same transform. Native GitHub Pages publishes from `main/docs`. Automated smoke tests now assert Yeti spawning close to the player, warmth at fires and the Yeti, ion terrain destruction, Uzi default selection, and frost death away from all heat.
