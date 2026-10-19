@@ -360,6 +360,7 @@
   function hurtYeti(amount){
     const yeti=game.yeti;
     if(!yeti||!yeti.alive)return;
+    const newlyAngry=yeti.rage<=0;
     yeti.hp-=amount;
     yeti.rage=500;
     yeti.flash=10;
@@ -376,7 +377,7 @@
       floatText(yeti.x,yeti.y-82,"YETI SLAIN +1000 POINTS!",C.yellow);
       say("YETI SLAIN. +1000 POINTS. THE MOUNTAIN DEMANDS AN EXPLANATION.",280);
       playSfx("boom");
-    } else if(yeti.rage===500){
+    } else if(newlyAngry){
       say("YOU SHOT THE FRIENDLY YETI. IT NOW WANTS YOUR HEAD.",220);
       playSfx("boss");
     }
@@ -412,7 +413,7 @@
     let y=clamp(p.y+rand(-150,150),90,WORLD_H-90);
     if(game.holes.some(h=>Math.hypot(x-h.x,y-h.y)<h.r+85))y=clamp(y+175,90,WORLD_H-90);
     game.yeti={x,y,hp:6000,maxHp:6000,vx:-side*1.5,vy:rand(-.35,.35),
-      life:1200,rage:0,attackCooldown:0,flash:0,alive:true};
+      life:1200,rage:0,attackCooldown:0,flash:0,lastSwing:-1,alive:true};
     game.yetiVisits++;
     game.yetiNext=game.clock+rand(2400,3400);
     say("A PEACEFUL YETI IS PASSING THROUGH. STAY CLOSE FOR WARMTH. DO NOT SHOOT IT.",240);
@@ -636,6 +637,15 @@
         fireHeat=Math.max(fireHeat,gain);
       }
     }
+    p.yetiWarming=false;
+    if(game.yeti?.alive&&game.yeti.rage<=0){
+      const d=Math.hypot(p.x-game.yeti.x,p.y-game.yeti.y);
+      if(d<220){
+        const yetiHeat=.35*(1-d/220);
+        fireHeat=Math.max(fireHeat,yetiHeat);
+        p.yetiWarming=yetiHeat>loss;
+      }
+    }
     p.warming=fireHeat>loss;
     p.temp=clamp(p.temp-loss+fireHeat,0,100);
     if (p.temp <= 0) {
@@ -657,16 +667,16 @@
         p.wet = Math.max(p.wet, 240);
       }
     }
-    for (const crack of game.cracks) {
+    for (const crack of [...game.cracks,...game.ionCracks]) {
       if (!within(p.x, p.y, crack)) continue;
       const speed = Math.hypot(p.vx, p.vy);
-      if (speed > 3.4 && Math.random() < .06 * crack.depth) {
+      if (speed > (crack.ion?1.7:3.4) && Math.random() < (crack.ion?.11:.06) * crack.depth) {
         p.slip = 55;
         p.hp -= rand(3, 9);
         particles(p.x, p.y, C.white, 14, 2.4);
         say("YOU ATE SHIT ON A PRESSURE CRACK. THE ICE REMAINS UNDEFEATED.");
       }
-      if (speed > 5.8 && Math.random() < .012 * crack.depth) {
+      if (speed > (crack.ion?3.6:5.8) && Math.random() < (crack.ion?.025:.012) * crack.depth) {
         finish("Vanished into a pressure crack like a cautionary pamphlet");
         return;
       }
@@ -755,8 +765,8 @@
         }
       }
       if (b.down) continue;
-      for (const crack of game.cracks) {
-        if (within(b.x, b.y, crack) && b.panic > 20 && Math.random() < .045 * crack.depth) {
+      for (const crack of [...game.cracks,...game.ionCracks]) {
+        if(within(b.x,b.y,crack)&&(crack.ion||b.panic>20)&&Math.random()<(crack.ion?.21:.045)*crack.depth) {
           downBird(b, "ice");
           break;
         }
@@ -798,6 +808,16 @@
           smack(b,w.damage*rand(.8,1.2)*(p.rage>0?1.5:1),push.x*8,push.y*8);
           p.vx-=p.fx*.5;p.vy-=p.fy*.5;
         }
+      }
+    }
+    const yeti=game.yeti;
+    if(yeti?.alive&&p.swing>0&&yeti.lastSwing!==p.swingId){
+      const dx=yeti.x-p.x,dy=yeti.y-p.y;
+      const n=norm(dx,dy);
+      if(Math.hypot(dx-p.fx*p.swingReach,dy-p.fy*p.swingReach)<75&&
+         n.x*p.fx+n.y*p.fy>.15){
+        yeti.lastSwing=p.swingId;
+        hurtYeti(ARMORY[p.weapon].damage*(p.rage>0?1.5:1));
       }
     }
     if (p.hp <= 0) finish("Got swarmed by furious tuxedo linebackers");
@@ -993,14 +1013,18 @@
       ctx.strokeStyle = "#b5d9e3";
       ctx.stroke();
     }
-    for (const c of game.cracks) {
-      rect(c.x, c.y, c.w, c.h, C.darkIce);
-      rect(c.x + 3, c.y + 3, Math.max(1, c.w - 6), Math.max(1, c.h - 6), "#2d7189");
+    for (const c of [...game.cracks,...game.ionCracks]) {
+      rect(c.x, c.y, c.w, c.h, c.ion?"#193b69":C.darkIce);
+      rect(c.x + 3, c.y + 3, Math.max(1, c.w - 6), Math.max(1, c.h - 6), c.ion?"#4fe4f1":"#2d7189");
     }
     for (const hole of game.holes) {
       circle(hole.x, hole.y, hole.r, C.darkIce);
       circle(hole.x, hole.y, hole.r - 5, C.blueIce);
       circle(hole.x, hole.y, hole.r * .58, "#0a2c3f");
+      if(hole.ion){
+        ctx.beginPath();ctx.arc(hole.x,hole.y,hole.r+5,0,Math.PI*2);
+        ctx.strokeStyle="#85efff";ctx.lineWidth=3;ctx.stroke();
+      }
     }
     for (const s of game.stains) {
       circle(s.x, s.y, Math.max(2, s.radius * clamp(s.life / 900, .25, 1)), s.color);
@@ -1008,8 +1032,14 @@
     for(const fire of game.fires)drawCampfire(fire);
     for(const item of game.drops)drawDrop(item);
     for(const b of game.birds)drawBird(b);
+    if(game.yeti?.alive)drawYeti(game.yeti);
     drawPlayer(game.player);
     for(const bullet of game.bullets){
+      if(bullet.ion){
+        circle(bullet.x,bullet.y,20+Math.sin(game.clock*.25)*3,"#52ecff44");
+        circle(bullet.x,bullet.y,12,"#3de9f8");
+        circle(bullet.x,bullet.y,5,"#f7ffff");
+      }
       const n=norm(bullet.vx,bullet.vy);
       ctx.beginPath();ctx.moveTo(bullet.x-n.x*13,bullet.y-n.y*13);
       ctx.lineTo(bullet.x+n.x*5,bullet.y+n.y*5);
@@ -1020,9 +1050,9 @@
       circle(bomb.x-2,bomb.y-3,3,C.yellow);
     }
     for(const blast of game.explosions){
-      circle(blast.x,blast.y,blast.r,"#ef7b2633");
+      circle(blast.x,blast.y,blast.r,blast.ion?"#7bffff48":"#ef7b2633");
       ctx.beginPath();ctx.arc(blast.x,blast.y,blast.r,0,Math.PI*2);
-      ctx.strokeStyle="#ffcb59";ctx.lineWidth=7;ctx.stroke();
+      ctx.strokeStyle=blast.ion?"#6ff9ff":"#ffcb59";ctx.lineWidth=7;ctx.stroke();
     }
     for (const p of game.particles) circle(p.x, p.y, p.radius, p.color);
     for(const ft of game.floats)text(ft.label,ft.x,ft.y,17,ft.color,"center",1000);
@@ -1045,6 +1075,44 @@
       text(icons[item.kind]||"?",x,y,22,"#132231","center",1000);
     }
     text(item.kind.toUpperCase(),x,y+28,11,"#19384a","center",950);
+  }
+  function drawYeti(y){
+    ctx.save();ctx.translate(y.x,y.y);
+    const enraged=y.rage>0;
+    const bob=Math.sin(game.clock*.08)*4;
+    ellipse(0,35,50,16,"#25465d77");
+    ellipse(-28,26,20,13,"#ced5df");ellipse(28,26,20,13,"#ced5df");
+    ellipse(-37,1+bob,18,40,"#e1f2fa");
+    ellipse(37,1+bob,18,40,"#e1f2fa");
+    ellipse(0,-2+bob,50,56,"#bed7e4");
+    ellipse(0,10+bob,37,44,"#e6f1f8");
+    circle(0,-58+bob,36,"#d7e7ef");
+    // Chunky icy fur, horns, furry brows and the grin that becomes a roar.
+    for(let i=0;i<8;i++){
+      const px=(i-3.5)*11;
+      ctx.beginPath();ctx.moveTo(px,-86+bob);
+      ctx.lineTo(px+5,-97+Math.sin(i*2+game.clock*.04)*4+bob);
+      ctx.lineTo(px+10,-84+bob);
+      ctx.fillStyle="#eff8ff";ctx.fill();
+    }
+    ellipse(-14,-65+bob,9,5,enraged?"#a83348":"#395260");
+    ellipse(14,-65+bob,9,5,enraged?"#a83348":"#395260");
+    circle(-12,-65+bob,4,enraged?"#ff2549":"#a7e6ff");
+    circle(12,-65+bob,4,enraged?"#ff2549":"#a7e6ff");
+    ellipse(0,-49+bob,10,7,enraged?"#571527":"#4e7080");
+    ctx.strokeStyle="#fff";ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(-9,-46+bob);ctx.lineTo(-3,-42+bob);
+    ctx.moveTo(8,-46+bob);ctx.lineTo(2,-42+bob);ctx.stroke();
+    if(y.flash>0)ellipse(0,-5,56,65,"#ff4d6f69");
+    if(enraged){
+      ctx.strokeStyle="#fc4853";ctx.lineWidth=4;
+      ctx.beginPath();ctx.arc(0,0,74,0,Math.PI*2);ctx.stroke();
+      text("HOSTILE YETI",0,-108,17,C.red,"center",1000);
+    }else{
+      circle(0,0,85,"#ffca3930");
+      text("FRIENDLY / WARMTH",0,-108,15,C.yellow,"center",950);
+    }
+    ctx.restore();
   }
   function drawBird(b) {
     ctx.save();ctx.translate(b.x,b.y);
@@ -1123,7 +1191,13 @@
     ctx.restore();
     // Weapon points along the movement direction.
     const fx=p.fx,fy=p.fy,x=p.x+fx*23,y=p.y+fy*23;
-    if(p.weapon==="uzi"||p.weapon==="shotgun"){
+    if(p.weapon==="ion"){
+      ctx.strokeStyle="#8af6ff";ctx.lineWidth=12;
+      ctx.beginPath();ctx.moveTo(x-fx*15,y-fy*15);
+      ctx.lineTo(x+fx*40,y+fy*40);ctx.stroke();
+      circle(x+fx*40,y+fy*40,11,"#75f8ff");
+      if(p.muzzle>0)circle(x+fx*51,y+fy*51,20,"#aaffff");
+    }else if(p.weapon==="uzi"||p.weapon==="shotgun"){
       const nx=-fy,ny=fx,len=p.weapon==="shotgun"?32:22;
       ctx.beginPath();ctx.moveTo(x-fx*8,y-fy*8);
       ctx.lineTo(x+fx*len,y+fy*len);
@@ -1156,11 +1230,15 @@
       if(d<minDist){nearest=item;minDist=d;}
     }
     // Below half temperature, point to a real fire instead of ammunition.
-    if(player.temp<48&&game.fires.length){
+    if(player.temp<48&&(game.fires.length||game.yeti?.alive)){
       nearest=null;minDist=Infinity;
       for(const fire of game.fires){
         const d=Math.hypot(fire.x-player.x,fire.y-player.y);
         if(d<minDist){nearest={x:fire.x,y:fire.y,kind:"FIRE"};minDist=d;}
+      }
+      if(game.yeti?.alive&&game.yeti.rage<=0){
+        const d=Math.hypot(game.yeti.x-player.x,game.yeti.y-player.y);
+        if(d<minDist){nearest={x:game.yeti.x,y:game.yeti.y,kind:"YETI WARMTH"};minDist=d;}
       }
     }
     if(!nearest){
@@ -1212,7 +1290,7 @@
     text("WEAPON: "+weaponSpec.name,18,100,17,weaponSpec.color);
     text(weaponSpec.type==="gun"?"AMMO: "+p.ammo[p.weapon]:"MELEE / UNLIMITED",310,100,15,C.white);
     text("GRENADES: "+p.grenades,500,100,15,C.orange);
-    text(p.warming?"FIRE WARMTH ACTIVE":p.combo>1?p.combo+"x COMBO":"FIND FIRE TO WARM UP",695,100,15,p.warming?C.orange:p.combo>1?C.yellow:C.white);
+    text(p.yetiWarming?"YETI HEAT ACTIVE":p.warming?"FIRE WARMTH ACTIVE":p.combo>1?p.combo+"x COMBO":"FIND HEAT TO WARM UP",695,100,15,p.warming?C.orange:p.combo>1?C.yellow:C.white);
         if (game.messageTimer > 0 && game.message) {
       rect(80, H - 47, W - 160, 34, "#091925ed");
       ctx.strokeStyle = C.yellow;
@@ -1237,6 +1315,15 @@
       text(game.wave%2===0?"THE EMPEROR COMETH":"THE ROOKERY WANTS REVENGE",W/2,243,20,C.white,"center",900);
       ctx.restore();
     }
+    const yeti=game.yeti;
+    if(yeti?.alive&&yeti.rage>0){
+      const x=315,y=H-145,w=370;
+      rect(x-3,y-19,w+6,42,"#081523e9");
+      text("VERY ANGRY YETI · +1000 POINTS",W/2,y-9,15,C.red,"center");
+      rect(x,y,w,13,"#582b3d");
+      rect(x,y,w*clamp(yeti.hp/Math.max(1,yeti.maxHp),0,1),13,C.red);
+    }
+    text("POINTS: "+game.points,20,H-72,18,C.yellow);
     text("BEST: " + best + "   /   TARGET: 37", W - 14, H - 72, 15, "#14384a", "right");
   }
   function drawBlizzard() {
@@ -1307,7 +1394,7 @@
   window.addEventListener("keydown", e => {
     const k = keyName(e);
     const space = e.code === "Space";
-    if (k || space || ["g","q","e","1","2","3","4","5","6"].includes(e.key.toLowerCase())) e.preventDefault();
+    if (k || space || ["g","q","e","1","2","3","4","5","6","7"].includes(e.key.toLowerCase())) e.preventDefault();
     if (k && state === "running") pressed.add(k);
     if (e.repeat) return;
     if (e.key.toLowerCase() === "p" || e.key === "Escape") {
@@ -1319,7 +1406,7 @@
       throwGrenade();
     } else if (state === "running" && (e.key.toLowerCase() === "q" || e.key.toLowerCase() === "e")) {
       cycleWeapon(e.key.toLowerCase()==="e"?1:-1);
-    } else if (state === "running" && /^[1-6]$/.test(e.key)) {
+    } else if (state === "running" && /^[1-7]$/.test(e.key)) {
       selectWeapon(WEAPON_ORDER[Number(e.key)-1]);
     } else if (e.key.toLowerCase() === "r" && state === "over") {
       start();
