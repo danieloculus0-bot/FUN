@@ -1,4 +1,4 @@
-# Emperor Gauntlet v2.4: cross-agent finishing notes
+# Emperor Gauntlet v2.5: cross-agent finishing notes
 
 **Repository:** danieloculus0-bot/FUN
 **Active playable edition:** `docs/index.html`, `docs/game.js`, `docs/style.css`
@@ -54,3 +54,13 @@ A baby seal begins near the player's starting area and wanders in view. It has a
 The Yeti randomly grows hungry, stalks normal penguins and consumes them. Such penguins are marked eaten and removed from the drawing loop; their deaths generate no player kills, points, combo, ice-fall count or wave credit. A separate `yetiEats` counter records these meals. The Yeti's mouth animates while munching; snacks do not create player-triggered gore bursts. Direct attacks against the Yeti still enrage it and defeating it still awards 1000 points.
 
 Automated gameplay checks cover the Emperor gore output, Yeti meals with zero player rewards, seal warning health and cooldown, and continued original combat mechanics. Hosted source lives in `docs/`; regenerate the offline HTML using the same inline CSS and game JavaScript.
+
+## v2.5 POLAR FIRE implementation (current behavior overrides historic notes)
+
+Every third wave **queues** a timed darkness event; prior instant third-wave/night-until-wave-end behavior is obsolete. The current sequence is exactly 900 gameplay ticks (15 seconds) of dusk, 3540 ticks (59 seconds) of full night, then 900 ticks (15 seconds) of dawn. After dawn at least 10800 ticks (3 min) of full daylight are enforced before another queued night event. Temperature drain rises proportionally with darkness; daylight is warmer. The night mask supports a directional flashlight beam, a tiny player glow, orange campfire/fuel-fire light, and temporary projectile/explosion lights. HUD remains outside the clipped gameplay viewport.
+
+Weapon preferences: Uzi by day (when owned), flamethrower at onset of night. A fueled flamethrower is guaranteed at nightfall even if the pickup was missed. Manual selection of any owned weapon is permitted between transitions. Early map drops provide Uzi, ion cannon, rocket launcher, flamethrower and fuel. Ammo crates and recurring supply drops include fuel/rockets/ion cells. Flamethrower uses 1 fuel every 3 frames when fired and sweeps a fiery damage cone, with optional nonflammable ice scorch fissures. Every ~75 frames of spraying it creates a roughly 12-second temporary fuel fire on safe solid ice (not on a penguin or water). These fires warm the player in a 107-unit radius, light the night, visually die down, and expire; capped at 14 temporary patches. Blood has **no flammability mechanic**.
+
+Original rectangular water trenches replaced by five precomputed irregular river paths. Their drawing and collision share sampled centerlines, uneven widths and jagged banks. Small ice bridges provide safe crossings; penguins entering water count as ice kills. Leopard seals partially emerge from two holes and ambush nearby players; they have twice the current Emperor boss HP. They can be hurt by ordinary bullets, melee, grenades, plasma blasts, rockets and flamethrower. Their defeat gives 650 bonus points separately from penguin waves.
+
+Browser smoke tests now include river/channel count, seal health scaling, ion availability, rocket/flame pickups, temporary fuel-fire heat and expiration, timed dusk/night/dawn progression, night flashlight light-rendering, Uzi/flame automatic equipment, and existing core scoring. The game remains **top-down**; FPS is only a possible future experiment and has not been implemented.
