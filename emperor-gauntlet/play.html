@@ -9,28 +9,40 @@
   <style>
 :root{color-scheme:dark;--ice:#aaf4ff;--lime:#d9fc70;--paper:#f2f8fa;--muted:#8d9eaa;--ink:#07111a;--rule:#263541;font-family:Arial,Helvetica,sans-serif}*{box-sizing:border-box}html{min-height:100%;background:#07121c}body{margin:0;background:radial-gradient(ellipse at 50% 10%,#182e3c 0,#091823 44%,#061018 90%);color:var(--paper);min-height:100vh}button,a{-webkit-tap-highlight-color:transparent}button{font:inherit;cursor:pointer}a{color:inherit;text-decoration:none}.shell{max-width:1260px;margin:auto;padding:0 26px}.masthead{height:83px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--rule)}.brand{display:flex;gap:16px;align-items:center}.brand-symbol{font-size:31px;font-weight:1000;letter-spacing:-4px;color:var(--lime);line-height:1}.brand-symbol span{color:var(--ice)}.brand-sub{font-size:10px;font-weight:800;letter-spacing:3px;color:#9bacb6}.edition{font-size:10px;font-weight:800;letter-spacing:2px;color:#8ca8b5}.edition-dot{display:inline-block;width:6px;height:6px;background:var(--lime);border-radius:50%;margin-left:10px;vertical-align:middle;box-shadow:0 0 12px var(--lime)}.game-section{padding-top:32px}.title-row{display:flex;align-items:end;justify-content:space-between;gap:20px;padding-bottom:20px}.eyebrow{font-size:11px;font-weight:800;letter-spacing:2.5px;color:var(--ice);margin-bottom:9px}h1{font-weight:1000;letter-spacing:-3px;line-height:.96;font-size:clamp(36px,5.2vw,73px);margin:0}h1 em,h2 em{font-style:normal;color:var(--lime)}.record{border-left:2px solid #334c55;padding-left:15px;display:flex;align-items:baseline;gap:9px;white-space:nowrap;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:1px}.record strong{color:var(--lime);font-size:39px;line-height:1}.game-frame{position:relative;overflow:hidden;border:1px solid #446074;background:#8cbbd0;box-shadow:0 18px 60px #0006;isolation:isolate}.game-frame:after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 70px #05172238;pointer-events:none;z-index:1}canvas{display:block;width:100%;height:auto;aspect-ratio:1000 / 640;touch-action:none}.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(105deg,#061624ee,#0b1d2ace);z-index:3;padding:24px;text-align:center}.overlay[hidden]{display:none}.overlay-card{width:min(740px,100%);border:1px solid #6c909a52;padding:52px 40px 36px;background:radial-gradient(circle at 50% 0%,#18364590,transparent 80%)}.overlay-kicker{font-size:11px;letter-spacing:2.5px;color:var(--ice);font-weight:900}h2{font-size:clamp(32px,5vw,67px);font-weight:1000;letter-spacing:-2.5px;line-height:.98;margin:18px 0}#overlay-copy{font-size:16px;line-height:1.65;color:#c9d6de;max-width:545px;margin:0 auto 25px}.primary-button{border:0;padding:17px 27px;background:var(--lime);color:#13201b;font-weight:1000;letter-spacing:1.2px;font-size:14px;box-shadow:5px 5px 0 #769038;transition:transform .1s,box-shadow .1s}.primary-button:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 #769038}.primary-button span{margin-left:12px}.overlay-hint{font-size:10px;letter-spacing:1.1px;color:#9fb1bb;margin:26px 0 0}.below-game{display:flex;justify-content:space-between;align-items:center;padding:18px 0;border-bottom:1px solid var(--rule);gap:12px}.status{display:flex;gap:10px;align-items:center;font-size:11px;font-weight:900;letter-spacing:1.5px;color:#bdcbd5}.status-dot{background:var(--lime);width:8px;height:8px;border-radius:50%;box-shadow:0 0 14px #d9fc706a}.tools{display:flex;gap:14px}.tools button{border:1px solid #344a59;background:#0b1c29;color:#c7d5db;font-size:10px;letter-spacing:1px;font-weight:800;padding:10px 13px}.tools button:hover{border-color:var(--ice)}kbd{font:inherit;color:#83aeb9;padding-left:6px}.details{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding:40px 0 34px}.detail{border-top:1px solid #36505c;padding-top:16px}.detail-num{color:var(--ice);font-size:11px;letter-spacing:2px;font-weight:900}.detail h3{font-size:17px;letter-spacing:1.5px;margin:12px 0 7px}.detail p{color:#9fb1bc;line-height:1.6;font-size:13px;max-width:290px;margin:0}footer{border-top:1px solid var(--rule);padding:25px 0 45px;display:flex;gap:20px;justify-content:space-between;color:#82949e;font-size:10px;letter-spacing:1px;line-height:1.6;font-weight:800}footer a{color:var(--lime);text-decoration:underline;text-underline-offset:3px}.touch-controls{display:none;position:absolute;bottom:1.5%;left:2%;right:2%;z-index:2;justify-content:space-between;pointer-events:none}.touch-btn{pointer-events:auto;border:1px solid #ffffffa8;background:#071827aa;color:white;border-radius:11px;touch-action:none;user-select:none;min-width:45px;min-height:42px;font-weight:900}.touch-btn:active,.touch-btn.pressed{background:#d9fc70c9;color:#08121a}.dpad{display:grid;grid-template-columns:repeat(3,45px);grid-template-rows:repeat(2,44px);gap:3px}.dpad .up{grid-column:2;grid-row:1}.dpad .left{grid-column:1;grid-row:2}.dpad .down{grid-column:2;grid-row:2}.dpad .right{grid-column:3;grid-row:2}.action-pad{display:flex;align-items:end;gap:7px}.action-pad .sprint,.action-pad .shove{height:54px;min-width:74px;font-size:12px}.action-pad .shove{background:#d9fc70e8;color:#111c16}@media(pointer:coarse){.touch-controls{display:flex}}@media(max-width:700px){.shell{padding:0 12px}.masthead{height:62px}.brand-symbol{font-size:26px}.brand-sub{font-size:8px;letter-spacing:1.3px}.edition{font-size:8px;letter-spacing:1px}.title-row{align-items:start;flex-direction:column;gap:13px}.game-section{padding-top:23px}.eyebrow{font-size:9px;letter-spacing:1.6px}.record{border-left:0;border-top:1px solid #334c55;padding:9px 0 0}.record strong{font-size:27px}.overlay-card{padding:24px 13px}.overlay-kicker{font-size:8px;letter-spacing:1.1px}.overlay h2{font-size:clamp(26px,7vw,48px);margin:11px 0}.overlay p#overlay-copy{font-size:11px;line-height:1.35;margin-bottom:14px}.primary-button{padding:11px 14px;font-size:10px}.overlay-hint{font-size:8px;margin-top:13px!important}.details{grid-template-columns:1fr;gap:19px;padding:24px 0}.detail p{max-width:none}.below-game{flex-wrap:wrap;gap:12px}.status{font-size:9px;letter-spacing:1px}.tools button{font-size:9px;padding:8px}footer{flex-direction:column;font-size:9px;gap:8px}}@media(max-width:480px) and (pointer:coarse){.game-frame{margin:0 -8px}.touch-btn{min-height:35px;min-width:35px;border-radius:7px;font-size:11px}.dpad{grid-template-columns:repeat(3,35px);grid-template-rows:repeat(2,35px);gap:2px}.action-pad .sprint,.action-pad .shove{height:40px;min-width:57px;font-size:9px}.overlay-card{padding:8px 8px}.overlay-kicker{display:none}.overlay h2{font-size:26px}.overlay p#overlay-copy{font-size:10px}.overlay-hint{display:none}}@media(prefers-reduced-motion:reduce){.primary-button{transition:none}}
 
+/* Emperor Gauntlet CHAOS build additions */
+.controls-guide{margin:22px 0 3px;padding:19px 24px;background:#102533;border:1px solid #3a5664}
+.controls-guide h3{font-size:13px;letter-spacing:2px;color:#d9fc70;margin:0 0 15px}
+.control-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.control-grid span{font-size:11px;line-height:1.65;color:#bfd0db;font-weight:700}
+.control-grid kbd{display:inline-block;padding:4px 6px;margin-right:5px;background:#274354;border:1px solid #59859a;color:#e8f5fd;font-size:10px}
+.action-pad .swap,.action-pad .grenade{min-width:60px;height:48px;font-size:11px}
+.action-pad .grenade{background:#dc745ecc;color:#fff}
+.action-pad .shove{background:#e7ed69ed;color:#111b18}
+@media(max-width:850px){.control-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.controls-guide{padding:13px}.control-grid{gap:9px}.control-grid span{font-size:10px}.action-pad{gap:3px}.action-pad .swap,.action-pad .grenade,.action-pad .sprint,.action-pad .shove{min-width:45px;height:39px;font-size:9px}}
+
 </style>
 </head>
 <body>
   <main class="shell">
     <header class="masthead">
       <a class="brand" href="https://github.com/danieloculus0-bot/FUN" aria-label="FUN on GitHub"><span class="brand-symbol">F<span>U</span>N</span><span class="brand-sub">UNREASONABLE EXPERIMENTS</span></a>
-      <span class="edition">BROWSER EDITION <span class="edition-dot"></span> v1.0</span>
+      <span class="edition">BROWSER EDITION <span class="edition-dot"></span> v2.0 · CHAOS BUILD</span>
     </header>
     <section class="game-section" aria-label="Emperor Gauntlet">
       <div class="title-row">
-        <div><div class="eyebrow">ANTARCTICA / NO WEAPONS / POOR JUDGMENT</div><h1>EMPEROR <em>GAUNTLET</em></h1></div>
+        <div><div class="eyebrow">ANTARCTICA / QUESTIONABLE ARMORY / EXTREMELY POOR JUDGMENT</div><h1>EMPEROR <em>GAUNTLET</em></h1></div>
         <div class="record">THE LEGENDARY RECORD <strong>37</strong> <span>PENGUINS</span></div>
       </div>
       <div class="game-frame" id="game-frame">
-        <canvas id="game" width="1000" height="640" aria-label="Emperor Gauntlet game arena. Use WASD or arrow keys to move, Shift to sprint, and Space to shove."></canvas>
+        <canvas id="game" width="1000" height="640" aria-label="Emperor Gauntlet game arena. Use WASD or arrow keys to move, Shift to sprint, Space or click to attack, G for grenades, Q and E to switch weapons."></canvas>
         <div class="overlay" id="overlay">
           <div class="overlay-card">
             <span class="overlay-kicker" id="overlay-kicker">WELCOME TO THE WORST FIELD TRIP ON EARTH</span>
             <h2 id="overlay-title">THE ICE DOESN'T <em>CARE.</em></h2>
-            <p id="overlay-copy">One unarmed human. A lot of emperor penguins. Survive the cold, dodge the cracks, and test your deeply questionable hypothesis.</p>
+            <p id="overlay-copy">One deranged explorer. A penguin army. Uzi, shotgun, knives, nunchucks, bo staff, grenades and enough questionable survival gear to annoy an entire continent.</p>
             <button class="primary-button" id="play-button" type="button">ENTER THE ARENA <span aria-hidden="true">↗</span></button>
-            <p class="overlay-hint" id="overlay-hint">WASD / ARROWS: MOVE &nbsp; · &nbsp; SHIFT: SPRINT &nbsp; · &nbsp; SPACE: SHOVE</p>
+            <p class="overlay-hint" id="overlay-hint">WASD: MOVE &nbsp; · &nbsp; SPACE / CLICK: ATTACK &nbsp; · &nbsp; G: GRENADE &nbsp; · &nbsp; Q / E: SWITCH</p>
           </div>
         </div>
         <div class="touch-controls" aria-label="Touch game controls">
@@ -42,7 +54,9 @@
           </div>
           <div class="action-pad">
             <button class="touch-btn sprint" data-hold="sprint">SPRINT</button>
-            <button class="touch-btn shove" id="touch-shove">SHOVE</button>
+            <button class="touch-btn swap" id="touch-swap">SWAP</button>
+            <button class="touch-btn grenade" id="touch-grenade">BOOM</button>
+            <button class="touch-btn shove" id="touch-shove">FIRE</button>
           </div>
         </div>
       </div>
@@ -51,12 +65,21 @@
         <div class="tools"><button type="button" id="pause-button">PAUSE <kbd>P</kbd></button><button type="button" id="sound-button" aria-pressed="false" hidden>SOUND OFF</button><button type="button" id="fullscreen-button">FULL SCREEN <span aria-hidden="true">⛶</span></button></div>
       </div>
     </section>
+    <section class="controls-guide" aria-label="Controls">
+      <h3>HOW TO CAUSE ABSOLUTE MAYHEM</h3>
+      <div class="control-grid">
+        <span><kbd>W A S D</kbd> MOVE</span><span><kbd>SHIFT</kbd> SPRINT</span>
+        <span><kbd>SPACE / CLICK</kbd> ATTACK · HOLD FOR AUTO</span><span><kbd>G</kbd> GRENADE</span>
+        <span><kbd>Q / E</kbd> SWITCH WEAPONS</span><span><kbd>1 - 6</kbd> DIRECT WEAPON SLOTS</span>
+        <span><kbd>P</kbd> PAUSE</span><span><kbd>WALK OVER GEAR</kbd> PICK IT UP</span>
+      </div>
+    </section>
     <section class="details" aria-label="How to play">
-      <div class="detail"><span class="detail-num">01 /</span><h3>MOVE SMART</h3><p>WASD or arrows to move. Shift to sprint, but watch your stamina. Ice has opinions.</p></div>
-      <div class="detail"><span class="detail-num">02 /</span><h3>PICK YOUR FIGHTS</h3><p>Space to shove. Penguins run until provoked. Each swing only lands once per penguin.</p></div>
+      <div class="detail"><span class="detail-num">01 /</span><h3>MOVE SMART</h3><p>Jackets slow freezing, medkits heal, ice cleats help traction and mystery coffee triggers rage mode.</p></div>
+      <div class="detail"><span class="detail-num">02 /</span><h3>PICK YOUR FIGHTS</h3><p>Find knives, nunchucks, a bo staff, shotguns, an Uzi and grenades. Hold Space or click to attack.</p></div>
       <div class="detail"><span class="detail-num">03 /</span><h3>BEAT 37</h3><p>That's the creator's record before freezing. Your browser remembers your best score.</p></div>
     </section>
-    <footer><span>EMPEROR GAUNTLET / PART OF THE <a href="https://github.com/danieloculus0-bot/FUN">FUN PROJECT</a></span><span>NO PENGUINS WERE HARMED. HUMAN DIGNITY IS ANOTHER MATTER.</span></footer>
+    <footer><span>EMPEROR GAUNTLET / PART OF THE <a href="https://github.com/danieloculus0-bot/FUN">FUN PROJECT</a></span><span>SIMULATED PENGUINS ONLY. REAL-WORLD JUDGMENT NOT INCLUDED.</span></footer>
   </main>
   <script>
 (() => {
@@ -65,7 +88,19 @@
   // A native HTML5 Canvas port of Emperor Gauntlet.
   // The original Pygame version remains at emperor-gauntlet/emperor_gauntlet.py.
   const W = 1000, H = 640, FPS = 60, WORLD_W = 2450, WORLD_H = 1700;
-  const PR = 18, ER = 15, START_PENGUINS = 22, MAX_PENGUINS = 48;
+  const PR = 18, ER = 15, START_PENGUINS = 22, MAX_PENGUINS = 54;
+  const ARMORY = {
+    fists: {name:"FISTS",type:"melee",damage:30,reach:43,cooldown:28,stamina:12,color:"#fbb667"},
+    knife: {name:"KNIFE",type:"melee",damage:44,reach:48,cooldown:18,stamina:8,color:"#e5f3fa"},
+    nunchucks: {name:"NUNCHUCKS",type:"melee",damage:27,reach:60,cooldown:11,stamina:7,color:"#f8d578"},
+    staff: {name:"BO STAFF",type:"melee",damage:56,reach:86,cooldown:27,stamina:10,color:"#deb179"},
+    uzi: {name:"UZI",type:"gun",damage:26,cooldown:5,velocity:24,spread:.11,color:"#ffeb80"},
+    shotgun: {name:"SHOTGUN",type:"gun",damage:26,cooldown:39,velocity:20,spread:.37,pellets:7,color:"#ffc16d"}
+  };
+  const WEAPON_ORDER = Object.keys(ARMORY);
+  const DROP_COLORS = {uzi:"#f9cb5d",shotgun:"#f4a575",knife:"#dcebf5",
+    nunchucks:"#ffdf6e",staff:"#caa47b",parka:"#77e0f5",medkit:"#f76879",
+    grenade:"#f1af51",ammo:"#ffe48b",coffee:"#dbafff",cleats:"#afff7a"};
   const C = {
     snow: "#e8f4f7", ice: "#b0dce9", darkIce: "#123b51", blueIce: "#57a7c8",
     white: "#f3f8f9", black: "#0b1319", gray: "#4c6270", red: "#dd5c63",
@@ -100,21 +135,28 @@
   const held = name => pressed.has(name);
 
   function penguin(x, y) {
+    const variant=Math.random()<.11?"bruiser":Math.random()<.2?"berserker":"emperor";
     return {
       id: nextId++, x, y, vx: rand(-1, 1), vy: rand(-1, 1),
-      hp: rand(58, 76), fear: rand(.2, .7), aggression: rand(.05, .28),
-      mass: rand(.9, 1.25), state: "wander", down: false, downTimer: 0,
+      hp: rand(58, 76)*(variant==="bruiser"?1.9:variant==="berserker"?.8:1),
+      fear: rand(.2, .7), aggression: rand(.05, .28)+(variant==="berserker"?.38:0),
+      mass: rand(.9, 1.25)*(variant==="bruiser"?1.6:1),
+      state: "wander", down: false, downTimer: 0,
       peckCD: Math.floor(rand(0, 80)), phase: rand(0, Math.PI * 2),
-      panic: 0, lastSwing: -1
+      panic: 0, lastSwing: -1, variant, flash:0
     };
   }
+  function makeDrop(kind,x,y) {return {kind,x,y,life:2500,spin:rand(0,6.28)};}
   function newGame() {
     nextId = 1;
     const g = {
       player: {
         x: 170, y: 200, vx: 0, vy: 0, fx: 1, fy: 0,
         temp: 100, hp: 100, stamina: 100, wet: 0, slip: 0,
-        shoveCD: 0, swing: 0, swingId: 0, provocation: 0
+        shoveCD: 0, swing: 0, swingId: 0, provocation: 0,
+        weapon:"fists",owned:{fists:true},ammo:{uzi:120,shotgun:20},
+        grenades:2,parka:0,cleats:false,rage:0,combo:0,comboTime:0,
+        swingReach:43,swingColor:"#fbb667",muzzle:0
       },
       birds: [], drifts: [
         { x: 360, y: 300, w: 270, h: 120 },
@@ -134,14 +176,19 @@
         { x: 1040, y: 470, r: 58 }, { x: 1540, y: 1120, r: 72 },
         { x: 2200, y: 350, r: 52 }, { x: 540, y: 910, r: 48 }
       ],
-      particles: [], stains: [], score: 0, falls: 0, clock: 0,
+      particles: [], stains: [], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
+      score: 0, falls: 0, clock: 0,
       windAngle: rand(0, Math.PI * 2), windStrength: rand(.3, 1),
-      blizzardTimer: 0, message: "NO WEAPONS. SHOVE, SURVIVE, QUESTION YOUR LIFE CHOICES.",
+      blizzardTimer: 0, message: "GET GEAR. FIND AN UZI. RAISE HELL.",
       messageTimer: 260, cause: ""
     };
     for (let i = 0; i < START_PENGUINS; i++) {
       g.birds.push(penguin(rand(500, WORLD_W - 200), rand(180, WORLD_H - 180)));
     }
+    g.drops.push(makeDrop("uzi",275,230),makeDrop("parka",350,285),
+      makeDrop("knife",440,290),makeDrop("medkit",560,350),makeDrop("grenade",675,410),
+      makeDrop("nunchucks",780,505),makeDrop("shotgun",1050,590),
+      makeDrop("staff",1260,440),makeDrop("cleats",1460,620),makeDrop("coffee",840,270));
     return g;
   }
 
@@ -219,25 +266,151 @@
     statusText.textContent = "GAME OVER · " + game.score + " DOWN · PERSONAL BEST " + best;
     pauseButton.textContent = "PAUSE  P";
   }
+  function selectWeapon(which){
+    const p=game.player;
+    if(state!=="running"||!p.owned[which])return false;
+    p.weapon=which;
+    say("EQUIPPED: "+ARMORY[which].name,110);
+    return true;
+  }
+  function cycleWeapon(direction){
+    const p=game.player,index=WEAPON_ORDER.indexOf(p.weapon);
+    for(let n=1;n<=WEAPON_ORDER.length;n++){
+      const k=WEAPON_ORDER[(index+n*direction+WEAPON_ORDER.length*10)%WEAPON_ORDER.length];
+      if(p.owned[k])return selectWeapon(k);
+    }
+    return false;
+  }
+  function floatText(x,y,label,color=C.yellow){
+    game.floats.push({x,y,label,color,life:75});
+    if(game.floats.length>70)game.floats.shift();
+  }
+  function smack(b,damage,pushX,pushY){
+    if(b.down)return;
+    b.hp-=damage;
+    b.vx+=pushX/Math.max(.6,b.mass);
+    b.vy+=pushY/Math.max(.6,b.mass);
+    b.panic=110;b.flash=7;
+    particles(b.x,b.y,C.red,18,5);
+    for(let i=0;i<4;i++)stain(b.x+rand(-20,20),b.y+rand(-20,20),rand(4,11));
+    floatText(b.x,b.y-30,Math.round(damage)+"");
+    game.shake=Math.min(12,game.shake+2);
+    if(b.hp<=0)downBird(b,"combat");
+  }
+  function fireWeapon(){
+    const p=game.player,w=ARMORY[p.weapon];
+    if(p.ammo[p.weapon]<=0){
+      p.shoveCD=18;say("CLICK. EMPTY. FIND AMMO OR SWITCH WEAPONS.",120);return;
+    }
+    p.ammo[p.weapon]--;p.shoveCD=w.cooldown;p.provocation+=.8;p.muzzle=5;
+    const angle=Math.atan2(p.fy,p.fx);
+    for(let i=0;i<(w.pellets||1);i++){
+      const theta=angle+rand(-w.spread,w.spread);
+      game.bullets.push({x:p.x+p.fx*25,y:p.y+p.fy*25,
+        vx:Math.cos(theta)*w.velocity,vy:Math.sin(theta)*w.velocity,
+        damage:w.damage*rand(.8,1.18),life:w.pellets?18:48,color:w.color});
+    }
+    particles(p.x+p.fx*35,p.y+p.fy*35,w.color,9,6);
+    if(w.pellets)game.shake+=5;
+  }
+  function throwGrenade(){
+    if(state!=="running"||game.player.grenades<1)return;
+    const p=game.player;p.grenades--;
+    game.bombs.push({x:p.x+p.fx*22,y:p.y+p.fy*22,
+      vx:p.fx*10+p.vx*.3,vy:p.fy*10+p.vy*.3,life:56});
+    say("GRENADE OUT! THIS IS FINE.",100);
+  }
+  function boom(x,y){
+    game.explosions.push({x,y,r:0,life:22});
+    particles(x,y,C.orange,75,10);particles(x,y,C.red,25,7);
+    for(const b of game.birds){
+      if(b.down)continue;
+      const distance=Math.hypot(b.x-x,b.y-y);
+      if(distance<150){
+        const n=norm(b.x-x,b.y-y);
+        smack(b,Math.max(20,180*(1-distance/170)),n.x*15,n.y*15);
+      }
+    }
+    const p=game.player,d=Math.hypot(p.x-x,p.y-y);
+    if(d<110)p.hp-=Math.max(4,25*(1-d/120));
+    game.shake=16;say("BOOM. ANTARCTICA FILES A FORMAL COMPLAINT.",155);
+  }
+  function moveProjectiles(){
+    for(const bullet of game.bullets){
+      const ox=bullet.x,oy=bullet.y;
+      bullet.x+=bullet.vx;bullet.y+=bullet.vy;bullet.life--;
+      if(bullet.x<0||bullet.y<0||bullet.x>WORLD_W||bullet.y>WORLD_H)bullet.life=0;
+      for(const b of game.birds){
+        if(b.down||bullet.life<=0)continue;
+        const dx=bullet.x-ox,dy=bullet.y-oy,den=dx*dx+dy*dy;
+        const t=clamp(den?((b.x-ox)*dx+(b.y-oy)*dy)/den:0,0,1);
+        if(Math.hypot(b.x-(ox+t*dx),b.y-(oy+t*dy))<(b.variant==="bruiser"?24:17)){
+          const n=norm(dx,dy);
+          smack(b,bullet.damage*(game.player.rage>0?1.5:1),n.x*5,n.y*5);
+          bullet.life=0;break;
+        }
+      }
+    }
+    game.bullets=game.bullets.filter(b=>b.life>0);
+    for(const bomb of game.bombs){
+      bomb.x+=bomb.vx;bomb.y+=bomb.vy;
+      bomb.vx*=.95;bomb.vy*=.95;bomb.life--;
+      if(bomb.life<=0)boom(bomb.x,bomb.y);
+    }
+    game.bombs=game.bombs.filter(b=>b.life>0);
+    for(const blast of game.explosions){blast.life--;blast.r=Math.min(135,blast.r+15);}
+    game.explosions=game.explosions.filter(b=>b.life>0);
+    for(const p of game.floats){p.y-=.65;p.life--;}
+    game.floats=game.floats.filter(p=>p.life>0);
+  }
+  function collectDrops(){
+    const p=game.player;
+    for(let i=game.drops.length-1;i>=0;i--){
+      const drop=game.drops[i];drop.life--;
+      if(drop.life<=0){game.drops.splice(i,1);continue;}
+      if(Math.hypot(p.x-drop.x,p.y-drop.y)>36)continue;
+      game.drops.splice(i,1);
+      const k=drop.kind;
+      if(ARMORY[k]){
+        p.owned[k]=true;
+        if(k==="uzi")p.ammo.uzi+=130;
+        if(k==="shotgun")p.ammo.shotgun+=18;
+        p.weapon=k;
+        say("NEW WEAPON: "+ARMORY[k].name+"! LET'S FUCKING GO.",190);
+      }else if(k==="parka"){p.parka=Math.min(3,p.parka+1);p.temp=clamp(p.temp+30,0,100);say("PARKA EQUIPPED. COLD RESISTANCE UP.",145);}
+      else if(k==="medkit"){p.hp=clamp(p.hp+50,0,100);say("FIRST AID KIT: +50 HEALTH.",120);}
+      else if(k==="cleats"){p.cleats=true;say("ICE CLEATS. TRACTION, YOU BEAUTIFUL BASTARD.",125);}
+      else if(k==="ammo"){p.ammo.uzi+=100;p.ammo.shotgun+=16;say("AMMO RESTOCKED.",110);}
+      else if(k==="grenade"){p.grenades+=3;say("THREE MORE GRENADES. NO ONE TELL THE PENGUINS.",150);}
+      else if(k==="coffee"){p.rage=900;p.stamina=100;p.temp=clamp(p.temp+16,0,100);say("CAFFEINATED RAGE: 15 SECONDS OF POOR JUDGMENT.",180);}
+      floatText(drop.x,drop.y-35,k.toUpperCase()+"!",DROP_COLORS[k]);
+      particles(drop.x,drop.y,DROP_COLORS[k],20,5);
+    }
+  }
   function shove() {
     if (state !== "running") return;
     const p = game.player;
-    if (p.shoveCD > 0 || p.stamina < 12) return;
-    p.shoveCD = 28;
-    p.stamina -= 12;
-    p.swing = 10;
-    p.swingId++;
-    p.provocation++;
-    particles(p.x + p.fx * 40, p.y + p.fy * 40, C.orange, 12, 3.2);
+    const w=ARMORY[p.weapon];
+    if(p.shoveCD>0)return;
+    if(w.type==="gun"){fireWeapon();return;}
+    if(p.stamina<w.stamina)return;
+    p.shoveCD=w.cooldown;p.stamina-=w.stamina;
+    p.swing=9;p.swingReach=w.reach;p.swingColor=w.color;
+    p.swingId++;p.provocation++;
+    particles(p.x+p.fx*w.reach,p.y+p.fy*w.reach,w.color,12,4);
   }
 
   function downBird(bird, reason) {
     if (bird.down) return;
     bird.down = true;
     bird.downTimer = 240;
-    if (reason === "shove") {
+    if (reason !== "ice") {
       game.score++;
       game.player.provocation += 2;
+      game.player.combo++;
+      game.player.comboTime=180;
+      if(game.player.combo%5===0)floatText(bird.x,bird.y-55,game.player.combo+"x COMBO!");
+      if(Math.random()<.19)game.drops.push(makeDrop(["ammo","medkit","grenade","coffee","parka"][Math.floor(rand(0,5))],bird.x,bird.y));
       particles(bird.x, bird.y, C.red, 25, 4);
       stain(bird.x, bird.y, rand(8, 16));
       say([
@@ -277,16 +450,20 @@
     const w = wind();
     p.vx += w.x * .012;
     p.vy += w.y * .012;
-    const friction = p.slip > 0 ? .973 : terrainSlow >= .8 ? .945 : .89;
+    const friction = p.slip > 0 && !p.cleats ? .973 : terrainSlow >= .8 ? .945 : .89;
     if (p.slip > 0) p.slip--;
     p.vx *= friction;
     p.vy *= friction;
     p.x = clamp(p.x + p.vx, PR, WORLD_W - PR);
     p.y = clamp(p.y + p.vy, PR, WORLD_H - PR);
     if (p.shoveCD > 0) p.shoveCD--;
+    if(p.muzzle>0)p.muzzle--;
+    if(p.rage>0)p.rage--;
+    if(p.comboTime>0)p.comboTime--;else p.combo=0;
     if (p.swing > 0) p.swing--;
     let loss = .018 + (game.blizzardTimer > 0 ? .04 : 0) - (sprint ? .008 : 0);
     if (p.wet > 0) { p.wet--; loss += .058; }
+    loss*=1-p.parka*.2;
     p.temp = clamp(p.temp - loss, 0, 100);
     if (p.temp <= 0) {
       finish("Froze after losing a very predictable thermodynamics argument");
@@ -385,7 +562,7 @@
       ay += sy + w.y * .004;
       if (b.panic > 0) { b.panic--; ax *= 1.25; ay *= 1.25; }
       b.vx += ax; b.vy += ay;
-      const v = Math.hypot(b.vx, b.vy), maxSpeed = (b.state === "flee" || b.state === "mob") ? 3 : 1.55;
+      const v = Math.hypot(b.vx, b.vy), maxSpeed = ((b.state === "flee" || b.state === "mob") ? 3 : 1.55) * (b.variant==="berserker"?1.65:b.variant==="bruiser"?.75:1);
       if (v > maxSpeed) { b.vx *= maxSpeed / v; b.vy *= maxSpeed / v; }
       b.vx *= .94; b.vy *= .94;
       b.x = clamp(b.x + b.vx, ER, WORLD_W - ER);
@@ -422,7 +599,7 @@
         b.y -= ny * overlap * .58;
         if (b.state === "mob" && b.peckCD <= 0) {
           b.peckCD = Math.floor(rand(35, 70));
-          p.hp -= rand(4, 9);
+          p.hp -= rand(4, 9)*(b.variant==="bruiser"?1.7:1);
           p.vx += nx * rand(1.5, 2.8);
           p.vy += ny * rand(1.5, 2.8);
           particles(p.x - nx * 14, p.y - ny * 14, C.red, 8, 2.3);
@@ -431,20 +608,14 @@
         }
       }
       if (p.swing > 0 && b.lastSwing !== p.swingId) {
-        const rx = p.x + p.fx * 42 - b.x, ry = p.y + p.fy * 42 - b.y;
+        const rx = p.x + p.fx * p.swingReach - b.x, ry = p.y + p.fy * p.swingReach - b.y;
         const toward = norm(b.x - p.x, b.y - p.y);
         if (Math.hypot(rx, ry) < 43 && toward.x * p.fx + toward.y * p.fy > .15) {
           b.lastSwing = p.swingId; // Exactly one hit per penguin per shove.
           const push = norm(b.x - p.x, b.y - p.y);
-          const mag = rand(6.5, 10) / Math.max(.6, b.mass);
-          b.vx += push.x * mag; b.vy += push.y * mag;
-          b.hp -= rand(22, 38);
-          b.panic = 100;
-          particles(b.x, b.y, C.red, 10, 2.5);
-          stain(b.x, b.y, rand(6, 11));
-          p.vx -= p.fx * .7;
-          p.vy -= p.fy * .7;
-          if (b.hp <= 0) downBird(b, "shove");
+          const w=ARMORY[p.weapon];
+          smack(b,w.damage*rand(.8,1.2)*(p.rage>0?1.5:1),push.x*8,push.y*8);
+          p.vx-=p.fx*.5;p.vy-=p.fy*.5;
         }
       }
     }
@@ -488,8 +659,13 @@
     checkTerrain();
     if (state !== "running") return;
     updateBirds();
+    if(held("attack"))shove();
     collisions();
+    moveProjectiles();
+    collectDrops();
     maintainPopulation();
+    if(game.clock%650===0){const p=game.player;game.drops.push(makeDrop(["ammo","medkit","coffee","grenade","parka"][Math.floor(rand(0,5))],clamp(p.x+rand(-300,300),35,WORLD_W-35),clamp(p.y+rand(-280,280),35,WORLD_H-35)));}
+    if(game.shake>0)game.shake=Math.max(0,game.shake-.65);
     for (const particle of game.particles) {
       particle.x += particle.vx; particle.y += particle.vy;
       particle.vx *= .94; particle.vy *= .94; particle.life--;
@@ -558,65 +734,129 @@
     for (const s of game.stains) {
       circle(s.x, s.y, Math.max(2, s.radius * clamp(s.life / 900, .25, 1)), s.color);
     }
-    for (const b of game.birds) drawBird(b);
+    for(const item of game.drops)drawDrop(item);
+    for(const b of game.birds)drawBird(b);
     drawPlayer(game.player);
+    for(const bullet of game.bullets){
+      const n=norm(bullet.vx,bullet.vy);
+      ctx.beginPath();ctx.moveTo(bullet.x-n.x*13,bullet.y-n.y*13);
+      ctx.lineTo(bullet.x+n.x*5,bullet.y+n.y*5);
+      ctx.strokeStyle=bullet.color;ctx.lineWidth=4;ctx.stroke();
+    }
+    for(const bomb of game.bombs){
+      circle(bomb.x,bomb.y,8,"#293e3b");
+      circle(bomb.x-2,bomb.y-3,3,C.yellow);
+    }
+    for(const blast of game.explosions){
+      circle(blast.x,blast.y,blast.r,"#ef7b2633");
+      ctx.beginPath();ctx.arc(blast.x,blast.y,blast.r,0,Math.PI*2);
+      ctx.strokeStyle="#ffcb59";ctx.lineWidth=7;ctx.stroke();
+    }
     for (const p of game.particles) circle(p.x, p.y, p.radius, p.color);
+    for(const ft of game.floats)text(ft.label,ft.x,ft.y,17,ft.color,"center",1000);
     ctx.restore();
+  }
+  function drawDrop(item){
+    const bob=Math.sin(game.clock*.09+item.spin)*5;
+    const x=item.x,y=item.y+bob,c=DROP_COLORS[item.kind];
+    circle(x,y+7,19,"#153d5150");
+    circle(x,y,18,c+"66");
+    ctx.strokeStyle=c;ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(x,y,17,0,Math.PI*2);ctx.stroke();
+    if(ARMORY[item.kind]){
+      ctx.save();ctx.translate(x,y);ctx.rotate(-.38);
+      rect(-11,-4,22,8,"#1b2a31");rect(4,-3,6,8,c);
+      rect(-6,2,4,11,"#374c53");
+      ctx.restore();
+    }else{
+      const icons={medkit:"+",parka:"J",cleats:"C",ammo:"A",grenade:"G",coffee:"!"};
+      text(icons[item.kind]||"?",x,y,22,"#132231","center",1000);
+    }
+    text(item.kind.toUpperCase(),x,y+28,11,"#19384a","center",950);
   }
   function drawBird(b) {
-    ctx.save();
-    ctx.translate(b.x, b.y);
-    if (b.down) {
-      ellipse(0, 0, 22, 10, C.black);
-      ellipse(0, 1, 14, 5, C.white);
-      circle(21, 0, 5, C.orange);
-      ctx.restore();
-      return;
+    ctx.save();ctx.translate(b.x,b.y);
+    if(b.down){
+      ellipse(0,5,24,8,"#557d92");
+      ellipse(0,0,23,12,C.black);
+      ellipse(0,0,15,7,C.white);
+      circle(22,2,5,C.orange);
+      ctx.restore();return;
     }
-    const bob = Math.sin(game.clock * .11 + b.phase) * 3;
-    ellipse(0, bob + 12, 13, 5, "#5e899e");
-    ellipse(0, bob, 14, 21, C.black);
-    ellipse(1, bob + 4, 8, 14, "#f5fafb");
-    circle(0, bob - 24, 13, C.black);
-    circle(4, bob - 28, 4, C.white);
-    circle(5, bob - 28, 2, C.black);
-    ctx.beginPath();
-    ctx.moveTo(11, bob - 24);
-    ctx.lineTo(26, bob - 20);
-    ctx.lineTo(11, bob - 17);
-    ctx.closePath();
-    ctx.fillStyle = C.orange;
-    ctx.fill();
-    ctx.strokeStyle = C.orange;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(-8, bob + 19); ctx.lineTo(-16, bob + 26);
-    ctx.moveTo(8, bob + 19); ctx.lineTo(16, bob + 26);
-    ctx.stroke();
-    if (b.state === "mob") {
-      ctx.beginPath();
-      ctx.arc(5, bob - 28, 5, 0, Math.PI * 2);
-      ctx.strokeStyle = C.red;
-      ctx.lineWidth = 2;
-      ctx.stroke();
+    const bruiser=b.variant==="bruiser",psycho=b.variant==="berserker";
+    const scale=bruiser?1.32:(psycho?0.88:1);
+    const bob=Math.sin(game.clock*(psycho?0.23:0.11)+b.phase)*3;
+    ctx.translate(0,bob);ctx.scale(scale,scale);
+    ellipse(0,21,19,7,"#466d8290");
+    // Tiny flippers with real silhouettes, feet, belly, and a beak.
+    ellipse(-13,3,7,19,C.black);ellipse(13,3,7,19,C.black);
+    ellipse(-10,24,8,5,C.orange);ellipse(11,24,8,5,C.orange);
+    ellipse(0,0,15,22,C.black);
+    ellipse(2,4,10,16,C.white);
+    ellipse(-8,-2,2.5,10,"#f8d774");ellipse(10,-1,2.5,9,"#f8d774");
+    circle(0,-23,14,C.black);
+    ellipse(1,-27,9,5,"#363f45");
+    circle(-5,-26,4,C.white);circle(6,-26,4,C.white);
+    circle(-4,-26,2.1,C.black);circle(7,-26,2.1,C.black);
+    ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(14,-16);ctx.lineTo(0,-13);
+    ctx.closePath();ctx.fillStyle=C.orange;ctx.fill();
+    if(bruiser){
+      ctx.beginPath();ctx.moveTo(-14,-34);ctx.lineTo(14,-34);
+      ctx.lineWidth=5;ctx.strokeStyle="#b14b59";ctx.stroke();
+      text("!",0,-44,15,C.red,"center",900);
+    }
+    if(psycho){ctx.strokeStyle=C.red;ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(-10,-30);ctx.lineTo(-2,-26);
+      ctx.moveTo(13,-30);ctx.lineTo(3,-26);ctx.stroke();}
+    if(b.flash>0){ellipse(0,-1,16,24,"#ff4f6599");b.flash--;}
+    if(b.state==="mob"){
+      circle(-4,-26,2.5,C.red);circle(7,-26,2.5,C.red);
     }
     ctx.restore();
   }
-  function drawPlayer(p) {
-    circle(p.x, p.y + 4, PR + 3, "#334954");
-    circle(p.x, p.y, PR, p.temp > 35 ? "#d29c70" : "#91bcd9");
-    ctx.strokeStyle = C.black;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, PR, 0, Math.PI * 2);
-    ctx.stroke();
-    circle(p.x + p.fx * 16, p.y + p.fy * 16, 4, C.black);
-    if (p.swing > 0) {
-      ctx.beginPath();
-      ctx.arc(p.x + p.fx * 36, p.y + p.fy * 36, 26, 0, Math.PI * 2);
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = C.orange;
-      ctx.stroke();
+  function drawPlayer(p){
+    ctx.save();ctx.translate(p.x,p.y);
+    const angle=Math.atan2(p.fy,p.fx);
+    ctx.rotate(angle+Math.PI/2);
+    ellipse(0,10,21,9,"#30526c99");
+    // Legs and boots.
+    rect(-12,11,10,17,"#1e3039");rect(3,11,10,17,"#1e3039");
+    ellipse(-9,25,8,5,"#111d26");ellipse(9,25,8,5,"#111d26");
+    // Arms and gloves.
+    ellipse(-19,0,8,14,"#375564");ellipse(19,0,8,14,"#375564");
+    circle(-20,-8,6,"#212a2d");circle(20,-8,6,"#212a2d");
+    // Upgradeable expedition jacket.
+    const jacket=p.parka>0?"#f1a834":"#417c87";
+    ellipse(0,0,20,22,"#18333e");
+    ellipse(0,0,16,20,jacket);
+    rect(-3,-19,6,37,"#ecf4dd");
+    rect(-14,2,28,4,"#263c41");
+    // Hood, goggles, and expressive head.
+    circle(0,-14,15,p.parka>0?"#f3e7bc":"#cbd2c8");
+    circle(0,-14,12,"#253942");
+    ellipse(0,-14,11,6,"#a4e6ff");
+    rect(-9,-16,18,4,"#152532");
+    circle(0,-8,5,"#d1a481");
+    if(p.rage>0){ctx.strokeStyle=C.red;ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(0,-13,19,0,Math.PI*2);ctx.stroke();}
+    ctx.restore();
+    // Weapon points along the movement direction.
+    const fx=p.fx,fy=p.fy,x=p.x+fx*23,y=p.y+fy*23;
+    if(p.weapon==="uzi"||p.weapon==="shotgun"){
+      const nx=-fy,ny=fx,len=p.weapon==="shotgun"?32:22;
+      ctx.beginPath();ctx.moveTo(x-fx*8,y-fy*8);
+      ctx.lineTo(x+fx*len,y+fy*len);
+      ctx.lineWidth=p.weapon==="shotgun"?8:7;ctx.strokeStyle="#202d34";ctx.stroke();
+      if(p.muzzle>0){circle(x+fx*(len+4),y+fy*(len+4),rand(7,13),C.yellow);}
+    }else if(p.weapon==="staff"||p.weapon==="nunchucks"||p.weapon==="knife"){
+      ctx.beginPath();ctx.moveTo(x-fx*10,y-fy*10);
+      ctx.lineTo(x+fx*(p.weapon==="staff"?44:24),y+fy*(p.weapon==="staff"?44:24));
+      ctx.lineWidth=p.weapon==="staff"?6:4;
+      ctx.strokeStyle=ARMORY[p.weapon].color;ctx.stroke();
+    }
+    if(p.swing>0){
+      ctx.beginPath();ctx.arc(p.x+fx*p.swingReach,p.y+fy*p.swingReach,25,0,Math.PI*2);
+      ctx.lineWidth=5;ctx.strokeStyle=p.swingColor;ctx.stroke();
     }
   }
   function bar(x, y, width, percent, color, label) {
@@ -652,7 +892,15 @@
     text("WIND", 748, 21, 12, C.white);
     text(game.blizzardTimer > 0 ? "BLIZZARD" : "CLEAR-ISH", 843, 57, 17,
       game.blizzardTimer > 0 ? C.yellow : C.white);
-    if (game.messageTimer > 0 && game.message) {
+    // Second row: the active weapon, ammunition, throwable inventory and combo feedback.
+    rect(0,83,W,36,"#0b2330e8");
+    const p=game.player;
+    const weaponSpec=ARMORY[p.weapon];
+    text("WEAPON: "+weaponSpec.name,18,100,17,weaponSpec.color);
+    text(weaponSpec.type==="gun"?"AMMO: "+p.ammo[p.weapon]:"MELEE / UNLIMITED",310,100,15,C.white);
+    text("GRENADES: "+p.grenades,500,100,15,C.orange);
+    text(p.combo>1?p.combo+"x COMBO":"PICK UP THE GLOWING GEAR",695,100,15,p.combo>1?C.yellow:C.white);
+        if (game.messageTimer > 0 && game.message) {
       rect(80, H - 47, W - 160, 34, "#091925ed");
       ctx.strokeStyle = C.yellow;
       ctx.lineWidth = 2;
@@ -680,8 +928,11 @@
     if (!game) return;
     const camX = clamp(game.player.x - W / 2, 0, WORLD_W - W);
     const camY = clamp(game.player.y - H / 2, 0, WORLD_H - H);
-    drawWorld(camX, camY);
+    ctx.save();
+    if(game.shake>0)ctx.translate(rand(-game.shake,game.shake),rand(-game.shake,game.shake));
+    drawWorld(camX,camY);
     drawBlizzard();
+    ctx.restore();
     drawHud();
   }
   function frame(now) {
@@ -710,19 +961,26 @@
     if (k === "arrowleft" || k === "a") return "left";
     if (k === "arrowright" || k === "d") return "right";
     if (k === "shift") return "sprint";
+    if (event.code === "Space") return "attack";
     return "";
   }
   window.addEventListener("keydown", e => {
     const k = keyName(e);
     const space = e.code === "Space";
-    if (k || space) e.preventDefault();
-    if (k) pressed.add(k);
+    if (k || space || ["g","q","e","1","2","3","4","5","6"].includes(e.key.toLowerCase())) e.preventDefault();
+    if (k && state === "running") pressed.add(k);
     if (e.repeat) return;
     if (e.key.toLowerCase() === "p" || e.key === "Escape") {
       if (state === "running" || state === "paused") pause();
     } else if (space) {
       if (state === "running") shove();
       else if (state === "menu" || state === "over" || state === "paused") start();
+    } else if (state === "running" && e.key.toLowerCase() === "g") {
+      throwGrenade();
+    } else if (state === "running" && (e.key.toLowerCase() === "q" || e.key.toLowerCase() === "e")) {
+      cycleWeapon(e.key.toLowerCase()==="e"?1:-1);
+    } else if (state === "running" && /^[1-6]$/.test(e.key)) {
+      selectWeapon(WEAPON_ORDER[Number(e.key)-1]);
     } else if (e.key.toLowerCase() === "r" && state === "over") {
       start();
     } else if (e.key === "Enter" && state !== "running") {
@@ -754,10 +1012,31 @@
     button.addEventListener("pointercancel", release);
     button.addEventListener("lostpointercapture", release);
   });
-  document.getElementById("touch-shove").addEventListener("pointerdown", e => {
+  const attackTouch = document.getElementById("touch-shove");
+  attackTouch.addEventListener("pointerdown",e=>{
     e.preventDefault();
+    if(state!=="running")return;
+    attackTouch.setPointerCapture?.(e.pointerId);
+    pressed.add("attack");
     shove();
   });
+  const releaseAttack=()=>pressed.delete("attack");
+  attackTouch.addEventListener("pointerup",releaseAttack);
+  attackTouch.addEventListener("pointercancel",releaseAttack);
+  attackTouch.addEventListener("lostpointercapture",releaseAttack);
+  const grenadeTouch=document.getElementById("touch-grenade");
+  if(grenadeTouch)grenadeTouch.addEventListener("pointerdown",e=>{e.preventDefault();throwGrenade();});
+  const swapTouch=document.getElementById("touch-swap");
+  if(swapTouch)swapTouch.addEventListener("pointerdown",e=>{e.preventDefault();cycleWeapon(1);});
+  canvas.addEventListener("pointerdown",e=>{
+    if(state!=="running"||e.pointerType==="touch")return;
+    if(e.button!==0)return;
+    pressed.add("attack");shove();
+  });
+  const releasePointer=()=>pressed.delete("attack");
+  canvas.addEventListener("pointerup",releasePointer);
+  canvas.addEventListener("pointercancel",releasePointer);
+  canvas.addEventListener("pointerleave",releasePointer);
   playButton.addEventListener("click", start);
   pauseButton.addEventListener("click", pause);
   fullButton.addEventListener("click", () => {
