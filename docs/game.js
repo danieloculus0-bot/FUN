@@ -2210,16 +2210,43 @@
   if(grenadeTouch)grenadeTouch.addEventListener("pointerdown",e=>{e.preventDefault();throwGrenade();});
   const swapTouch=document.getElementById("touch-swap");
   if(swapTouch)swapTouch.addEventListener("pointerdown",e=>{e.preventDefault();cycleWeapon(1);});
-  canvas.addEventListener("pointermove",e=>{
-    if(e.pointerType==="touch")return;
-    const rect=canvas.getBoundingClientRect();
-    if(!rect.width||!rect.height)return;
-    pointerAim.x=clamp((e.clientX-rect.left)*W/rect.width,0,W);
-    pointerAim.y=clamp((e.clientY-rect.top)*H/rect.height,0,H);
+  // SNES controller: shoulders, SELECT and START. The desktop keys remain unchanged.
+  const prevTouch=document.getElementById("touch-prev");
+  const nextTouch=document.getElementById("touch-next");
+  const selectTouch=document.getElementById("touch-select");
+  const startTouch=document.getElementById("touch-start");
+  for(const [button,action] of [
+    [prevTouch,()=>cycleWeapon(-1)],
+    [nextTouch,()=>cycleWeapon(1)],
+    [selectTouch,()=>cycleWeapon(-1)],
+    [startTouch,()=>state==="running"?pause():start()]
+  ]){
+    if(!button)continue;
+    button.addEventListener("pointerdown",e=>{
+      e.preventDefault();
+      action();
+    });
+  }
+  const aimAtPointer=e=>{
+    const box=canvas.getBoundingClientRect();
+    if(!box.width||!box.height)return;
+    pointerAim.x=clamp((e.clientX-box.left)*W/box.width,0,W);
+    pointerAim.y=clamp((e.clientY-box.top)*H/box.height,0,H);
     pointerAim.active=true;
+  };
+  canvas.addEventListener("pointermove",e=>{
+    if(e.pointerType==="touch"&&state!=="running")return;
+    aimAtPointer(e);
   });
   canvas.addEventListener("pointerdown",e=>{
-    if(state!=="running"||e.pointerType==="touch")return;
+    if(state!=="running")return;
+    if(e.pointerType==="touch"){
+      e.preventDefault();
+      // Drag on the ice with one thumb to aim while the other holds B.
+      canvas.setPointerCapture?.(e.pointerId);
+      aimAtPointer(e);
+      return;
+    }
     if(e.button!==0)return;
     pressed.add("attack");shove();
   });
@@ -2234,6 +2261,14 @@
     else gameFrame.requestFullscreen?.();
   });
   gameFrame.addEventListener("contextmenu", e => e.preventDefault());
+  // Prevent browser swipe-to-scroll/pinch gesture inside the handheld cabinet.
+  // This does not alter normal desktop browsing.
+  gameFrame.addEventListener("touchmove",e=>{
+    if(e.cancelable)e.preventDefault();
+  },{passive:false});
+  gameFrame.addEventListener("gesturestart",e=>{
+    if(e.cancelable)e.preventDefault();
+  },{passive:false});
   game = newGame();
   requestAnimationFrame(frame);
 })();
