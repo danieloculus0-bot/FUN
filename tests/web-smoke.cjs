@@ -112,9 +112,10 @@ for (let i = 0; i < 9; i++) {
 }
 assert.equal(bird.hp, firstHit, "A shove must not damage the same bird twice");
 assert.equal(bird.lastSwing, id);
-g.downBird(bird, "ice");
-assert.equal(g.game.score, 1, "Ice falls count toward penguin kills");
-assert.equal(g.game.falls, 1);
+const beforeFalling=g.game.score,beforeFallCount=g.game.falls;
+g.downBird(bird,"ice");
+assert.equal(g.game.score,beforeFalling+1,"Ice falls count toward penguin kills");
+assert.equal(g.game.falls,beforeFallCount+1);
 g.pause();
 assert.equal(g.state, "paused");
 assert.equal(nodes.overlay.hidden, false);
@@ -169,6 +170,28 @@ g.downBird(icedBird,"ice");
 assert.equal(g.game.score,beforeIce+1,"Penguin deaths in cracks count");
 assert.equal(g.game.points,beforePoints+100,"Crack kills earn points");
 
+// v2.5: fuel fire is on solid ice, temporarily warms, then expires.
+const flamePickup={kind:"flame",x:armed.x,y:armed.y,life:1000,spin:0};
+g.game.drops.push(flamePickup);
+g.tick();
+assert.equal(armed.owned.flame,true,"Flamethrower can be picked up");
+assert.equal(armed.weapon,"ion","Daytime flamethrower pickup does not override manual selection");
+assert.equal(g.selectWeapon("flame"),true);
+armed.x=140;armed.y=570;armed.vx=armed.vy=0;armed.fx=1;armed.fy=0;
+armed.shoveCD=0;
+const previousFuel=armed.ammo.flame;
+g.shove();
+assert.equal(armed.ammo.flame,previousFuel-1,"Flamethrower burns fuel");
+const fuelFire=g.game.fires.find(f=>f.kind==="fuel");
+assert.ok(fuelFire&&fuelFire.life>0,"Flamethrower leaves a temporary fuel fire");
+armed.x=fuelFire.x;armed.y=fuelFire.y;armed.vx=armed.vy=0;armed.temp=55;
+g.tick();
+assert.ok(armed.temp>55,"Fuel fire warms the player");
+fuelFire.life=1;g.tick();
+assert.equal(g.game.fires.includes(fuelFire),false,"Temporary fuel fires extinguish");
+g.selectWeapon("uzi");
+armed.x=275;armed.y=230;armed.vx=armed.vy=0;armed.temp=100;
+
 // v2.1: actual wave progression, boss spawning, boss health and loot.
 while(g.game.score < 10) {
   const live = g.game.birds.find(b => !b.down);
@@ -187,29 +210,44 @@ assert.ok(g.game.goreBursts>=1,"Penguin kills produce gore");
 assert.ok(g.game.gibs.length>=26,"Killing an Emperor produces a cartoon gore explosion");
 assert.ok(g.game.stains.length>=22,"Big penguins stain the ice with blood");
 
-// Night lasts for wave 3, day returns for wave 4, and night recurs at wave 6.
-assert.equal(g.game.night,false,"Wave two is daytime");
+// Every third wave queues a hybrid polar night: 15 sec dusk, 59 sec dark,
+// 15 sec dawn, with several minutes of forced daylight before the next night.
+assert.equal(g.game.phase,"day");
 g.game.score=g.game.nextWaveAt;
 g.tick();
-assert.equal(g.game.wave,3,"Third wave begins at its kill threshold");
-assert.equal(g.game.night,true,"Every third wave is a night level");
+assert.equal(g.game.wave,3,"Third wave queues polar night");
+assert.ok(g.game.nightQueue>=1);
+assert.equal(g.game.night,false,"Milestone does not abruptly cut to black");
+g.tick();
+assert.equal(g.game.phase,"dusk","Night event begins with gradual dusk");
+g.game.phaseTicks=899;g.tick();
+assert.equal(g.game.phase,"night","Dusk lasts 15 seconds");
+assert.equal(g.game.night,true);
+assert.equal(armed.weapon,"flame","Night automatically equips flamethrower");
+assert.ok(armed.ammo.flame>=100,"Night guarantees fuel");
 const nightBefore=nightLightRenders;
 const nightFrame=frames.shift();
-assert.equal(typeof nightFrame,"function","Animation continues during night");
+assert.equal(typeof nightFrame,"function");
 nightFrame(900);
-assert.ok(nightLightRenders>nightBefore,"Night draws gradient spotlights");
-g.game.score=g.game.nextWaveAt;
-g.tick();
-assert.equal(g.game.wave,4);
-assert.equal(g.game.night,false,"Daybreak returns on wave four");
-g.game.score=g.game.nextWaveAt;
-g.tick();
-assert.equal(g.game.wave,5);
-assert.equal(g.game.night,false,"Wave five remains daylight");
-g.game.score=g.game.nextWaveAt;
-g.tick();
+assert.ok(nightLightRenders>nightBefore,"Night draws localized illumination");
+g.game.phaseTicks=3539;g.tick();
+assert.equal(g.game.phase,"dawn","Full darkness lasts precisely 59 seconds");
+assert.ok(g.game.darkness>.85,"Dawn begins dark and fades");
+g.game.phaseTicks=899;g.tick();
+assert.equal(g.game.phase,"day","Dawn fades back to daylight over 15 seconds");
+assert.equal(g.game.darkness,0);
+assert.equal(armed.weapon,"uzi","Daylight automatically equips the Uzi");
+const minimumDay=g.game.nextNightAllowed;
+assert.ok(minimumDay-g.game.clock>=10800,"At least 3 minutes of daylight before another night");
+g.game.score=g.game.nextWaveAt;g.tick();assert.equal(g.game.wave,4);
+g.game.score=g.game.nextWaveAt;g.tick();assert.equal(g.game.wave,5);
+g.game.score=g.game.nextWaveAt;g.tick();
 assert.equal(g.game.wave,6);
-assert.equal(g.game.night,true,"Wave six is night, even with a boss");
+assert.ok(g.game.nightQueue>0,"Wave six queues the next night");
+assert.equal(g.game.phase,"day","Second night cannot interrupt minimum daylight");
+g.game.clock=g.game.nextNightAllowed;
+g.tick();
+assert.equal(g.game.phase,"dusk","Queued wave-six darkness starts once daytime expires");
 
 // Peaceful Yeti is warm, non-colliding, and dangerous only when attacked.
 g.game.clock=949;
