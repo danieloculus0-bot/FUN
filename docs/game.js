@@ -149,7 +149,7 @@
       fires:CAMP_SITES.map((site,i)=>({x:site.x,y:site.y,phase:i*1.87,life:Infinity,kind:"campfire"})),
       particles: [], stains: [], gibs:[], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
       seal:{x:350,y:270,phase:0,vx:.7,vy:.25,hurtCooldown:0,scared:0,lastSwing:-1},
-      sealWarnings:0, yetiEats:0, goreBursts:0,
+      sealWarnings:0, yetiEats:0, goreBursts:0, guardianNotice:0,
       wave:1, waveBanner:0, bossWave:0, nextWaveAt:10,
       night:false,nightNotice:0,
       points:0, ionCracks:[], ionShots:0, yeti:null, yetiNext:190, yetiVisits:0,yetiBanner:0,
@@ -492,6 +492,7 @@
       yeti.life=Math.max(yeti.life,500);
     }
     game.yetiBanner=150;
+    game.guardianNotice=175;
     say("YOU CLUBBED A BABY SEAL! YETI WARNING SHOT: HALF YOUR HEALTH. LEAVE THE PUP ALONE.",250);
     playSfx("boss");
     return true;
@@ -1066,6 +1067,7 @@
     if(game.waveBanner>0)game.waveBanner--;
     if(game.nightNotice>0)game.nightNotice--;
     if(game.yetiBanner>0)game.yetiBanner--;
+    if(game.guardianNotice>0)game.guardianNotice--;
     if(game.clock%650===0){const p=game.player;game.drops.push(makeDrop(["ammo","medkit","coffee","grenade","parka"][Math.floor(rand(0,5))],clamp(p.x+rand(-300,300),35,WORLD_W-35),clamp(p.y+rand(-280,280),35,WORLD_H-35)));}
     if(game.shake>0)game.shake=Math.max(0,game.shake-.65);
     for (const particle of game.particles) {
@@ -1217,9 +1219,9 @@
       circle(bomb.x-2,bomb.y-3,3,C.yellow);
     }
     for(const blast of game.explosions){
-      circle(blast.x,blast.y,blast.r,blast.blood?"#bb123b38":blast.ion?"#7bffff48":"#ef7b2633");
+      circle(blast.x,blast.y,blast.r,blast.warning?"#fbd3793d":blast.blood?"#bb123b38":blast.ion?"#7bffff48":"#ef7b2633");
       ctx.beginPath();ctx.arc(blast.x,blast.y,blast.r,0,Math.PI*2);
-      ctx.strokeStyle=blast.blood?"#ed254e":blast.ion?"#6ff9ff":"#ffcb59";ctx.lineWidth=blast.blood?10:7;ctx.stroke();
+      ctx.strokeStyle=blast.warning?"#ffed92":blast.blood?"#ed254e":blast.ion?"#6ff9ff":"#ffcb59";ctx.lineWidth=blast.blood?10:7;ctx.stroke();
     }
     for(const gib of game.gibs){
       ctx.save();ctx.translate(gib.x,gib.y);ctx.rotate(gib.angle);
@@ -1535,7 +1537,8 @@
     }
     drawObjectiveCompass();
     // Notifications, boss warnings and wave announcements all share the bottom band.
-    const notice=game.nightNotice>0?(game.night?
+    const notice=game.guardianNotice>0?"YETI PROTECTS BABY SEAL · WARNING SLAP: -50% HP":
+      game.nightNotice>0?(game.night?
       "NIGHTFALL · WAVE "+game.wave+" · FOLLOW THE FIRES":"DAYBREAK · WAVE "+game.wave):
       game.yetiBanner>0?"FRIENDLY YETI SPOTTED · HE'S A WALKING HEATER":
       game.waveBanner>0?"WAVE "+game.wave+" · "+
@@ -1543,7 +1546,7 @@
       game.messageTimer>0?game.message:"";
     if(notice){
       text(notice,W/2,H-27,notice.length>80?12:15,
-        game.yetiBanner>0?C.yellow:C.white,"center");
+        game.guardianNotice>0?C.red:game.yetiBanner>0?C.yellow:C.white,"center");
     }
   }
   function drawBlizzard() {
