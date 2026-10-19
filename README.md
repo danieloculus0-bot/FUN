@@ -2,7 +2,7 @@
 
 Weird experiments, tiny games, and dramatically overengineered answers to ridiculous questions.
 
-## Emperor Gauntlet: ICE FRACTURE (v2.2.1)
+## Emperor Gauntlet: POLAR NIGHT (v2.3)
 
 > One deranged explorer. An army of penguins. Antarctica does most of the killing.
 
@@ -12,7 +12,7 @@ A ridiculous, free, browser-based Antarctic arcade game, based on a hypothetical
 
 ### Play it
 
-- **Online (once Pages is enabled):** [Emperor Gauntlet](https://danieloculus0-bot.github.io/FUN/)
+- **Online (GitHub Pages):** [Emperor Gauntlet](https://danieloculus0-bot.github.io/FUN/)
 - **Offline in a browser:** Download [`emperor-gauntlet/play.html`](emperor-gauntlet/play.html) as a file and open it. No install or internet needed.
 - **Original Python prototype:** [Pygame edition](emperor-gauntlet/emperor_gauntlet.py)
 
@@ -31,9 +31,10 @@ The browser game is the actively developed main edition in [`docs/`](docs/). The
 - **Navigation:** compass points toward loot or heat sources
 - **Fire:** animated permanent campfires, extra braziers during boss fights, and real body-temperature recovery
 - **Ion cannon:** absurdly powerful plasma blasts that open dangerous permanent ice holes and glowing cracks, potentially near the player
-- **Yeti:** an enormous white ape-like passerby that appears early near the player, provides warmth while friendly, and awards 1,000 bonus points if defeated after provocation
+- **Yeti:** a hunched, white-furred side-profile Bigfoot, scaled to boss-penguin height rather than towering over the arena; peaceful warmth source, or a difficult fight worth 1,000 points
 - **Uzi default:** collecting an Uzi equips it; subsequent pickups never force you off the weapon you chose
 - **HUD:** locked player camera and clear arena bounded by opaque top/bottom information bands
+- **Polar night:** wave 3, 6, 9, etc. runs under darkness; player, campfires, friendly Yeti, ion shots and explosions provide local illumination. Daybreak returns on the following wave
 - **Environment:** blizzards, pressure cracks, dangerous ice, fatigue, cold
 
 ### Controls
@@ -62,7 +63,7 @@ node --check docs/game.js
 node tests/web-smoke.cjs
 ```
 
-GitHub Actions runs the JavaScript checks. The website publishes directly from **`main` / `/docs`** using GitHub Pages' native branch publishing. One-time setup: **Settings > Pages > Source: Deploy from a branch > Branch: main > Folder: /docs > Save.** After activation, future pushes to `main/docs` will publish automatically. Live site not yet confirmed.
+GitHub Actions runs the JavaScript checks. The website publishes directly from **`main` / `/docs`** using GitHub Pages' native branch publishing. One-time setup: **Settings > Pages > Source: Deploy from a branch > Branch: main > Folder: /docs > Save.** After activation, future pushes to `main/docs` will publish automatically. GitHub Pages has previously published successfully; verify the latest deployment run for the newest build.
 
 This is a deliberately unpolished chaos build. Cross-browser controls, game balance, boss and wave difficulty, sprite polishing and deployment verification are next-pass work, suitable for Replit or independent review with Claude.
 
