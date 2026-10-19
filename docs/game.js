@@ -4,7 +4,19 @@
   // A native HTML5 Canvas port of Emperor Gauntlet.
   // The original Pygame version remains at emperor-gauntlet/emperor_gauntlet.py.
   const W = 1000, H = 640, FPS = 60, WORLD_W = 2450, WORLD_H = 1700;
-  const PR = 18, ER = 15, START_PENGUINS = 22, MAX_PENGUINS = 48;
+  const PR = 18, ER = 15, START_PENGUINS = 22, MAX_PENGUINS = 54;
+  const ARMORY = {
+    fists: {name:"FISTS",type:"melee",damage:30,reach:43,cooldown:28,stamina:12,color:"#fbb667"},
+    knife: {name:"KNIFE",type:"melee",damage:44,reach:48,cooldown:18,stamina:8,color:"#e5f3fa"},
+    nunchucks: {name:"NUNCHUCKS",type:"melee",damage:27,reach:60,cooldown:11,stamina:7,color:"#f8d578"},
+    staff: {name:"BO STAFF",type:"melee",damage:56,reach:86,cooldown:27,stamina:10,color:"#deb179"},
+    uzi: {name:"UZI",type:"gun",damage:26,cooldown:5,velocity:24,spread:.11,color:"#ffeb80"},
+    shotgun: {name:"SHOTGUN",type:"gun",damage:26,cooldown:39,velocity:20,spread:.37,pellets:7,color:"#ffc16d"}
+  };
+  const WEAPON_ORDER = Object.keys(ARMORY);
+  const DROP_COLORS = {uzi:"#f9cb5d",shotgun:"#f4a575",knife:"#dcebf5",
+    nunchucks:"#ffdf6e",staff:"#caa47b",parka:"#77e0f5",medkit:"#f76879",
+    grenade:"#f1af51",ammo:"#ffe48b",coffee:"#dbafff",cleats:"#afff7a"};
   const C = {
     snow: "#e8f4f7", ice: "#b0dce9", darkIce: "#123b51", blueIce: "#57a7c8",
     white: "#f3f8f9", black: "#0b1319", gray: "#4c6270", red: "#dd5c63",
@@ -44,16 +56,20 @@
       hp: rand(58, 76), fear: rand(.2, .7), aggression: rand(.05, .28),
       mass: rand(.9, 1.25), state: "wander", down: false, downTimer: 0,
       peckCD: Math.floor(rand(0, 80)), phase: rand(0, Math.PI * 2),
-      panic: 0, lastSwing: -1
+      panic: 0, lastSwing: -1, variant: Math.random()<.11?"bruiser":Math.random()<.2?"berserker":"emperor", flash:0
     };
   }
+  function makeDrop(kind,x,y) {return {kind,x,y,life:2500,spin:rand(0,6.28)};}
   function newGame() {
     nextId = 1;
     const g = {
       player: {
         x: 170, y: 200, vx: 0, vy: 0, fx: 1, fy: 0,
         temp: 100, hp: 100, stamina: 100, wet: 0, slip: 0,
-        shoveCD: 0, swing: 0, swingId: 0, provocation: 0
+        shoveCD: 0, swing: 0, swingId: 0, provocation: 0,
+        weapon:"fists",owned:{fists:true},ammo:{uzi:120,shotgun:20},
+        grenades:2,parka:0,cleats:false,rage:0,combo:0,comboTime:0,
+        swingReach:43,swingColor:"#fbb667",muzzle:0
       },
       birds: [], drifts: [
         { x: 360, y: 300, w: 270, h: 120 },
@@ -73,14 +89,19 @@
         { x: 1040, y: 470, r: 58 }, { x: 1540, y: 1120, r: 72 },
         { x: 2200, y: 350, r: 52 }, { x: 540, y: 910, r: 48 }
       ],
-      particles: [], stains: [], score: 0, falls: 0, clock: 0,
+      particles: [], stains: [], bullets: [], bombs: [], explosions: [], drops: [], floats: [], shake:0,
+      score: 0, falls: 0, clock: 0,
       windAngle: rand(0, Math.PI * 2), windStrength: rand(.3, 1),
-      blizzardTimer: 0, message: "NO WEAPONS. SHOVE, SURVIVE, QUESTION YOUR LIFE CHOICES.",
+      blizzardTimer: 0, message: "GET GEAR. FIND AN UZI. RAISE HELL.",
       messageTimer: 260, cause: ""
     };
     for (let i = 0; i < START_PENGUINS; i++) {
       g.birds.push(penguin(rand(500, WORLD_W - 200), rand(180, WORLD_H - 180)));
     }
+    g.drops.push(makeDrop("uzi",275,230),makeDrop("parka",350,285),
+      makeDrop("knife",440,290),makeDrop("medkit",560,350),makeDrop("grenade",675,410),
+      makeDrop("nunchucks",780,505),makeDrop("shotgun",1050,590),
+      makeDrop("staff",1260,440),makeDrop("cleats",1460,620),makeDrop("coffee",840,270));
     return g;
   }
 
@@ -158,25 +179,151 @@
     statusText.textContent = "GAME OVER · " + game.score + " DOWN · PERSONAL BEST " + best;
     pauseButton.textContent = "PAUSE  P";
   }
+  function selectWeapon(which){
+    const p=game.player;
+    if(state!=="running"||!p.owned[which])return false;
+    p.weapon=which;
+    say("EQUIPPED: "+ARMORY[which].name,110);
+    return true;
+  }
+  function cycleWeapon(direction){
+    const p=game.player,index=WEAPON_ORDER.indexOf(p.weapon);
+    for(let n=1;n<=WEAPON_ORDER.length;n++){
+      const k=WEAPON_ORDER[(index+n*direction+WEAPON_ORDER.length*10)%WEAPON_ORDER.length];
+      if(p.owned[k])return selectWeapon(k);
+    }
+    return false;
+  }
+  function floatText(x,y,label,color=C.yellow){
+    game.floats.push({x,y,label,color,life:75});
+    if(game.floats.length>70)game.floats.shift();
+  }
+  function smack(b,damage,pushX,pushY){
+    if(b.down)return;
+    b.hp-=damage;
+    b.vx+=pushX/Math.max(.6,b.mass);
+    b.vy+=pushY/Math.max(.6,b.mass);
+    b.panic=110;b.flash=7;
+    particles(b.x,b.y,C.red,18,5);
+    for(let i=0;i<4;i++)stain(b.x+rand(-20,20),b.y+rand(-20,20),rand(4,11));
+    floatText(b.x,b.y-30,Math.round(damage)+"");
+    game.shake=Math.min(12,game.shake+2);
+    if(b.hp<=0)downBird(b,"combat");
+  }
+  function fireWeapon(){
+    const p=game.player,w=ARMORY[p.weapon];
+    if(p.ammo[p.weapon]<=0){
+      p.shoveCD=18;say("CLICK. EMPTY. FIND AMMO OR SWITCH WEAPONS.",120);return;
+    }
+    p.ammo[p.weapon]--;p.shoveCD=w.cooldown;p.provocation+=.8;p.muzzle=5;
+    const angle=Math.atan2(p.fy,p.fx);
+    for(let i=0;i<(w.pellets||1);i++){
+      const theta=angle+rand(-w.spread,w.spread);
+      game.bullets.push({x:p.x+p.fx*25,y:p.y+p.fy*25,
+        vx:Math.cos(theta)*w.velocity,vy:Math.sin(theta)*w.velocity,
+        damage:w.damage*rand(.8,1.18),life:w.pellets?18:48,color:w.color});
+    }
+    particles(p.x+p.fx*35,p.y+p.fy*35,w.color,9,6);
+    if(w.pellets)game.shake+=5;
+  }
+  function throwGrenade(){
+    if(state!=="running"||game.player.grenades<1)return;
+    const p=game.player;p.grenades--;
+    game.bombs.push({x:p.x+p.fx*22,y:p.y+p.fy*22,
+      vx:p.fx*10+p.vx*.3,vy:p.fy*10+p.vy*.3,life:56});
+    say("GRENADE OUT! THIS IS FINE.",100);
+  }
+  function boom(x,y){
+    game.explosions.push({x,y,r:0,life:22});
+    particles(x,y,C.orange,75,10);particles(x,y,C.red,25,7);
+    for(const b of game.birds){
+      if(b.down)continue;
+      const distance=Math.hypot(b.x-x,b.y-y);
+      if(distance<150){
+        const n=norm(b.x-x,b.y-y);
+        smack(b,Math.max(20,180*(1-distance/170)),n.x*15,n.y*15);
+      }
+    }
+    const p=game.player,d=Math.hypot(p.x-x,p.y-y);
+    if(d<110)p.hp-=Math.max(4,25*(1-d/120));
+    game.shake=16;say("BOOM. ANTARCTICA FILES A FORMAL COMPLAINT.",155);
+  }
+  function moveProjectiles(){
+    for(const bullet of game.bullets){
+      const ox=bullet.x,oy=bullet.y;
+      bullet.x+=bullet.vx;bullet.y+=bullet.vy;bullet.life--;
+      if(bullet.x<0||bullet.y<0||bullet.x>WORLD_W||bullet.y>WORLD_H)bullet.life=0;
+      for(const b of game.birds){
+        if(b.down||bullet.life<=0)continue;
+        const dx=bullet.x-ox,dy=bullet.y-oy,den=dx*dx+dy*dy;
+        const t=clamp(den?((b.x-ox)*dx+(b.y-oy)*dy)/den:0,0,1);
+        if(Math.hypot(b.x-(ox+t*dx),b.y-(oy+t*dy))<(b.variant==="bruiser"?24:17)){
+          const n=norm(dx,dy);
+          smack(b,bullet.damage*(game.player.rage>0?1.5:1),n.x*5,n.y*5);
+          bullet.life=0;break;
+        }
+      }
+    }
+    game.bullets=game.bullets.filter(b=>b.life>0);
+    for(const bomb of game.bombs){
+      bomb.x+=bomb.vx;bomb.y+=bomb.vy;
+      bomb.vx*=.95;bomb.vy*=.95;bomb.life--;
+      if(bomb.life<=0)boom(bomb.x,bomb.y);
+    }
+    game.bombs=game.bombs.filter(b=>b.life>0);
+    for(const blast of game.explosions){blast.life--;blast.r=Math.min(135,blast.r+15);}
+    game.explosions=game.explosions.filter(b=>b.life>0);
+    for(const p of game.floats){p.y-=.65;p.life--;}
+    game.floats=game.floats.filter(p=>p.life>0);
+  }
+  function collectDrops(){
+    const p=game.player;
+    for(let i=game.drops.length-1;i>=0;i--){
+      const drop=game.drops[i];drop.life--;
+      if(drop.life<=0){game.drops.splice(i,1);continue;}
+      if(Math.hypot(p.x-drop.x,p.y-drop.y)>36)continue;
+      game.drops.splice(i,1);
+      const k=drop.kind;
+      if(ARMORY[k]){
+        p.owned[k]=true;
+        if(k==="uzi")p.ammo.uzi+=130;
+        if(k==="shotgun")p.ammo.shotgun+=18;
+        p.weapon=k;
+        say("NEW WEAPON: "+ARMORY[k].name+"! LET'S FUCKING GO.",190);
+      }else if(k==="parka"){p.parka=Math.min(3,p.parka+1);p.temp=clamp(p.temp+30,0,100);say("PARKA EQUIPPED. COLD RESISTANCE UP.",145);}
+      else if(k==="medkit"){p.hp=clamp(p.hp+50,0,100);say("FIRST AID KIT: +50 HEALTH.",120);}
+      else if(k==="cleats"){p.cleats=true;say("ICE CLEATS. TRACTION, YOU BEAUTIFUL BASTARD.",125);}
+      else if(k==="ammo"){p.ammo.uzi+=100;p.ammo.shotgun+=16;say("AMMO RESTOCKED.",110);}
+      else if(k==="grenade"){p.grenades+=3;say("THREE MORE GRENADES. NO ONE TELL THE PENGUINS.",150);}
+      else if(k==="coffee"){p.rage=900;p.stamina=100;p.temp=clamp(p.temp+16,0,100);say("CAFFEINATED RAGE: 15 SECONDS OF POOR JUDGMENT.",180);}
+      floatText(drop.x,drop.y-35,k.toUpperCase()+"!",DROP_COLORS[k]);
+      particles(drop.x,drop.y,DROP_COLORS[k],20,5);
+    }
+  }
   function shove() {
     if (state !== "running") return;
     const p = game.player;
-    if (p.shoveCD > 0 || p.stamina < 12) return;
-    p.shoveCD = 28;
-    p.stamina -= 12;
-    p.swing = 10;
-    p.swingId++;
-    p.provocation++;
-    particles(p.x + p.fx * 40, p.y + p.fy * 40, C.orange, 12, 3.2);
+    const w=ARMORY[p.weapon];
+    if(p.shoveCD>0)return;
+    if(w.type==="gun"){fireWeapon();return;}
+    if(p.stamina<w.stamina)return;
+    p.shoveCD=w.cooldown;p.stamina-=w.stamina;
+    p.swing=9;p.swingReach=w.reach;p.swingColor=w.color;
+    p.swingId++;p.provocation++;
+    particles(p.x+p.fx*w.reach,p.y+p.fy*w.reach,w.color,12,4);
   }
 
   function downBird(bird, reason) {
     if (bird.down) return;
     bird.down = true;
     bird.downTimer = 240;
-    if (reason === "shove") {
+    if (reason !== "ice") {
       game.score++;
       game.player.provocation += 2;
+      game.player.combo++;
+      game.player.comboTime=180;
+      if(game.player.combo%5===0)floatText(bird.x,bird.y-55,game.player.combo+"x COMBO!");
+      if(Math.random()<.19)game.drops.push(makeDrop(["ammo","medkit","grenade","coffee","parka"][Math.floor(rand(0,5))],bird.x,bird.y));
       particles(bird.x, bird.y, C.red, 25, 4);
       stain(bird.x, bird.y, rand(8, 16));
       say([
@@ -216,16 +363,20 @@
     const w = wind();
     p.vx += w.x * .012;
     p.vy += w.y * .012;
-    const friction = p.slip > 0 ? .973 : terrainSlow >= .8 ? .945 : .89;
+    const friction = p.slip > 0 && !p.cleats ? .973 : terrainSlow >= .8 ? .945 : .89;
     if (p.slip > 0) p.slip--;
     p.vx *= friction;
     p.vy *= friction;
     p.x = clamp(p.x + p.vx, PR, WORLD_W - PR);
     p.y = clamp(p.y + p.vy, PR, WORLD_H - PR);
     if (p.shoveCD > 0) p.shoveCD--;
+    if(p.muzzle>0)p.muzzle--;
+    if(p.rage>0)p.rage--;
+    if(p.comboTime>0)p.comboTime--;else p.combo=0;
     if (p.swing > 0) p.swing--;
     let loss = .018 + (game.blizzardTimer > 0 ? .04 : 0) - (sprint ? .008 : 0);
     if (p.wet > 0) { p.wet--; loss += .058; }
+    loss*=1-p.parka*.2;
     p.temp = clamp(p.temp - loss, 0, 100);
     if (p.temp <= 0) {
       finish("Froze after losing a very predictable thermodynamics argument");
@@ -370,20 +521,14 @@
         }
       }
       if (p.swing > 0 && b.lastSwing !== p.swingId) {
-        const rx = p.x + p.fx * 42 - b.x, ry = p.y + p.fy * 42 - b.y;
+        const rx = p.x + p.fx * p.swingReach - b.x, ry = p.y + p.fy * p.swingReach - b.y;
         const toward = norm(b.x - p.x, b.y - p.y);
         if (Math.hypot(rx, ry) < 43 && toward.x * p.fx + toward.y * p.fy > .15) {
           b.lastSwing = p.swingId; // Exactly one hit per penguin per shove.
           const push = norm(b.x - p.x, b.y - p.y);
-          const mag = rand(6.5, 10) / Math.max(.6, b.mass);
-          b.vx += push.x * mag; b.vy += push.y * mag;
-          b.hp -= rand(22, 38);
-          b.panic = 100;
-          particles(b.x, b.y, C.red, 10, 2.5);
-          stain(b.x, b.y, rand(6, 11));
-          p.vx -= p.fx * .7;
-          p.vy -= p.fy * .7;
-          if (b.hp <= 0) downBird(b, "shove");
+          const w=ARMORY[p.weapon];
+          smack(b,w.damage*rand(.8,1.2)*(p.rage>0?1.5:1),push.x*8,push.y*8);
+          p.vx-=p.fx*.5;p.vy-=p.fy*.5;
         }
       }
     }
@@ -427,8 +572,13 @@
     checkTerrain();
     if (state !== "running") return;
     updateBirds();
+    if(held("attack"))shove();
     collisions();
+    moveProjectiles();
+    collectDrops();
     maintainPopulation();
+    if(game.clock%650===0){const p=game.player;game.drops.push(makeDrop(["ammo","medkit","coffee","grenade","parka"][Math.floor(rand(0,5))],clamp(p.x+rand(-300,300),35,WORLD_W-35),clamp(p.y+rand(-280,280),35,WORLD_H-35)));}
+    if(game.shake>0)game.shake=Math.max(0,game.shake-.65);
     for (const particle of game.particles) {
       particle.x += particle.vx; particle.y += particle.vy;
       particle.vx *= .94; particle.vy *= .94; particle.life--;
