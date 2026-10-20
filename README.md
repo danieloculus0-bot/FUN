@@ -76,3 +76,9 @@ GitHub Actions runs the JavaScript checks. The website publishes directly from *
 This is a deliberately unpolished chaos build. Cross-browser controls, game balance, boss and wave difficulty, sprite polishing and deployment verification are next-pass work, suitable for Replit or independent review with Claude.
 
 **No real penguins were harmed.**
+
+## Repository audit note (2026-10-20)
+
+**Status: independently playable entertainment project.** The browser Emperor Gauntlet game, its mobile controls, offline copy and original Pygame prototype remain separate from the engineering/ERP products. The October 19 browser-test and GitHub Pages deployment workflows passed. A successful deploy is not comprehensive verification of browser/device control behavior; test mobile landscape/portrait interactions, touch priority and balance on actual devices. This repo is intentionally not an Axiom or BEAN production module.
+
+[Portfolio audit](https://github.com/danieloculus0-bot/Axiom_Beta/blob/main/docs/PORTFOLIO_AUDIT_2026-10-20.md).
