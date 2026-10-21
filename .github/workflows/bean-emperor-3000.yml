@@ -1,0 +1,102 @@
+name: BEAN Emperor 3000 ledger-learning gauntlet
+on:
+  push:
+    branches:
+      - experiment/bean-emperor-qledger-20261020
+    paths:
+      - emperor-gauntlet/bean-3000-*.cjs
+      - .github/workflows/bean-emperor-3000.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  training:
+    name: Q-learning batch \${{ matrix.shard }} of 6
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read previous durable BEAN Q policy and full history
+        uses: actions/download-artifact@v4
+        with:
+          repository: danieloculus0-bot/FUN
+          run-id: 39543978578
+          name: bean-emperor-continued-ledger-and-policy
+          path: previous
+          github-token: \${{ secrets.GITHUB_TOKEN }}
+      - name: Validate real physics, decision logic, and new runner
+        run: |
+          node --check emperor-gauntlet/bean-3000-worker.cjs
+          node --test tests/bean-q-learning.test.cjs tests/bean-game-adapter.test.cjs
+      - name: Train 500 original-game matches with real Q updates and receipt per move
+        env:
+          BEAN_SHARD: \${{ matrix.shard }}
+          BEAN_PARENT_DIR: previous
+        run: node emperor-gauntlet/bean-3000-worker.cjs
+      - name: Save all 500 traces and Q checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: bean-3k-shard-\${{ matrix.shard }}
+          path: shard-\${{ matrix.shard }}/
+          retention-days: 90
+          if-no-files-found: error
+  reconcile:
+    name: Reconcile complete ledger and independent holdouts
+    needs: training
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read exact parent policy and full prior ledger
+        uses: actions/download-artifact@v4
+        with:
+          repository: danieloculus0-bot/FUN
+          run-id: 39543978578
+          name: bean-emperor-continued-ledger-and-policy
+          path: previous
+          github-token: \${{ secrets.GITHUB_TOKEN }}
+      - name: Read original 24-kill champion policy
+        uses: actions/download-artifact@v4
+        with:
+          repository: danieloculus0-bot/FUN
+          run-id: 39543055899
+          name: bean-emperor-learning-benchmark
+          path: champion
+          github-token: \${{ secrets.GITHUB_TOKEN }}
+      - name: Download every Q-learning shard
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bean-3k-shard-*
+          path: training-shards
+          merge-multiple: false
+      - name: Verify each of 3000 ledger episodes, reconcile Q-values, compare frozen policies
+        env:
+          BEAN_SHARD_ROOT: training-shards
+          BEAN_PARENT_DIR: previous
+          BEAN_CHAMPION_DIR: champion
+        run: |
+          node --check emperor-gauntlet/bean-3000-aggregate.cjs
+          node emperor-gauntlet/bean-3000-aggregate.cjs
+      - name: Preserve immutable 3000-game full ledger and measured policies
+        uses: actions/upload-artifact@v4
+        with:
+          name: bean-emperor-3000-complete-evidence
+          path: |
+            bean-emperor-3000-summary.json
+            bean-emperor-3000-ledger.jsonl
+            bean-emperor-3000-full-history.jsonl
+            bean-emperor-3000-evaluation.jsonl
+            bean-emperor-3000-policy-*.json
+          retention-days: 90
+          if-no-files-found: error
