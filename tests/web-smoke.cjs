@@ -393,10 +393,12 @@ assert.equal(g.state, "over", "The player must be able to freeze");
 assert.match(g.game.cause, /froze/i);
 // The offline and GitHub Pages engines must remain byte-equivalent.
 const offlineHtml=fs.readFileSync(path.join(__dirname,"../emperor-gauntlet/play.html"),"utf8");
-const match=offlineHtml.match(/<script>([\\s\\S]*?)<\\/script>/);
-assert.ok(match,"Offline portable edition must have embedded engine");
+const embeddedStart=offlineHtml.indexOf("<script>");
+const embeddedEnd=offlineHtml.indexOf("</script>",embeddedStart);
+assert.ok(embeddedStart>=0 && embeddedEnd>embeddedStart,"Offline game script is embedded");
+const embeddedEngine=offlineHtml.slice(embeddedStart+"<script>".length,embeddedEnd);
 const liveGame=fs.readFileSync(path.join(__dirname,"../docs/game.js"),"utf8");
-assert.equal(match[1].trim(),liveGame.trim(),"Two gameplay surfaces must share one engine");
+assert.equal(embeddedEngine.trim(),liveGame.trim(),"Two gameplay surfaces must share one engine");
 
 // BEAN TD uses true in-game rewards, durable state, and negative feedback.
 assert.ok(g.beanTD.summary().transitions>=0,"BEAN state must be readable");
