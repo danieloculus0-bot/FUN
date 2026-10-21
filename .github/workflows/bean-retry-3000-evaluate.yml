@@ -12,7 +12,7 @@ permissions:
 jobs:
   evaluate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,6 +26,18 @@ jobs:
           name: bean-sight-3000-verified-ledger
           path: parent
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Require all six verified training archives before evaluation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 100); do
+            count=$(gh api "repos/danieloculus0-bot/FUN/actions/runs/39550124371/artifacts?per_page=100" --jq '[.artifacts[] | select(.name | startswith("bean-retry-shard-"))] | length' || echo 0)
+            echo "Verified Q3 checkpoint archives: $count / 6"
+            if [ "$count" = "6" ]; then exit 0; fi
+            sleep 30
+          done
+          echo "Training evidence incomplete; refusing to score partial results."
+          exit 1
       - name: Download six completed Q3 trial logs and checkpoints
         uses: actions/download-artifact@v4
         with:
