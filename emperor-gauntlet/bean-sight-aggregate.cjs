@@ -16,7 +16,7 @@ const baseHash=crypto.createHash("sha256").update(baseText).digest("hex");
 const savedKeys=new Set(prior.filter(x=>x.kind==="training").map(x=>x.seed));
 const shards=[],fresh=[],visits=new Map(),originalTrainingEpisodes=6350;
 for(let n=0;n<6;n++){
- const folder=path.join(root,"sight-shard-"+n);
+ const folder=path.join(root,"bean-sight-shard-"+n);
  const manifest=JSON.parse(read(folder,"manifest.json")),policy=JSON.parse(read(folder,"q2-policy.json"));
  const episodes=read(folder,"episodes.jsonl").trim().split("\n").map(JSON.parse);
  if(manifest.shard!==n||manifest.episodes!==500||manifest.parentPolicySha256!==baseHash||
