@@ -1,0 +1,26 @@
+name: BEAN Q3 deterministic unit and game tests
+on:
+  push:
+    branches:
+      - experiment/bean-inertia-friends-retry-20261021
+    paths:
+      - .github/workflows/bean-retry-tests.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate V1, V2 and experimental V3 integrity
+        run: |
+          node --check emperor-gauntlet/bean-retry-q.cjs
+          node --check emperor-gauntlet/bean-retry-engine.cjs
+          node --check emperor-gauntlet/bean-retry-train.cjs
+          node --check emperor-gauntlet/bean-retry-aggregate.cjs
+          node --test tests/bean-q-learning.test.cjs tests/bean-game-adapter.test.cjs tests/bean-sight.test.cjs tests/bean-sight-game.test.cjs tests/bean-retry.test.cjs
