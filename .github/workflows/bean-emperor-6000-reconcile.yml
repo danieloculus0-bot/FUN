@@ -1,0 +1,65 @@
+name: BEAN Emperor 6000 ledger reconciliation
+on:
+  push:
+    branches:
+      - experiment/bean-emperor-qledger-20261020
+    paths:
+      - .github/workflows/bean-emperor-6000-reconcile.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Restore complete pre-run merged BEAN Q-policy and decision ledger
+        uses: actions/download-artifact@v4
+        with:
+          repository: danieloculus0-bot/FUN
+          run-id: 39545071171
+          name: bean-emperor-3000-complete-evidence
+          path: previous
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Restore original champion policy
+        uses: actions/download-artifact@v4
+        with:
+          repository: danieloculus0-bot/FUN
+          run-id: 39543055899
+          name: bean-emperor-learning-benchmark
+          path: champion
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Reuse all completed 3000 training matches without rerunning
+        uses: actions/download-artifact@v4
+        with:
+          repository: danieloculus0-bot/FUN
+          run-id: 39545665843
+          pattern: bean-6k-shard-*
+          path: training-shards
+          merge-multiple: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify decision ledgers and benchmark new Q-policies on unseen matches
+        env:
+          BEAN_SHARD_ROOT: training-shards
+          BEAN_PARENT_DIR: previous
+          BEAN_CHAMPION_DIR: champion
+        run: |
+          node --check emperor-gauntlet/bean-6000-aggregate.cjs
+          node emperor-gauntlet/bean-6000-aggregate.cjs
+      - name: Save complete validated ledger and all learned policies
+        uses: actions/upload-artifact@v4
+        with:
+          name: bean-emperor-6000-full-evidence
+          path: |
+            bean-emperor-6000-summary.json
+            bean-emperor-6000-ledger.jsonl
+            bean-emperor-6000-full-history.jsonl
+            bean-emperor-6000-evaluation.jsonl
+            bean-emperor-6000-policy-*.json
+          retention-days: 90
+          if-no-files-found: error
