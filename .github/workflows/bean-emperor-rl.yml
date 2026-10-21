@@ -26,9 +26,15 @@ jobs:
         run: node --test tests/bean-game-adapter.test.cjs
 
       - name: Benchmark against the actual game physics
+        env:
+          BEAN_TRAIN: 150
+          BEAN_HOLDOUT: 24
         run: node emperor-gauntlet/bean-bench.cjs
       - name: Retain benchmark results
         uses: actions/upload-artifact@v4
         with:
           name: bean-emperor-learning-benchmark
-          path: bean-emperor-benchmark.json
+          path: |
+            bean-emperor-benchmark.json
+            bean-emperor-episode-ledger.jsonl
+            bean-emperor-trained-policy.json
