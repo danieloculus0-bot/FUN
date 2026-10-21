@@ -94,7 +94,8 @@ const candidateSnapshots={champion,incumbent:parent,merged:mergedSnapshot,replay
 const source=fs.readFileSync(path.join(__dirname,"play.html"),"utf8");
 const script=source.match(/<script>\s*(\(\(\) => \{[\s\S]*?\}\)\(\);)\s*<\/script>/)?.[1];
 if(!script)throw Error("No original game logic");
-const node=()=>({hidden:false,textContent:"",classList:{add(){},remove(){}},getContext(){return{};},focus(){},
+const node=()=>({hidden:false,textContent:"",classList:{add(){},remove(){}},
+ addEventListener(){},getContext(){return{};},focus(){},
  getBoundingClientRect(){return{left:0,top:0,width:1000,height:640}}});
 const nodes=Object.fromEntries(["game","overlay","overlay-kicker","overlay-title","overlay-copy","overlay-hint",
 "play-button","pause-button","fullscreen-button","game-status","game-frame","touch-shove","touch-grenade",
