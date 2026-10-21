@@ -2525,6 +2525,23 @@
           terrainRisk(p.x+dx*85,p.y+dy*85),
           terrainRisk(p.x+dx*135,p.y+dy*135)).toFixed(2);
       });
+      // Include existing velocity in 18-tick hazard predictions. The old
+      // directional rays ignored momentum and often steered too late.
+      const driftRays=bearings.map(([a,b])=>{
+        const n=Math.hypot(a,b),dx=a/n,dy=b/n;
+        // Approximate acceleration + friction at 6/12/18-tick horizons,
+        // while reusing the original game's terrain collision shapes.
+        let x=p.x,y=p.y,vx=p.vx,vy=p.vy,risk=0;
+        for(let t=1;t<=18;t++){
+          vx=(vx+dx*.43)*.945;vy=(vy+dy*.43)*.945;
+          x=clamp(x+vx,PR,WORLD_W-PR);y=clamp(y+vy,PR,WORLD_H-PR);
+          if(t===6||t===12||t===18)risk=Math.max(risk,terrainRisk(x,y));
+        }
+        return +risk.toFixed(2);
+      });
+      const stopRisk=terrainRisk(
+        clamp(p.x+p.vx*11,PR,WORLD_W-PR),
+        clamp(p.y+p.vy*11,PR,WORLD_H-PR));
       const friend=(entity)=>entity?{dx:entity.x-p.x,dy:entity.y-p.y,
         distance:Math.hypot(entity.x-p.x,entity.y-p.y)}:null;
       const seal=friend(game.seal);
@@ -2532,7 +2549,7 @@
       return {x:p.x,y:p.y,vx:p.vx,vy:p.vy,hp:p.hp,temp:p.temp,stamina:p.stamina,
         phase:game.phase,crowd,target,pickup,camp,weapon:p.weapon,
         owned:{...p.owned},ammo:{...p.ammo},grenades:p.grenades,
-        terrain:{here:terrainRisk(p.x,p.y),rays:terrainRays},
+        terrain:{here:terrainRisk(p.x,p.y),rays:terrainRays,driftRays,stopRisk},
         seal,yeti,sealWarnings:game.sealWarnings,
         kills:game.score,points:game.points,wave:game.wave,clock:game.clock,status:state,cause:game.cause||""};
     };
