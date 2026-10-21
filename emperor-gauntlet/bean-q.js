@@ -96,7 +96,15 @@
     const wave=Math.max(0,after.wave-before.wave);
     const lostHP=Math.max(0,before.hp-after.hp);
     const cold=Math.max(0,35-after.temp);
-    return Number((30*kills+3*wave-.5*lostHP-.02*cold-.08+(done?-35:0)).toFixed(3));
+    const earnedGear=["uzi","shotgun","ion","rocket","flame"]
+      .filter(k=>!before.owned?.[k]&&after.owned?.[k]).length;
+    const pickupProgress=before.pickup&&after.pickup&&before.pickup.kind===after.pickup.kind
+      ?clamp(before.pickup.distance-after.pickup.distance,-35,35)*.03:0;
+    const closingDistance=before.target&&after.target&&before.owned?.uzi
+      ?clamp(before.target.distance-after.target.distance,-30,30)*.01:0;
+    const warmUp=before.temp<45?Math.max(0,after.temp-before.temp)*.2:0;
+    return Number((30*kills+3*wave+10*earnedGear+pickupProgress+closingDistance+
+      warmUp-.5*lostHP-.02*cold-.08+(done?-35:0)).toFixed(3));
   }
   function policyCommand(o,action){
     const t=o.target||{dx:1,dy:0,distance:1e9};
