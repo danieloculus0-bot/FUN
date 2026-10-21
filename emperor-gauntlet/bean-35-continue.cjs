@@ -42,7 +42,7 @@ let checkpoint160=null,verifiedPrefix=false;
 const start=Date.now();
 let best=0,totalKills=0;
 for(let i=0;i<COUNT;i++){
- const ordinal=shard*COUNT+i;
+ const ordinal=shard*500+i;
  const seed=11000001+ordinal*53;
  q.rngState=((seed^0x4f2ba571)>>>0)||1;
  q.epsilon=Math.max(.025,.14*Math.exp(-(i+shard*75)/400));
