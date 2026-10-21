@@ -1,0 +1,26 @@
+name: BEAN Emperor Q-learning experimental checks
+on:
+  push:
+    branches:
+      - experiment/bean-emperor-qledger-20261020
+  pull_request:
+    paths:
+      - emperor-gauntlet/**
+      - tests/bean-*.cjs
+      - .github/workflows/bean-emperor-rl.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  q-policy-and-adapter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Q policy syntax
+        run: node --check emperor-gauntlet/bean-q.js
+      - name: Check trainer syntax
+        run: node --check emperor-gauntlet/bean-lab.js
+      - name: Test Q-value updates, ledger and holdout
+        run: node --test tests/bean-q-learning.test.cjs
+      - name: Test real-game adapter
+        run: node --test tests/bean-game-adapter.test.cjs
