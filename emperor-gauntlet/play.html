@@ -2481,9 +2481,59 @@
         const dist=Math.hypot(c.x-p.x,c.y-p.y);
         if(dist<nearCamp){nearCamp=dist;camp={dx:c.x-p.x,dy:c.y-p.y,distance:dist};}
       }
-      return {x:p.x,y:p.y,hp:p.hp,temp:p.temp,stamina:p.stamina,
+      // Opt-in BEAN perception uses EXACT collision geometry of the live game.
+      // No human gameplay mechanics or AI behaviour are changed here.
+      const terrainRisk=(x,y)=>{
+        x=clamp(x,PR,WORLD_W-PR);y=clamp(y,PR,WORLD_H-PR);
+        let risk=0;
+        const exposure=riverExposure(x,y);
+        if(exposure<.77)risk+=16;
+        else if(exposure<1.10)risk+=10;
+        else if(exposure<1.44)risk+=4;
+        else if(exposure<1.80)risk+=1;
+        for(const hole of game.holes){
+          const d=Math.hypot(x-hole.x,y-hole.y)/hole.r;
+          if(d<.96)risk+=17;
+          else if(d<1.20)risk+=9;
+          else if(d<1.48)risk+=3;
+        }
+        for(const crack of [...game.cracks,...game.ionCracks]){
+          const d=Math.hypot(Math.max(crack.x-x,0,x-crack.x-crack.w),
+            Math.max(crack.y-y,0,y-crack.y-crack.h));
+          if(d<12)risk+=4*crack.depth;
+          else if(d<35)risk+=1.5*crack.depth;
+        }
+        for(const predator of game.leopardSeals){
+          if(predator.dead)continue;
+          const d=Math.hypot(x-predator.x,y-predator.y);
+          if(d<165)risk+=6;
+          else if(d<235)risk+=2.5;
+        }
+        const yeti=game.yeti;
+        if(yeti?.alive&&yeti.rage>0){
+          const d=Math.hypot(x-yeti.x,y-yeti.y);
+          if(d<150)risk+=8;
+          else if(d<225)risk+=3;
+        }
+        return +risk.toFixed(2);
+      };
+      const bearings=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
+      const terrainRays=bearings.map(([a,b])=>{
+        const n=Math.hypot(a,b),dx=a/n,dy=b/n;
+        // Check both near and future travel. Never assume a river is a straight box.
+        return +Math.max(terrainRisk(p.x+dx*43,p.y+dy*43),
+          terrainRisk(p.x+dx*85,p.y+dy*85),
+          terrainRisk(p.x+dx*135,p.y+dy*135)).toFixed(2);
+      });
+      const friend=(entity)=>entity?{dx:entity.x-p.x,dy:entity.y-p.y,
+        distance:Math.hypot(entity.x-p.x,entity.y-p.y)}:null;
+      const seal=friend(game.seal);
+      const yeti=game.yeti?.alive?{...friend(game.yeti),angry:game.yeti.rage>0}:null;
+      return {x:p.x,y:p.y,vx:p.vx,vy:p.vy,hp:p.hp,temp:p.temp,stamina:p.stamina,
         phase:game.phase,crowd,target,pickup,camp,weapon:p.weapon,
         owned:{...p.owned},ammo:{...p.ammo},grenades:p.grenades,
+        terrain:{here:terrainRisk(p.x,p.y),rays:terrainRays},
+        seal,yeti,sealWarnings:game.sealWarnings,
         kills:game.score,points:game.points,wave:game.wave,clock:game.clock,status:state,cause:game.cause||""};
     };
     window.__EG_BEAN_GAME={
