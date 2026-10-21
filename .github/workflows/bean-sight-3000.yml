@@ -1,0 +1,94 @@
+name: BEAN see hazards and protect friends - 3000 games
+on:
+  push:
+    branches:
+      - experiment/bean-hazard-aware-3000-20261021
+    paths:
+      - .github/workflows/bean-sight-3000.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  training:
+    name: Sighted BEAN batch ${{ matrix.shard }} of 6
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate original physics and v2 perception, friend safety, Q-learning
+        run: |
+          node --check emperor-gauntlet/bean-sight.cjs
+          node --check emperor-gauntlet/bean-sight-headless.cjs
+          node --check emperor-gauntlet/bean-sight-train.cjs
+          node --test tests/bean-q-learning.test.cjs tests/bean-game-adapter.test.cjs tests/bean-sight.test.cjs tests/bean-sight-game.test.cjs
+      - name: Restore actual previous 6350-game learning checkpoint
+        uses: actions/download-artifact@v4
+        with:
+          repository: danieloculus0-bot/FUN
+          run-id: 39546036769
+          name: bean-emperor-6000-full-evidence
+          path: old-brain
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Play 500 additional games using spatial vision and friend-safe behavior
+        env:
+          BEAN_PARENT_DIR: old-brain
+          BEAN_SHARD: ${{ matrix.shard }}
+        run: node emperor-gauntlet/bean-sight-train.cjs
+      - name: Save all per-move Q2 decisions, rewards, and checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: bean-sight-shard-${{ matrix.shard }}
+          path: sight-shard-${{ matrix.shard }}/
+          retention-days: 90
+          if-no-files-found: error
+  evaluate:
+    name: Compare blind, assisted, and learned BEAN on 48 unseen games
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: training
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Restore original 6350 game ledger for continuity
+        uses: actions/download-artifact@v4
+        with:
+          repository: danieloculus0-bot/FUN
+          run-id: 39546036769
+          name: bean-emperor-6000-full-evidence
+          path: old-brain
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Collect all six new 500-game Q2 ledgers and policies
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bean-sight-shard-*
+          path: sight-shards
+          merge-multiple: false
+      - name: Verify all 3000 per-decision receipts and independent heldout performance
+        env:
+          BEAN_PARENT_DIR: old-brain
+          BEAN_SHARD_ROOT: sight-shards
+        run: |
+          node --check emperor-gauntlet/bean-sight-aggregate.cjs
+          node emperor-gauntlet/bean-sight-aggregate.cjs
+      - name: Archive retained cumulative history, v2 Q policy, all comparisons
+        uses: actions/upload-artifact@v4
+        with:
+          name: bean-sight-3000-verified-ledger
+          path: |
+            bean-sight-3000-summary.json
+            bean-sight-3000-policy-q2.json
+            bean-sight-3000-new-ledger.jsonl
+            bean-sight-3000-full-history.jsonl
+            bean-sight-3000-heldout-ledger.jsonl
+          retention-days: 90
+          if-no-files-found: error
