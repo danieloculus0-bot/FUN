@@ -97,6 +97,8 @@
   let state = "menu", game, nextId = 1, accumulator = 0, lastTime = 0;
   let best = 0;
   try { best = Number(localStorage.getItem("emperorGauntletBest") || 0) || 0; } catch (_) { /* private browsing */ }
+  const currentBestDisplay = document.getElementById("current-best");
+  if (currentBestDisplay) currentBestDisplay.textContent = String(best);
 
   const rand = (lo, hi) => lo + Math.random() * (hi - lo);
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -253,6 +255,7 @@
     if (game.score > best) {
       best = game.score;
       try { localStorage.setItem("emperorGauntletBest", String(best)); } catch (_) { /* optional */ }
+      if (currentBestDisplay) currentBestDisplay.textContent = String(best);
     }
   }
   function setOverlay(kicker, title, copy, action, hint = "") {
@@ -302,7 +305,7 @@
     setOverlay("EMPEROR GAUNTLET OVER",
       game.score + " PENGUINS DOWN.",
       cause + ". " + game.falls + " additional penguin ice falls. Your personal best: " + best +
-      ". The legendary target: 37.",
+      ".",
       "TRY AGAIN", "R / ENTER TO RESTART");
     statusText.textContent = "GAME OVER · " + game.score + " DOWN · PERSONAL BEST " + best;
     pauseButton.textContent = "PAUSE  P";
@@ -960,8 +963,6 @@
         "IMPACT CONFIRMED. BAD KARMA.",
         "THAT ONE IS NOT WADDLING FOR A MINUTE."
       ][Math.floor(rand(0, 4))]);
-      if (game.score === 37) say("37! YOU'VE TIED THE LEGENDARY RECORD. NOW DON'T FREEZE.", 280);
-      if (game.score === 38) say("38! THE LEGEND HAS BEEN TOPPLED. ANTARCTICA IS FURIOUS.", 310);
     } else {
       // Ice kills are now scored. The ion cannon turns the terrain into a weapon.
       game.falls++;
@@ -971,9 +972,7 @@
       game.player.comboTime=180;
       particles(bird.x,bird.y,C.blueIce,24,4);
       floatText(bird.x,bird.y-25,"CRACK KILL +100",C.cyan);
-      if(game.score===37)say("37! THE LEGENDARY RECORD IS YOURS.",240);
-      else if(game.score===38)say("38! YOU'VE SURPASSED THE LEGEND.",260);
-      else say("ICE CLAIMS ANOTHER TUXEDO. YOU GET THE CREDIT.",110);
+      say("ICE CLAIMS ANOTHER TUXEDO. YOU GET THE CREDIT.",110);
     }
   }
 
