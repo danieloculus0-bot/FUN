@@ -1,0 +1,56 @@
+name: BEAN sighted 3000 independent evaluation from saved ledgers
+on:
+  push:
+    branches:
+      - experiment/bean-hazard-aware-3000-20261021
+    paths:
+      - .github/workflows/bean-sight-evaluate-saved.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Restore complete 6350 prior-game source evidence
+        uses: actions/download-artifact@v4
+        with:
+          repository: danieloculus0-bot/FUN
+          run-id: 39546036769
+          name: bean-emperor-6000-full-evidence
+          path: old-brain
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Restore all SIX completed sighted Q2 training artifacts
+        uses: actions/download-artifact@v4
+        with:
+          repository: danieloculus0-bot/FUN
+          run-id: 39548597132
+          pattern: bean-sight-shard-*
+          path: sight-shards
+          merge-multiple: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify 3000 receipts, train policy merger and run paired 48-game unseen evaluation
+        env:
+          BEAN_PARENT_DIR: old-brain
+          BEAN_SHARD_ROOT: sight-shards
+        run: |
+          node --check emperor-gauntlet/bean-sight-aggregate.cjs
+          node emperor-gauntlet/bean-sight-aggregate.cjs
+      - name: Archive cumulative ledger, independent heldout results, learned Q2 state table
+        uses: actions/upload-artifact@v4
+        with:
+          name: bean-sight-3000-verified-ledger
+          path: |
+            bean-sight-3000-summary.json
+            bean-sight-3000-policy-q2.json
+            bean-sight-3000-new-ledger.jsonl
+            bean-sight-3000-full-history.jsonl
+            bean-sight-3000-heldout-ledger.jsonl
+          retention-days: 90
+          if-no-files-found: error
