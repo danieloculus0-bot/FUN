@@ -2303,7 +2303,10 @@
     } else {
       accumulator = 0;
     }
-    draw();
+    if(beanManual){
+      // Rendering must never consume the deterministic physics RNG during training.
+      const physicsSeed=beanSeed;draw();beanSeed=physicsSeed;
+    }else draw();
     requestAnimationFrame(frame);
   }
 
@@ -2499,7 +2502,7 @@
         if(c.dy<-.25)pressed.add("up");else if(c.dy>.25)pressed.add("down");
         if(c.sprint)pressed.add("sprint");
         if(c.fire)pressed.add("attack");
-        if(c.weapon)selectWeapon(c.weapon);
+        if(c.weapon&&game.player.weapon!==c.weapon)selectWeapon(c.weapon);
         pointerAim.active=true;pointerAim.touch=false;
         pointerAim.x=clamp((c.aimX??game.player.x)-game.player.x+W/2,0,W);
         pointerAim.y=clamp((c.aimY??game.player.y)-game.player.y+385,0,H);
