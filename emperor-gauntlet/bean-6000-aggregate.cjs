@@ -10,9 +10,9 @@ const hash=s=>crypto.createHash("sha256").update(s).digest("hex");
 const shardRoot=process.env.BEAN_SHARD_ROOT,parentDir=process.env.BEAN_PARENT_DIR,
  championDir=process.env.BEAN_CHAMPION_DIR;
 if(!shardRoot||!parentDir||!championDir)throw Error("All three source artifact directories required");
-const parentText=read(parentDir,"bean-emperor-6000-policy-merged.json");
+const parentText=read(parentDir,"bean-emperor-3000-policy-merged.json");
 const parent=JSON.parse(parentText),champion=JSON.parse(read(championDir,"bean-emperor-trained-policy.json"));
-const history=read(parentDir,"bean-emperor-6000-full-history.jsonl").trim().split("\n").map(JSON.parse);
+const history=read(parentDir,"bean-emperor-3000-full-history.jsonl").trim().split("\n").map(JSON.parse);
 if(parent.version!==1||parent.updates!==99348||champion.updates!==3994||
   history.filter(e=>e.kind==="training").length!==3350)throw Error("Parent/champion provenance mismatch");
 const parentHash=hash(parentText);
