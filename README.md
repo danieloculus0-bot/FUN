@@ -20,6 +20,12 @@ Independent free browser game and playground repository; the main active project
 
 [Play the hosted edition](https://danieloculus0-bot.github.io/FUN/) or open `emperor-gauntlet/play.html` offline in a browser. Development/test commands are retained in the [archived original README](docs/archive/README_2026-10-20_before_refresh.md).
 
+## Included in venvWin Portable's Puppy image
+
+**Emperor Gauntlet is the only bundled game chosen for venvWin Portable.** The portable OS [vendors the existing playable offline HTML file](https://github.com/danieloculus0-bot/venvWin/blob/main/src/venvwin/games/emperor-gauntlet/play.html), sourced from FUN at commit `49dfdb3127e6ba2fcacd610cfea211a61ee36e53`, with an offline desktop/Games-menu launcher. A real HTML5 Canvas/JavaScript browser is required, but **no Pygame, game service or internet**.
+
+This is an ISO build-recipe integration, **not** proof of a booted Puppy ISO or an in-guest gameplay test. The FUN repository stays an independent game project, not part of the Axiom ERP engine.
+
 ## Boundaries
 
 - Touch/landscape/D-pad controls need physical-device usability testing outside standard browser CI.
