@@ -4,6 +4,7 @@ on:
     branches:
       - experiment/bean-emperor-qledger-20261020
     paths:
+      - emperor-gauntlet/bean-35-continue.cjs
       - .github/workflows/bean-emperor-35-continue.yml
   workflow_dispatch:
 permissions:
