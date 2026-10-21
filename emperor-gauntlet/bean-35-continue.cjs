@@ -80,7 +80,7 @@ for(let i=0;i<COUNT;i++){
 const target=receipts.find(x=>x.seed===targetSeed);
 if(!target||!verifiedPrefix||checkpoint160.kills!==35)
  throw Error('35-kill reproduction failed');
-const report={
+const continuationReport={
  experiment:"continue EXACT archived 35-kill run beyond 160 decisions",
  original_run:39545665843,original_episode_seed:targetSeed,original_game_reproduced:true,
  original_160_decisions:checkpoint160,
@@ -90,6 +90,6 @@ const report={
  reached_37:target.kills>=37,surpassed_37:target.kills>=38,
  note:"All first 160 recorded actions, rewards, and states verified identical; continuation uses ongoing online Q-value updates."
 };
-fs.writeFileSync("bean-emperor-35-continued.json",JSON.stringify(report,null,2)+"\n");
+fs.writeFileSync("bean-emperor-35-continued.json",JSON.stringify(continuationReport,null,2)+"\n");
 console.log("BEAN VERIFIED EXACT 35 CONTINUATION");
-console.log(JSON.stringify(report,null,2));
+console.log(JSON.stringify(continuationReport,null,2));
