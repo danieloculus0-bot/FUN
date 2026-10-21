@@ -4,7 +4,7 @@
 
 An arcade survival game inspired by the question: **"How many penguins could you kill in hand-to-hand combat on their turf?"**
 
-**Creator's personal best: 37 penguins down before freezing to death.**
+**Best run:** The browser edition saves your personal high score on the current device.
 
 ## Browser edition (new)
 
