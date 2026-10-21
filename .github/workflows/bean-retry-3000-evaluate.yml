@@ -1,0 +1,56 @@
+name: BEAN Q3 verify saved 3000 games and compare policies
+on:
+  push:
+    branches:
+      - experiment/bean-inertia-friends-retry-20261021
+    paths:
+      - .github/workflows/bean-retry-3000-evaluate.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download previous 9350-game Q2 checkpoint and ledger
+        uses: actions/download-artifact@v4
+        with:
+          repository: danieloculus0-bot/FUN
+          run-id: 39549202298
+          name: bean-sight-3000-verified-ledger
+          path: parent
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download six completed Q3 trial logs and checkpoints
+        uses: actions/download-artifact@v4
+        with:
+          repository: danieloculus0-bot/FUN
+          run-id: 39550124371
+          pattern: bean-retry-shard-*
+          path: trial-shards
+          merge-multiple: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify complete ledger and score three policies with paired heldout tests
+        env:
+          BEAN_PARENT_DIR: parent
+          BEAN_SHARD_ROOT: trial-shards
+        run: |
+          node --check emperor-gauntlet/bean-retry-aggregate.cjs
+          node emperor-gauntlet/bean-retry-aggregate.cjs
+      - name: Preserve 12350-game full history and Q3 candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: bean-retry-3000-verified-evidence
+          path: |
+            bean-retry-3000-summary.json
+            bean-retry-3000-policy-q3.json
+            bean-retry-3000-new-ledger.jsonl
+            bean-retry-3000-full-history.jsonl
+            bean-retry-3000-holdout-ledger.jsonl
+          retention-days: 90
+          if-no-files-found: error
