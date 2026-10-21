@@ -163,6 +163,12 @@
   <script>
 (() => {
   "use strict";
+  let beanSeed=null;
+  function gameRandom(){
+    if(beanSeed===null)return Math.random();
+    let x=beanSeed>>>0||1;x^=x<<13;x^=x>>>17;x^=x<<5;
+    beanSeed=x>>>0;return beanSeed/4294967296;
+  }
 
   // A native HTML5 Canvas port of Emperor Gauntlet.
   // The original Pygame version remains at emperor-gauntlet/emperor_gauntlet.py.
@@ -261,7 +267,7 @@
   let best = 0;
   try { best = Number(localStorage.getItem("emperorGauntletBest") || 0) || 0; } catch (_) { /* private browsing */ }
 
-  const rand = (lo, hi) => lo + Math.random() * (hi - lo);
+  const rand = (lo, hi) => lo + gameRandom() * (hi - lo);
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const norm = (x, y) => {
     const len = Math.hypot(x, y);
@@ -324,7 +330,7 @@
   const held = name => pressed.has(name);
 
   function penguin(x, y) {
-    const variant=Math.random()<.11?"bruiser":Math.random()<.2?"berserker":"emperor";
+    const variant=gameRandom()<.11?"bruiser":gameRandom()<.2?"berserker":"emperor";
     return {
       id: nextId++, x, y, vx: rand(-1, 1), vy: rand(-1, 1),
       hp: rand(58, 76)*(variant==="bruiser"?1.9:variant==="berserker"?.8:1),
@@ -683,7 +689,7 @@
     }
     // Destructible ice creates persistent water openings.
     game.holes.push({x:cx,y:cy,r:rand(32,48),ion:true});
-    if(chaos&&Math.random()<.52){
+    if(chaos&&gameRandom()<.52){
       const p=game.player,theta=rand(0,Math.PI*2),range=rand(50,155);
       const px=clamp(p.x+Math.cos(theta)*range,20,WORLD_W-20);
       const py=clamp(p.y+Math.sin(theta)*range,20,WORLD_H-20);
@@ -809,7 +815,7 @@
   function spawnYeti(){
     const p=game.player;
     // Place the huge creature in the visible gameplay region, not off-camera.
-    const side=p.x<330?1:p.x>WORLD_W-330?-1:(Math.random()<.5?-1:1);
+    const side=p.x<330?1:p.x>WORLD_W-330?-1:(gameRandom()<.5?-1:1);
     let x=clamp(p.x+side*195,105,WORLD_W-105);
     let y=clamp(p.y+rand(-25,25),130,WORLD_H-100);
     for(let attempt=0;attempt<15;attempt++){
@@ -1115,7 +1121,7 @@
       game.player.combo++;
       game.player.comboTime=180;
       if(game.player.combo%5===0)floatText(bird.x,bird.y-55,game.player.combo+"x COMBO!");
-      if(Math.random()<.19)game.drops.push(makeDrop(["ammo","medkit","grenade","coffee","parka"][Math.floor(rand(0,5))],bird.x,bird.y));
+      if(gameRandom()<.19)game.drops.push(makeDrop(["ammo","medkit","grenade","coffee","parka"][Math.floor(rand(0,5))],bird.x,bird.y));
       // goreBurst already scattered the comic-book snow stains and fragments.
       if(bird.variant!=="boss")say([
         "PENGUIN DOWN. THE ROOKERY FILES A COMPLAINT.",
@@ -1244,13 +1250,13 @@
     for (const crack of [...game.cracks,...game.ionCracks]) {
       if (!within(p.x, p.y, crack)) continue;
       const speed = Math.hypot(p.vx, p.vy);
-      if (speed > (crack.ion?1.7:3.4) && Math.random() < (crack.ion?.11:.06) * crack.depth) {
+      if (speed > (crack.ion?1.7:3.4) && gameRandom() < (crack.ion?.11:.06) * crack.depth) {
         p.slip = 55;
         p.hp -= rand(3, 9);
         particles(p.x, p.y, C.white, 14, 2.4);
         say("YOU ATE SHIT ON A PRESSURE CRACK. THE ICE REMAINS UNDEFEATED.");
       }
-      if (speed > (crack.ion?3.6:5.8) && Math.random() < (crack.ion?.025:.012) * crack.depth) {
+      if (speed > (crack.ion?3.6:5.8) && gameRandom() < (crack.ion?.025:.012) * crack.depth) {
         finish("Vanished into a pressure crack like a cautionary pamphlet");
         return;
       }
@@ -1287,7 +1293,7 @@
       const mobChance = b.aggression + player.provocation * .018 + nearby * .018;
       if (b.variant==="boss"){
         b.state="mob";b.panic=Math.max(b.panic,40);
-      } else if (dist < 80 && nearby >= 4 && Math.random() < mobChance * .045) {
+      } else if (dist < 80 && nearby >= 4 && gameRandom() < mobChance * .045) {
         b.state = "mob";
         b.panic = Math.max(b.panic, 80);
       } else if (dist < 155 && b.state !== "mob") {
@@ -1297,7 +1303,7 @@
         b.state = "wander";
       } else if (game.blizzardTimer > 0 && nearby > 0 && dist >= 155) {
         b.state = "huddle";
-      } else if (Math.random() < .01) {
+      } else if (gameRandom() < .01) {
         b.state = "wander";
       }
       let ax = 0, ay = 0;
@@ -1341,7 +1347,7 @@
       }
       if (b.down) continue;
       for (const crack of [...game.cracks,...game.ionCracks]) {
-        if(within(b.x,b.y,crack)&&(crack.ion||b.panic>20)&&Math.random()<(crack.ion?.21:.045)*crack.depth) {
+        if(within(b.x,b.y,crack)&&(crack.ion||b.panic>20)&&gameRandom()<(crack.ion?.21:.045)*crack.depth) {
           downBird(b, "ice");
           break;
         }
@@ -1525,7 +1531,7 @@
     let living = 0;
     for (const b of game.birds) if (!b.down) living++;
     const target = Math.min(MAX_PENGUINS, START_PENGUINS + Math.floor(game.score / 2));
-    if (living < target && Math.random() < .02) {
+    if (living < target && gameRandom() < .02) {
       const side = Math.floor(rand(0, 4));
       let x, y;
       if (side === 0) { x = rand(80, WORLD_W - 80); y = 40; }
@@ -1539,7 +1545,7 @@
     if (state !== "running") return;
     game.clock++;
     updateSkyCycle();
-    if (Math.random() < .002 && game.blizzardTimer <= 0) {
+    if (gameRandom() < .002 && game.blizzardTimer <= 0) {
       game.blizzardTimer = Math.floor(rand(420, 900));
       game.windStrength = rand(1.2, 2.2);
       say("WHITEOUT ROLLING IN. YOUR EYEBROWS RECONSIDER THEIR LIFE CHOICES.", 230);
@@ -2286,7 +2292,7 @@
     if (!lastTime) lastTime = now;
     const elapsed = Math.min(now - lastTime, 100);
     lastTime = now;
-    if (state === "running") {
+    if (state === "running" && !beanManual) {
       accumulator += elapsed;
       let ticks = 0;
       while (accumulator >= 1000 / FPS && ticks < 6 && state === "running") {
@@ -2447,10 +2453,77 @@
   gameFrame.addEventListener("gesturestart",e=>{
     if(e.cancelable)e.preventDefault();
   },{passive:false});
+
+  // Deterministic, opt-in learning adapter. Human gameplay remains unchanged.
+  const beanManual=new URLSearchParams(location.search).get("bean")==="1";
+  if(beanManual){
+    const observation=()=>{
+      const p=game.player;
+      let target=null,nearest=Infinity,crowd=0;
+      for(const b of game.birds){
+        if(b.down)continue;
+        const dx=b.x-p.x,dy=b.y-p.y,d=Math.hypot(dx,dy);
+        if(d<nearest){nearest=d;target={dx,dy,distance:d};}
+        if(d<150)crowd++;
+      }
+      let pickup=null,nearDrop=Infinity;
+      for(const d of game.drops){
+        const dist=Math.hypot(d.x-p.x,d.y-p.y);
+        const useful=(ARMORY[d.kind]&&!p.owned[d.kind])||["medkit","parka","ammo","fuel","coffee"].includes(d.kind);
+        const weighted=dist*(useful?1:2.5);
+        if(weighted<nearDrop){nearDrop=weighted;pickup={dx:d.x-p.x,dy:d.y-p.y,distance:dist,kind:d.kind};}
+      }
+      let camp=null,nearCamp=Infinity;
+      for(const c of CAMP_SITES){
+        const dist=Math.hypot(c.x-p.x,c.y-p.y);
+        if(dist<nearCamp){nearCamp=dist;camp={dx:c.x-p.x,dy:c.y-p.y,distance:dist};}
+      }
+      return {x:p.x,y:p.y,hp:p.hp,temp:p.temp,stamina:p.stamina,
+        phase:game.phase,crowd,target,pickup,camp,weapon:p.weapon,
+        owned:{...p.owned},ammo:{...p.ammo},grenades:p.grenades,
+        kills:game.score,points:game.points,wave:game.wave,clock:game.clock,status:state,cause:game.cause||""};
+    };
+    window.__EG_BEAN_GAME={
+      version:1,
+      reset(seed){
+        if(!Number.isFinite(seed))throw Error("seed must be finite");
+        beanSeed=seed>>>0||1;game=newGame();state="running";
+        pressed.clear();pointerAim.active=false;overlay.hidden=true;lastTime=0;accumulator=0;
+        return observation();
+      },
+      observe:observation,
+      act(c){
+        if(state!=="running")return;
+        pressed.clear();
+        if(c.dx<-.25)pressed.add("left");else if(c.dx>.25)pressed.add("right");
+        if(c.dy<-.25)pressed.add("up");else if(c.dy>.25)pressed.add("down");
+        if(c.sprint)pressed.add("sprint");
+        if(c.fire)pressed.add("attack");
+        if(c.weapon)selectWeapon(c.weapon);
+        pointerAim.active=true;pointerAim.touch=false;
+        pointerAim.x=clamp((c.aimX??game.player.x)-game.player.x+W/2,0,W);
+        pointerAim.y=clamp((c.aimY??game.player.y)-game.player.y+385,0,H);
+        if(c.grenade)throwGrenade();
+      },
+      step(ticks=12){
+        if(!Number.isInteger(ticks)||ticks<1||ticks>120)throw Error("ticks out of range");
+        for(let k=0;k<ticks&&state==="running";k++)tick();
+        return observation();
+      },
+      draw
+    };
+  }
   game = newGame();
   requestAnimationFrame(frame);
 })();
 
+  </script>
+  <script>
+  if(new URLSearchParams(location.search).get("bean")==="1"){
+    const s=document.createElement("script");s.src="./bean-q.js";
+    s.onload=()=>{const l=document.createElement("script");l.src="./bean-lab.js";document.body.appendChild(l);};
+    document.body.appendChild(s);
+  }
   </script>
 </body>
 </html>
