@@ -106,6 +106,15 @@ for (let t = 1; t <= 50; t++) {
 }
 const player = g.game.player;
 const bird = g.game.birds[0];
+// Isolate the shove regression from random weather, prior cooldowns and
+// any stochastic bird state accumulated during the preceding frame test.
+player.shoveCD = 0;
+player.stamina = 100;
+player.fx = 1; player.fy = 0;
+player.weapon = "fists";
+bird.down = false;
+bird.downTimer = 0;
+bird.lastSwing = -1;
 g.game.birds = [bird];
 bird.x = player.x + 40;
 bird.y = player.y;
