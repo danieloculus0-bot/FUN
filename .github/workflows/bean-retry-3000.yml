@@ -1,0 +1,51 @@
+name: BEAN 3000 momentum and friends Q3
+on:
+  push:
+    branches:
+      - experiment/bean-inertia-friends-retry-20261021
+    paths:
+      - .github/workflows/bean-retry-3000.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  train:
+    name: Real Emperor Q3 / batch ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check BEAN Q3 and physics adapter
+        run: |
+          node --check emperor-gauntlet/bean-retry-q.cjs
+          node --check emperor-gauntlet/bean-retry-engine.cjs
+          node --check emperor-gauntlet/bean-retry-train.cjs
+          node --test tests/bean-q-learning.test.cjs tests/bean-game-adapter.test.cjs tests/bean-sight.test.cjs tests/bean-sight-game.test.cjs
+      - name: Download all previous 9350 games and their Q2 policy
+        uses: actions/download-artifact@v4
+        with:
+          repository: danieloculus0-bot/FUN
+          run-id: 39549202298
+          name: bean-sight-3000-verified-ledger
+          path: parent
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Train 500 additional game episodes with momentum-aware Q3
+        env:
+          BEAN_PARENT_DIR: parent
+          BEAN_SHARD: ${{ matrix.shard }}
+        run: node emperor-gauntlet/bean-retry-train.cjs
+      - name: Save complete ledger and learned Q3 checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: bean-retry-shard-${{ matrix.shard }}
+          path: retry-shard-${{ matrix.shard }}/
+          retention-days: 90
+          if-no-files-found: error
