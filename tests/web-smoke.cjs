@@ -11,7 +11,7 @@ assert.ok(source.includes(last), "Game entrypoint missing");
 // Test instrumentation is only applied in Node. The browser game is unchanged.
 source = source.replace(last,
   "  requestAnimationFrame(frame);\n" +
-  "  globalThis.__test = { get game() { return game; }, get state() { return state; }, start, pause, shove, tick, downBird, throwGrenade, selectWeapon, cycleWeapon, hurtYeti, warnSeal, yetiSnack, collisions, pressed, pointerAim };\n" +
+  "  globalThis.__test = { get game() { return game; }, get state() { return state; }, start, pause, shove, tick, downBird, throwGrenade, selectWeapon, cycleWeapon, hurtYeti, warnSeal, yetiSnack, collisions, pressed, pointerAim, beanTD };\n" +
   "})();"
 );
 const events = new Map();
@@ -391,4 +391,25 @@ g.game.player.temp=0.001;
 g.tick();
 assert.equal(g.state, "over", "The player must be able to freeze");
 assert.match(g.game.cause, /froze/i);
+// The offline and GitHub Pages engines must remain byte-equivalent.
+const offlineHtml=fs.readFileSync(path.join(__dirname,"../emperor-gauntlet/play.html"),"utf8");
+const match=offlineHtml.match(/<script>([\\s\\S]*?)<\\/script>/);
+assert.ok(match,"Offline portable edition must have embedded engine");
+const liveGame=fs.readFileSync(path.join(__dirname,"../docs/game.js"),"utf8");
+assert.equal(match[1].trim(),liveGame.trim(),"Two gameplay surfaces must share one engine");
+
+// BEAN TD uses true in-game rewards, durable state, and negative feedback.
+assert.ok(g.beanTD.summary().transitions>=0,"BEAN state must be readable");
+const oldQ=g.beanTD.value("test|isolated|night","flee");
+g.beanTD.learn("test|isolated|night","flee",5,"test|isolated|day",false);
+const goodQ=g.beanTD.value("test|isolated|night","flee");
+assert.ok(goodQ>oldQ,"Positive reward must increase tested action Q-value");
+g.beanTD.learn("test|isolated|night","flee",-15,null,true);
+assert.ok(g.beanTD.value("test|isolated|night","flee")<goodQ,
+  "Negative reward must decrease tested Q-value");
+g.beanTD.save();
+const beanSnapshot=JSON.parse(storage.get("emperorGauntletBeanTD.v1"));
+assert.equal(beanSnapshot.version,1,"Saved BEAN experimental policy is versioned");
+assert.ok(beanSnapshot.transitions>=2,"Learning transitions survive a save");
+assert.ok(beanSnapshot.recent.length<=240,"Active replay window remains compact");
 console.log("Emperor Gauntlet web smoke tests: PASS");
