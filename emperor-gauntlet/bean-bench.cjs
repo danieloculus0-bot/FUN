@@ -21,20 +21,25 @@ const env=createEnvironment();
 const STEPS=Number(process.env.BEAN_STEPS||160),TICKS=Number(process.env.BEAN_TICKS||18);
 const TRAIN=Number(process.env.BEAN_TRAIN||40),HELDOUT=Number(process.env.BEAN_HOLDOUT||12);
 const q=new Q.QLearner({epsilon:.30,alpha:.25,seed:819});
-const trainHistory=[];
+const trainHistory=[];const receipts=[];
 function run(seed,{learning=false,random=false}={}){
  const actor=random?new Q.QLearner({epsilon:1,seed:seed+877}):q;
- let o=env.reset(seed),total=0,steps=0;
+ let o=env.reset(seed),total=0,steps=0;const trace=new Q.Trace(seed);
  for(;steps<STEPS&&o.status==="running";steps++){
   const a=actor.select(o,{explore:random||learning});
   env.act(Q.policyCommand(o,a));
   const after=env.step(TICKS);
   const done=after.status!=="running"||steps===STEPS-1;
   const reward=Q.rewardFor(o,after,after.status!=="running");
+  trace.add(o,a,reward,after,done);
   if(learning)q.update(o,a,reward,after,done);
   total+=reward;o=after;
  }
- return {seed,kills:o.kills,wave:o.wave,steps,reason:o.cause,reward:+total.toFixed(2)};
+ const result={seed,kills:o.kills,wave:o.wave,steps,reason:o.cause,reward:+total.toFixed(2)};
+ receipts.push({kind:learning?"training":random?"random-control":"learned-holdout",...result,
+   gameVersion:env.version,sourceCommit:process.env.GITHUB_SHA||"local",
+   trace:trace.export()});
+ return result;
 }
 const t0=Date.now();
 for(let i=0;i<TRAIN;i++){
@@ -61,4 +66,6 @@ const result={game:"emperor-gauntlet",mode:"actual-HTML-physics",training_episod
 console.log("BEAN EMPEROR GAUNTLET VERIFIED BENCHMARK");
 console.log(JSON.stringify(result,null,2));
 fs.writeFileSync("bean-emperor-benchmark.json",JSON.stringify(result,null,2)+"\n");
+fs.writeFileSync("bean-emperor-episode-ledger.jsonl",receipts.map(x=>JSON.stringify(x)).join("\n")+"\n");
+fs.writeFileSync("bean-emperor-trained-policy.json",JSON.stringify(q.snapshot())+"\n");
 if(!Number.isFinite(result.heldout_trained_mean))process.exitCode=1;
