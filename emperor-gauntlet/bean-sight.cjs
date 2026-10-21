@@ -64,41 +64,58 @@ class SightLearner extends Old.QLearner{
 // Over-ride motion only when a predicted trajectory is dangerous, retaining the
 // agent's selected target, weapon and rewards for reproducible ablation tests.
 function steerAroundHazards(o,cmd){
- const norm=Math.hypot(cmd.dx,cmd.dy);
  const rays=o.terrain?.rays;
- if(!rays||rays.length!==8||(!norm&&(o.terrain?.here||0)<3))return {command:cmd,redirected:false};
- const dx=norm?cmd.dx/norm:0,dy=norm?cmd.dy/norm:0;
- const direction=directionIndex(dx,dy),current=rays[direction];
- if(current<=3.5&&(o.terrain?.here||0)<3.5)return {command:cmd,redirected:false};
+ if(!rays||rays.length!==8)return {command:cmd,redirected:false};
+ const movement=Math.hypot(cmd.dx,cmd.dy);
+ const dx=movement?cmd.dx/movement:0,dy=movement?cmd.dy/movement:0;
+ const predicted=o.terrain?.driftRays?.length===8?o.terrain.driftRays:rays;
+ const direction=movement?directionIndex(dx,dy):directionIndex(o.vx||0,o.vy||0);
+ const velocity=Math.hypot(o.vx||0,o.vy||0);
+ const ahead=Math.max(predicted[direction]||0,rays[direction]||0);
+ const momentumRisk=o.terrain?.stopRisk||0;
+ if(ahead<=2.5&&momentumRisk<=2.5&&(o.terrain?.here||0)<=3)
+  return {command:cmd,redirected:false};
  const options=DIRS.map(([x,y],i)=>{
-  const deviation=norm?1-(x*dx+y*dy):.9;
-  // Avoid lethal water/holes first; honor the requested action when safe.
-  return {i,x,y,score:rays[i]*3+deviation*4+(o.terrain?.here>6?0.1:0)};
+  const deviation=movement?1-(x*dx+y*dy):.8;
+  const velocityOpposition=velocity>1?((x*(o.vx||0)+y*(o.vy||0))/velocity):0;
+  const projected=Math.max(predicted[i]||0,rays[i]||0);
+  // Move against existing velocity when braking is needed. With no danger
+  // keep the requested policy action rather than silently overriding it.
+  const score=projected*3.5+deviation*3+
+     (momentumRisk>3?Math.max(0,velocityOpposition)*3:0);
+  return {i,x,y,score};
  });
  options.sort((a,b)=>a.score-b.score||a.i-b.i);
- const safe=options[0];
- if(norm&&safe.i===direction)return {command:cmd,redirected:false};
- return {command:{...cmd,dx:safe.x,dy:safe.y,sprint:false},
-   redirected:true,reason:"hazard-trajectory"};
+ const best=options[0];
+ const avoid=(ahead>2.5||momentumRisk>3||(o.terrain?.here||0)>3);
+ if(!avoid||movement&&best.i===direction)
+  return {command:cmd,redirected:false};
+ return {command:{...cmd,dx:best.x,dy:best.y,sprint:false},
+  redirected:true,reason:"momentum-and-hazard"};
 }
 function friendInFiringLane(o,cmd){
  const friends=[o.seal,o.yeti].filter(Boolean);
- if(!friends.length)return false;
+ if(!friends.length||(!cmd.fire&&!cmd.grenade))return false;
  const ax=(cmd.aimX??o.x+1)-o.x,ay=(cmd.aimY??o.y)-o.y,mag=Math.hypot(ax,ay)||1;
  const ux=ax/mag,uy=ay/mag;
- const explosive=cmd.grenade||["ion","rocket"].includes(cmd.weapon||o.weapon);
- const flame=(cmd.weapon||o.weapon)==="flame";
- const maxRange=flame?190:explosive?1200:(cmd.weapon||o.weapon)==="fists"?105:1100;
- const radius=explosive?250:flame?98:80;
+ const weapon=cmd.weapon||o.weapon;
+ const explosive=cmd.grenade||["ion","rocket"].includes(weapon);
+ const flame=weapon==="flame",melee=["fists","knife","staff","nunchucks"].includes(weapon);
+ const maxRange=melee?120:flame?210:1200;
  for(const f of friends){
+  const distance=f.distance??Math.hypot(f.dx,f.dy);
   const projection=f.dx*ux+f.dy*uy;
   const sideways=Math.abs(f.dx*uy-f.dy*ux);
-  if(projection>0&&projection<maxRange&&sideways<radius)return true;
-  // AOE near penguin target is also dangerous when friends are just beyond it.
-  if(explosive&&o.target&&Math.hypot(o.target.dx-f.dx,o.target.dy-f.dy)<245)return true;
+  // A nearby friend can move into the weapon over the next 18 physics ticks.
+  if(distance<105)return true;
+  if(explosive&&distance<390)return true;
+  if(projection>=-15&&projection<maxRange&&
+     sideways<(melee?105:flame?170:explosive?320:165))return true;
+  if(explosive&&o.target&&Math.hypot(o.target.dx-f.dx,o.target.dy-f.dy)<320)return true;
  }
  return false;
 }
+
 function commandFor(o,action,{spatial=true,friends=true}={}){
  const raw=Old.policyCommand(o,action);
  let result=spatial?steerAroundHazards(o,raw):{command:raw,redirected:false};
