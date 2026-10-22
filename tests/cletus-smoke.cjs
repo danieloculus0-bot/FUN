@@ -381,12 +381,12 @@ assert.equal(gunGame.goldTarget,target,'Golden gun should lock onto unobstructed
 gunGame.player.face=Math.PI;gunGame.player.cool=0;gunGame.pointerActive=true;
 gunGame.camera.x=0;gunGame.camera.y=0;gunGame.aim.x=0;gunGame.aim.y=375;
 polish.Fh(gunGame,new Set(['attack']),null,false);
-assert.ok(gunGame.shots.at(-1).vx>0,'Golden gun auto-targets even when desktop mouse aims elsewhere');
+assert.ok(gunGame.shots.filter(shot=>shot.owner==='player').at(-1).vx>0,'Golden gun auto-targets even when desktop mouse aims elsewhere');
 gunGame.pointerActive=false;gunGame.touchFire=true;gunGame.player.face=Math.PI;gunGame.player.cool=0;
 polish.Fh(gunGame,new Set(['attack']),null,false);
-assert.ok(gunGame.shots.at(-1).vx>0,'Golden gun auto-targets with mobile B fire too');
+assert.ok(gunGame.shots.filter(shot=>shot.owner==='player').at(-1).vx>0,'Golden gun auto-targets with mobile B fire too');
 gunGame.enemies=[];gunGame.player.face=Math.PI;gunGame.player.cool=0;
 polish.Wh(gunGame,null,false);
 assert.equal(gunGame.goldTarget,null,'No hostile means no phantom target lock');
-assert.ok(gunGame.shots.at(-1).vx<0,'Without a target, golden gun falls back to current facing');
+assert.ok(gunGame.shots.filter(shot=>shot.owner==='player').at(-1).vx<0,'Without a target, golden gun falls back to current facing');
 console.log('PASS pawn-shop room with explicit purchase/exit, 10 copper economy, one-time Golden Uzi, PC and mobile exclusive auto-aim.');
