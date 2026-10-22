@@ -766,7 +766,7 @@ function a2(i,o){const{camera:r,tick:f}=o;for(const M of o.pedestrians){if(M.kno
    Kl(ctx,"IN CAR  "+speed+" MPH  HP "+Math.ceil(car.hp),150,53,"#ffe2aa",9);
    S(ctx,149,59,173,5,"#38383d");
    S(ctx,149,59,173*Bu(car.hp/car.maxHp,0,1),5,car.hp<40?"#ec5360":"#72ce82");
-   Kl(ctx,i.mobileControls?"X EXIT   B GAS   A BRAKE":"E / X EXIT   UP GAS  A DASH",149,80,"#f4c77f",7);
+   Kl(ctx,world.mobileControls?"X EXIT   B GAS   A BRAKE":"E / X EXIT   UP GAS  A DASH",149,80,"#f4c77f",7);
  }else if(world.phase==="playing"&&nearestCar(world,54)&&world.tick%90<72){
    S(ctx,118,192,250,22,"#131322d9");
    Kl(ctx,"PRESS E / X TO ENTER CAR",134,207,"#ffe0a1",10);
