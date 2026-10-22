@@ -27,3 +27,5 @@ jobs:
         run: node --check docs/game.js
       - name: Test browser gameplay logic
         run: node tests/web-smoke.cjs
+      - name: Validate Cletus game and boss gang
+        run: node tests/cletus-smoke.cjs
