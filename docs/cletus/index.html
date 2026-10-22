@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#100b1b">
+<meta name="description" content="Cletus Saves Candy. A wild 16-bit urban rescue adventure. Fight through the streets, collect leads, defeat the gang and save Candy. Free browser game.">
+<link rel="canonical" href="https://danieloculus0-bot.github.io/FUN/cletus/">
+<meta property="og:type" content="website"><meta property="og:site_name" content="FUN">
+<meta property="og:title" content="CLETUS SAVES CANDY | 16-Bit Urban Mayhem">
+<meta property="og:description" content="They took Candy. Now it's personal. Explore a huge gritty pixel-art city, fight gangs, uncover clues and save Candy. Play the full browser game.">
+<meta property="og:url" content="https://danieloculus0-bot.github.io/FUN/cletus/">
+<meta property="og:image" content="https://danieloculus0-bot.github.io/FUN/Cletus%20Saves%20Candy_%20Neon%20City%20Rescue.png">
+<meta property="og:image:type" content="image/png"><meta property="og:image:alt" content="Cletus in a purple pimp hat, sunglasses and fur coat as thugs pull Candy into a van against a neon city skyline.">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="CLETUS SAVES CANDY">
+<meta name="twitter:description" content="They took Candy. Now it's personal. A playable 16-bit urban rescue game.">
+<meta name="twitter:image" content="https://danieloculus0-bot.github.io/FUN/Cletus%20Saves%20Candy_%20Neon%20City%20Rescue.png">
+<title>Cletus Saves Candy | FUN</title>
+<link rel="preload" as="image" href="../Cletus%20Saves%20Candy_%20Neon%20City%20Rescue.png">
+<link rel="stylesheet" href="style.css"><script defer src="game.js"></script>
+</head>
+<body>
+<div id="cabinet">
+<header class="top"><a href="../" class="mark">F<span>U</span>N</a><div class="headline"><b>CLETUS SAVES CANDY</b><small>16-BIT STREET RESCUE // BROWSER EDITION</small></div><div class="version">THE STREETS DON'T PLAY FAIR <span>●</span></div></header>
+<main class="machine" aria-label="Cletus Saves Candy game">
+  <div class="display" id="display"><canvas id="game" width="960" height="540" tabindex="0" aria-label="Top-down city adventure. Use WASD or arrow keys to move, mouse to aim, J or Space to attack, 1 to 4 to change weapons, E to use a XXX bottle."></canvas>
+    <div class="hud" id="hud" hidden><div class="life"><span>♥ CLETUS</span><div class="life-track"><i id="health-fill"></i></div><b id="health-label">100</b></div><div class="mission"><b id="mission-head">FIND CANDY</b><small id="mission-hint">The thugs left a trail.</small></div><div class="arsenal"><b id="gun-name">FISTS</b><small id="gun-ammo">∞</small></div></div>
+    <div class="notice" id="notice" aria-live="polite"></div>
+    <div class="bossbar" id="bossbar" hidden><b id="bossname">BIG TONY</b><div><i id="bossfill"></i></div></div>
+    <div class="minimap" id="mapWrap"><canvas id="mini" width="160" height="112" aria-label="City minimap"></canvas></div>
+    <div class="crosshair" id="crosshair"></div>
+    <div class="screen menu" id="menu">
+      <div class="art" role="img" aria-label="Cletus Saves Candy cover art"></div>
+      <div class="menubottom"><div><div class="menu-label">A FUN ORIGINAL // ONE HUGE CITY // ONE MISSION</div><p>They took Candy. Now it's personal.</p></div><button id="newgame" class="go" type="button">START THE HUNT <span>▶</span></button></div>
+    </div>
+    <div class="screen cutscene" id="cutscene" hidden><div class="cutscene-title">THAT NIGHT, ON DELANCEY STREET...</div><div class="van-scene"><span class="streetlight">✦</span><div class="candy-char">CANDY!</div><div class="van"><div class="windows"></div><div class="wheel l"></div><div class="wheel r"></div></div></div><div class="dialog"><b>CLETUS:</b> <span id="storyline">CANDY! GET AWAY FROM THAT VAN!</span><button id="skip" type="button">SKIP INTRO ↵</button></div></div>
+    <div class="screen end" id="ending" hidden><div class="end-content"><h2 id="end-title">CANDY IS SAFE!</h2><p id="end-copy">The streets are yours.</p><div id="end-stats"></div><button class="go" id="replay" type="button">PLAY AGAIN ▶</button></div></div>
+    <div class="screen pause" id="pause" hidden><div><h2>PAUSED</h2><p>Candy's still waiting.</p><button class="go" id="resume" type="button">BACK TO IT ▶</button></div></div>
+  </div>
+  <div class="lower"><div class="status"><span class="online">●</span> <span id="status">READY TO HIT THE STREETS</span></div><div class="tools"><button id="sound" type="button" aria-pressed="false">♪ SOUND OFF</button><button id="map-toggle" type="button">▦ MAP</button><button id="pause-btn" type="button">Ⅱ PAUSE</button><button id="full" type="button">⛶ FULLSCREEN</button></div></div>
+  <div class="touch" id="touch" aria-label="Mobile game controls"><div class="dpad"><button data-move="up" aria-label="Move up">▲</button><button data-move="left" aria-label="Move left">◀</button><button data-move="right" aria-label="Move right">▶</button><button data-move="down" aria-label="Move down">▼</button></div><div class="mobilemiddle"><button id="touch-weapon">WEAPON</button><button id="touch-use">XXX</button></div><div class="buttons"><button id="touch-fire" class="fire">FIRE</button><button id="touch-dash">DASH</button></div></div>
+</main>
+<footer class="info"><div><b>ON FOOT.</b> WASD / ARROWS <span>·</span> MOUSE AIM <span>·</span> SPACE OR J FIRE <span>·</span> SHIFT DASH <span>·</span> 1-4 WEAPONS <span>·</span> E DRINK XXX <span>·</span> M MAP <span>·</span> P PAUSE</div><div><a href="../">EMPEROR GAUNTLET</a> <span>·</span> <a href="https://github.com/danieloculus0-bot/FUN">SOURCE</a></div></footer>
+</div>
+</body></html>
