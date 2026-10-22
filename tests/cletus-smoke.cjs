@@ -366,7 +366,7 @@ assert.equal(shopGame.player.copper,0,'Purchased gun is never charged twice');
 const gunGame=polish.Y0(0);gunGame.phase='playing';
 gunGame.buildings=[];gunGame.props=[];gunGame.traffic=[];gunGame.enemies=[];
 gunGame.player.x=200;gunGame.player.y=300;
-const target={x:300,y:300,hp:65,max:65,radius:9,dead:false,type:'gang',hit:0};
+const target={x:300,y:300,hp:65,max:65,radius:9,dead:false,type:'gang',hit:0,speed:.72,damage:8,cooldown:0,drift:0};
 gunGame.enemies=[target];gunGame.player.weapon=2;gunGame.player.ammo[2]=50;
 gunGame.player.face=Math.PI;gunGame.player.cool=0;
 polish.Wh(gunGame,null,false);
