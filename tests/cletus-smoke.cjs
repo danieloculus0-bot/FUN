@@ -159,11 +159,14 @@ const deckStart=source.indexOf('className:"mobile-pad touch-controls"');
 const deckEnd=source.indexOf('className:"controls-row"',deckStart);
 assert.ok(deckStart>0&&deckEnd>deckStart,'Mobile controller React component missing');
 const deck=source.slice(deckStart,deckEnd);
-for(const id of ['control-up','control-down','control-left','control-right','button-interact','control-swap','control-prev-weapon','control-next-weapon','button-pause-touch','button-sound-mobile','button-fullscreen']){
+for(const id of ['control-up','control-down','control-left','control-right','button-interact','control-prev-weapon','control-next-weapon','button-pause-touch','button-sound-mobile','button-fullscreen']){
  assert.ok(deck.includes('"data-testid":"'+id+'"'),'Missing SNES control '+id);
 }
 assert.ok(deck.includes('"data-testid":r.driving?"control-gas":"control-attack"'),'B must alternate gas/fire');
 assert.ok(deck.includes('"data-testid":r.driving?"control-brake":"control-dash"'),'A must alternate brake/dash');
+assert.ok(deck.includes('"data-testid":r.driving?"control-reverse":"control-swap"'),'Y must alternate reverse/swap');
+assert.ok(deck.includes('onPointerDown:H("reverse")'),'Y reverse must support press and hold');
+assert.ok(deck.includes('onClick:()=>{if(!i.isDriving())'),'Y must never swap weapons while driving');
 assert.ok(deck.includes('className:"dpad-hub"'),'D-pad cross hub missing');
 assert.ok(deck.includes('className:"action-pad"'),'ABXY face cluster missing');
 assert.ok(deck.includes('H("interact")'),'Copper action must support press-and-hold on touch');
@@ -486,8 +489,11 @@ const mobileReverse=polish.Y0(0);mobileReverse.mobileControls=true;
 const reverseCar=mobileReverse.props.find(v=>v.type==='car'&&v.x===107&&v.y===320);
 mobileReverse.driving=reverseCar;
 reverseCar.speed=0;
-for(let j=0;j<7;j++){mobileReverse.tick++;polish.updateDriving(mobileReverse,new Set(['down']),null,false)}
-assert.ok(reverseCar.speed<0,'Mobile down arrow must reverse');
+for(let j=0;j<7;j++){mobileReverse.tick++;polish.updateDriving(mobileReverse,new Set(['reverse']),null,false)}
+assert.ok(reverseCar.speed<0,'Mobile Y must reverse');
+reverseCar.speed=0;
+for(let j=0;j<9;j++){mobileReverse.tick++;polish.updateDriving(mobileReverse,new Set(['down']),null,false)}
+assert.ok(reverseCar.speed===0,'Mobile D-pad down must never select reverse');
 const desktopRoad=polish.Y0(0);
 const desktopCar=desktopRoad.props.find(v=>v.type==='car'&&v.x===107&&v.y===320);
 desktopRoad.driving=desktopCar;
@@ -517,8 +523,10 @@ control('attack',true);
 assert.ok(pressed.has('gas')&&!pressed.has('attack'),'Touch B should hold GAS when inside car');
 control('dash',true);
 assert.ok(pressed.has('brake')&&!pressed.has('dash'),'Touch A should hold BRAKE when inside car');
-control('attack',false);control('dash',false);
-assert.ok(!pressed.has('gas')&&!pressed.has('brake'),'Releasing pedals must release their held state');
+control('reverse',true);
+assert.ok(pressed.has('reverse'),'Touch Y must hold the independent reverse control');
+control('attack',false);control('dash',false);control('reverse',false);
+assert.ok(!pressed.has('gas')&&!pressed.has('brake')&&!pressed.has('reverse'),'Releasing all pedals must release their held states');
 mobileRoad.driving=null;
 control('attack',true);
 assert.ok(pressed.has('attack')&&!pressed.has('gas'),'Touch B should fire on foot');
@@ -529,3 +537,17 @@ assert.ok(source.includes('o.current.mobileControls=true'),'Touch inputs must fo
 assert.ok(source.includes('stoppedByError=true;clearKeys();console.error'),'Runtime errors must not silently freeze the game');
 assert.ok(source.includes('cletus-runtime-error'),'Show on-screen runtime error banner');
 assert.ok(!source.includes('o.player.immune&&o.tick%6<3&&S(i,0,0,bl,vl'),'Damage flash should not cover whole screen red');
+
+// Mobile four-way steering is absolute heading selection, not down-to-reverse.
+for(const [direction,want] of [['up',0],['right',Math.PI/2],['down',Math.PI],['left',-Math.PI/2]]){
+ const aim=polish.Y0(0);aim.mobileControls=true;
+ const car=aim.props.find(v=>v.type==='car'&&v.x===107&&v.y===320);
+ aim.driving=car;car.angle=0;car.speed=0;
+ for(let t=0;t<60;t++){aim.tick++;polish.updateDriving(aim,new Set([direction]),null,false)}
+ const delta=Math.atan2(Math.sin(want-car.angle),Math.cos(want-car.angle));
+ assert.ok(Math.abs(delta)<.035,'D-pad '+direction+' should steer toward selected heading');
+ assert.equal(car.speed,0,'D-pad '+direction+' without GAS must never accelerate or reverse');
+}
+assert.ok(source.includes('i.mobileControls?keys.has("reverse"):keys.has("down")'),'Mobile reverse must be separate from desktop keyboard DOWN');
+assert.ok(source.includes('endPointerAttack:tl,isDriving:()=>!!o.current.driving'),'Y behavior must use current vehicle state');
+console.log('PASS four-direction steering, independent Y reverse, X enter/exit unchanged.');
