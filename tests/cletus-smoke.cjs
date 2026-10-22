@@ -53,7 +53,7 @@ assert.match(html, /Cletus%20Saves%20Candy_%20Neon%20City%20Rescue\.png/, 'Openi
 const wholeEnd=source.indexOf('function Ce(',start);
 assert.ok(wholeEnd>stop,'Renderer and boss logic not found');
 const worldCtx={Math};
-vm.runInNewContext('const '+source.slice(start,wholeEnd)+';globalThis.polish={Y0,Fh,n2,je,w0,Yu,Wh,$h,updateCopper,shopTest:Nt,nearestCar,enterExitVehicle,vehicleBlocked,updateDriving,updateTraffic,damageVehicle,vehicleHUD,Df,cletusAimAtHostile,cityLights,drawCharacterDetail,registerTakedown,showFloater,openPawnShop,buyGoldenUzi,updatePawnShop,drawPawnShopInterior,drawPawnShopFront,drawGoldenUzi};',worldCtx);
+vm.runInNewContext('const '+source.slice(start,wholeEnd)+';globalThis.polish={Y0,Fh,n2,je,w0,Yu,Wh,$h,updateCopper,shopTest:Nt,nearestCar,enterExitVehicle,vehicleBlocked,updateDriving,updateTraffic,damageVehicle,vehicleHUD,Df,cletusAimAtHostile,cityLights,drawCharacterDetail,registerTakedown,showFloater,openPawnShop,buyGoldenUzi,updatePawnShop,drawPawnShopInterior,drawPawnShopFront,drawGoldenUzi,CLUE_DIALOGUES,startClueScene,advanceClueScene,updateClueScene,drawClueScene};',worldCtx);
 const polish=worldCtx.polish, active=polish.Y0(0);
 for(const pickup of active.drops.slice(-4)) {
   assert.equal(polish.Yu(active,pickup.x,pickup.y,8),false,'Final boss supply pickup trapped in a wall');
@@ -390,3 +390,69 @@ polish.Wh(gunGame,null,false);
 assert.equal(gunGame.goldTarget,null,'No hostile means no phantom target lock');
 assert.ok(gunGame.shots.filter(shot=>shot.owner==='player').at(-1).vx<0,'Without a target, golden gun falls back to current facing');
 console.log('PASS pawn-shop room with explicit purchase/exit, 10 copper economy, one-time Golden Uzi, PC and mobile exclusive auto-aim.');
+
+
+// Five clue discoveries must pause the world and open playable case-file dialogue.
+// Render checks assert the narrative, Cletus portrait and real gameplay KPI dashboard.
+assert.equal(polish.CLUE_DIALOGUES.length,5,'Every clue needs a scripted dialogue');
+assert.match(source,/function drawClueScene\(/,'Missing in-game cinematic case-file screen');
+assert.match(source,/drawClueScene\(i,o\)/,'The dialogue scene must render on the game canvas');
+assert.match(source,/if\(updateClueScene\(i,o\)\)return/,'Clues must freeze the simulation');
+assert.match(source,/if\(o\.current\.clueScene\)\{advanceClueScene\(o\.current\);return\}/,
+ 'Touching the canvas should advance a clue page');
+assert.match(source,/if\(key==="enter"&&!event\.repeat\)advanceClueScene\(world\)/,
+ 'Enter should advance the dialogue without triggering restart');
+for(let index=0;index<5;index++){
+ const caseWorld=polish.Y0(0);
+ caseWorld.phase='playing';caseWorld.leads=index;caseWorld.enemies=[];caseWorld.traffic=[];
+ const clue=polish.shopTest[index];caseWorld.player.x=clue.x;caseWorld.player.y=clue.y;
+ const tickBefore=caseWorld.tick,firstScore=caseWorld.score,ammo=caseWorld.player.ammo[1];
+ const npc={x:clue.x+100,y:clue.y,hp:20,max:20,radius:9,speed:.8,hit:0,dead:false,type:'thug',cooldown:0,damage:4};
+ caseWorld.enemies.push(npc);
+ polish.Fh(caseWorld,new Set(),null,false);
+ assert.equal(caseWorld.leads,index+1,'Clue collected '+(index+1));
+ assert.deepEqual({index:caseWorld.clueScene?.index,page:caseWorld.clueScene?.page},{index,page:0},
+  'Each clue must open its own first page');
+ assert.equal(caseWorld.phase,'playing','Dialogue must not replace mission phase');
+ assert.equal(caseWorld.score,firstScore+350,'Clue credit is granted only once');
+ const position=npc.x,worldTime=caseWorld.tick;
+ const shots=caseWorld.shots.length,ammoAtOpen=caseWorld.player.ammo[1];
+ polish.Fh(caseWorld,new Set(['attack']),null,false);
+ assert.equal(caseWorld.clueScene.page,0,'Held attack may not skip the opening page');
+ assert.equal(npc.x,position,'Enemies are frozen');
+ assert.equal(caseWorld.tick,worldTime,'Clock frozen while clue dialogue is open');
+ assert.equal(caseWorld.shots.length,shots,'Firing freezes during the case file');
+ assert.equal(caseWorld.player.ammo[1],ammoAtOpen,'No ammunition consumed in dialogue');
+ polish.Fh(caseWorld,new Set(),null,false);
+ polish.Fh(caseWorld,new Set(['attack']),null,false);
+ assert.equal(caseWorld.clueScene.page,1,'B or Space advances to the second story page');
+ polish.Fh(caseWorld,new Set(['attack']),null,false);
+ assert.equal(caseWorld.clueScene.page,1,'Held B should not skip the remaining page');
+ const displayed=[];
+ const renderCtx=new Proxy({},{
+  get(target,key){if(key in target)return target[key];return (...args)=>{if(key==='fillText')displayed.push(String(args[0]))}},
+  set(target,key,value){target[key]=value;return true}
+ });
+ polish.drawClueScene(renderCtx,caseWorld);
+ for(const label of ['CLETUS SAYS','CLUES','CASE','KILLS','HEALTH','COPPER']){
+  assert.ok(displayed.some(v=>v.includes(label)),label+' must be visible in clue dashboard');
+ }
+ assert.ok(displayed.includes(polish.CLUE_DIALOGUES[index].caseName),
+  'Clue must display distinct story case title');
+ assert.ok(displayed.some(v=>v.includes(polish.CLUE_DIALOGUES[index].next)),
+  'Clue should reveal the next story destination');
+ polish.Fh(caseWorld,new Set(),null,false);
+ polish.Fh(caseWorld,new Set(['interact']),null,false);
+ assert.equal(caseWorld.clueScene,null,'X / E closes the final page');
+ assert.equal(caseWorld.tick,worldTime,'Clock remains frozen through dismissal');
+ assert.equal(caseWorld.leads,index+1,'Closing a clue never re-collects it');
+ // Story closes without changing the objective or the finite ammo/inventory.
+ assert.equal(caseWorld.player.ammo[1],ammo,'Story has no weapon-ammo side effects');
+}
+const tapWorld=polish.Y0(0);tapWorld.leads=1;
+assert.equal(polish.startClueScene(tapWorld),true);
+assert.equal(polish.advanceClueScene(tapWorld),true);
+assert.equal(tapWorld.clueScene.page,1);
+assert.equal(polish.advanceClueScene(tapWorld),true);
+assert.equal(tapWorld.clueScene,null);
+console.log('PASS five distinct clue stories, pixel portrait, KPI panel, pause semantics, B/X controls, held-key guard and tap progression.');
