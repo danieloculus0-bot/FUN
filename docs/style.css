@@ -132,3 +132,28 @@
   #overlay.cover-menu{padding:7px;}
   #overlay.cover-menu .primary-button{min-height:36px;padding:9px 18px;font-size:clamp(10px,2.4vw,15px);}
 }
+
+
+/* Cross-game navigation: keep Cletus accessible from Emperor Gauntlet's cover menu
+   even when the mobile handheld hides all content below the game. */
+.cletus-menu-link{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  min-height:43px;padding:11px 16px;margin:8px 0 0 12px;
+  border:2px solid #edbb88;border-radius:3px;
+  color:#fff0d9;background:linear-gradient(100deg,#673751,#38263f);
+  font:900 12px/1.2 system-ui,sans-serif;letter-spacing:.05em;
+  text-decoration:none;text-align:center;
+  box-shadow:0 4px 0 #210f29;
+  position:relative;z-index:5;
+}
+.cletus-menu-link:hover,.cletus-menu-link:focus-visible{background:#86526b;color:#fff;outline:2px solid #ffe2aa;outline-offset:2px}
+#overlay.cover-menu .overlay-card{flex-wrap:wrap;gap:10px}
+#overlay.cover-menu .cletus-menu-link{margin:0}
+@media(pointer:coarse) and (max-width:1180px){
+  .cletus-menu-link{min-height:38px;margin:6px 0 0;padding:8px 10px;font-size:clamp(9px,2.2vw,12px)}
+  #overlay.cover-menu .overlay-card{gap:7px}
+}
+@media(pointer:coarse) and (max-width:1180px) and (orientation:landscape) and (max-height:360px){
+  .cletus-menu-link{min-height:29px;padding:5px 9px;font-size:10px}
+  #overlay.cover-menu .overlay-card{gap:5px}
+}
