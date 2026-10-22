@@ -391,4 +391,19 @@ g.game.player.temp=0.001;
 g.tick();
 assert.equal(g.state, "over", "The player must be able to freeze");
 assert.match(g.game.cause, /froze/i);
+
+// Home screen navigation must be reachable on mobile as well as desktop.
+const homeHtml=fs.readFileSync(path.join(__dirname,"../docs/index.html"),"utf8");
+const homeCss=fs.readFileSync(path.join(__dirname,"../docs/style.css"),"utf8");
+assert.match(homeHtml,/<a class="cletus-menu-link" href="cletus\/play\.html"/,
+  "Emperor Gauntlet start menu must link directly to Cletus Saves Candy");
+assert.match(homeHtml,/class="cletus-promo"/,
+  "Keep the separate desktop Cletus promo card");
+assert.match(homeCss,/#overlay\.cover-menu \.cletus-menu-link/,
+  "Start-menu link must remain visible over cover artwork on mobile");
+assert.match(homeCss,/\.cletus-menu-link:focus-visible/,
+  "Cross-game link must support keyboard focus");
+assert.doesNotMatch(homeCss,/\.cletus-menu-link\{display:none/,
+  "Do not hide the start-menu cross-game link on mobile");
+
 console.log("Emperor Gauntlet web smoke tests: PASS");
