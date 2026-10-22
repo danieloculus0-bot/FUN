@@ -53,7 +53,7 @@ assert.match(html, /Cletus%20Saves%20Candy_%20Neon%20City%20Rescue\.png/, 'Openi
 const wholeEnd=source.indexOf('function Ce(',start);
 assert.ok(wholeEnd>stop,'Renderer and boss logic not found');
 const worldCtx={Math};
-vm.runInNewContext('const '+source.slice(start,wholeEnd)+';globalThis.polish={Y0,Fh,n2,je,w0,Yu,Wh,$h,updateCopper,shopTest:Nt,nearestCar,enterExitVehicle,vehicleBlocked,updateDriving,updateTraffic,damageVehicle,vehicleHUD};',worldCtx);
+vm.runInNewContext('const '+source.slice(start,wholeEnd)+';globalThis.polish={Y0,Fh,n2,je,w0,Yu,Wh,$h,updateCopper,shopTest:Nt,nearestCar,enterExitVehicle,vehicleBlocked,updateDriving,updateTraffic,damageVehicle,vehicleHUD,Df,cletusAimAtHostile};',worldCtx);
 const polish=worldCtx.polish, active=polish.Y0(0);
 for(const pickup of active.drops.slice(-4)) {
   assert.equal(polish.Yu(active,pickup.x,pickup.y,8),false,'Final boss supply pickup trapped in a wall');
@@ -222,3 +222,54 @@ polish.enterExitVehicle(exitTest,new Set(['interact']),null,false);
 assert.equal(exitTest.driving,null,'Pressing interact again should exit a car');
 assert.equal(polish.Yu(exitTest,exitTest.player.x,exitTest.player.y,8),false,'Exit must choose a safe nearby pavement');
 console.log('PASS driving, steering, moving traffic, vehicle impact on foes, durability, wreck and safe exit.');
+
+
+// 2026-10 maintainability and game-play hardening regression checks.
+assert.match(source,/for\(let j=i\.enemies\.length-1;j>=0;j--\)if\(i\.enemies\[j\]\.dead\)i\.enemies\.splice\(j,1\)/,
+ 'Dead enemies should be retired from the world every tick');
+assert.doesNotMatch(source,/"1234"\.includes\(B\)/,'Empty string must never select fists');
+assert.match(source,/\/\^\[1-4\]\$\/\.test\(key\)/,'Only explicit weapon number keys should switch');
+assert.match(source,/\}\,\[L\]\)/,'The RAF effect must stay mounted across phase updates');
+assert.doesNotMatch(source,/\}\,\[H,L\]\)/,'Changing phase must not tear down the RAF');
+assert.match(source,/window\.addEventListener\("blur",pauseWhenHidden\)/,'Blur must pause');
+assert.match(source,/document\.addEventListener\("visibilitychange",onVisibility\)/,'Hidden tab must pause');
+assert.match(source,/now-lastWrite>=5000/,'Best score writes must be throttled');
+assert.match(source,/window\.addEventListener\("pagehide",saveBest\)/,'Score must flush on exit');
+assert.match(source,/function cletusAimAtHostile\(/,'Touch auto aim missing');
+assert.match(source,/if\(i\.touchFire&&!i\.pointerActive\)cletusAimAtHostile\(i\)/,
+ 'Auto-aim should be touch specific and not override pointer aim');
+assert.match(source,/if\(i\.driveLatch\)return true/,'Do not start copper stripping when E is held after leaving a car');
+assert.match(html,/family=Barlow\+Condensed/,'Typography stylesheet should load');
+assert.match(html,/family=Barlow\+Condensed[\s\S]*?family=Share\+Tech\+Mono/,'Both typefaces should load');
+assert.match(html,/html\.cletus-key-art-ready \.game-overlay\[data-testid="overlay-menu"\] \.overlay-title/,
+ 'Menu text should only hide when cover art is present');
+assert.match(html,/html:not\(\.cletus-key-art-ready\) \.game-overlay\[data-testid="overlay-menu"\]/,
+ 'Standalone copied HTML must show fallback art and readable intro');
+assert.match(html,/art\.onerror=\(\)=>document\.documentElement\.classList\.remove/,
+ 'Cover not found must restore menu copy');
+const corpseWorld=polish.Y0(0);corpseWorld.phase='playing';
+const livingCount=corpseWorld.enemies.length;
+for(let j=0;j<35;j++)corpseWorld.enemies.push({dead:true,x:0,y:0});
+polish.Fh(corpseWorld,new Set(),null,false);
+assert.equal(corpseWorld.enemies.length,livingCount,'Dead enemies must not accumulate after game tick');
+const aimWorld=polish.Y0(0);aimWorld.phase='playing';aimWorld.enemies=[];
+aimWorld.player.x=137;aimWorld.player.y=260;aimWorld.player.face=0;
+const nearest={x:137,y:200,dead:false,radius:9};
+aimWorld.enemies.push(nearest,{x:137,y:85,dead:false,radius:9});
+const aimTarget=polish.cletusAimAtHostile(aimWorld);
+assert.equal(aimTarget,nearest,'Touch aim should prioritize nearest clear hostile');
+assert.ok(Math.abs(aimWorld.player.face+Math.PI/2)<.03,'Touch aim must actually face hostile');
+const heldExit=polish.Y0(0);heldExit.phase='playing';
+const exitCar=heldExit.props.find(c=>c.type==='car'&&c.x===107&&c.y===320);
+heldExit.player.x=exitCar.x-36;heldExit.player.y=exitCar.y;
+polish.enterExitVehicle(heldExit,new Set(['interact']),null,false);
+polish.enterExitVehicle(heldExit,new Set(),null,false);
+polish.enterExitVehicle(heldExit,new Set(['interact']),null,false);
+assert.equal(heldExit.driving,null);
+heldExit.player.x=155;heldExit.player.y=280;
+polish.Fh(heldExit,new Set(['interact']),null,false);
+assert.equal(heldExit.harvest.index,-1,'Held exit key must not trigger copper harvesting');
+polish.enterExitVehicle(heldExit,new Set(),null,false);
+polish.Fh(heldExit,new Set(['interact']),null,false);
+assert.notEqual(heldExit.harvest.index,-1,'A fresh E press can still start harvesting');
+console.log('PASS enemies GC, score write throttle, stable RAF, blur pause, key validation, touch auto-aim and portable artwork fallback.');
