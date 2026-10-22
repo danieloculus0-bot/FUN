@@ -159,9 +159,11 @@ const deckStart=source.indexOf('className:"mobile-pad touch-controls"');
 const deckEnd=source.indexOf('className:"controls-row"',deckStart);
 assert.ok(deckStart>0&&deckEnd>deckStart,'Mobile controller React component missing');
 const deck=source.slice(deckStart,deckEnd);
-for(const id of ['control-up','control-down','control-left','control-right','control-attack','control-dash','button-interact','control-swap','control-prev-weapon','control-next-weapon','button-pause-touch','button-sound-mobile','button-fullscreen']){
+for(const id of ['control-up','control-down','control-left','control-right','button-interact','control-swap','control-prev-weapon','control-next-weapon','button-pause-touch','button-sound-mobile','button-fullscreen']){
  assert.ok(deck.includes('"data-testid":"'+id+'"'),'Missing SNES control '+id);
 }
+assert.ok(deck.includes('"data-testid":r.driving?"control-gas":"control-attack"'),'B must alternate gas/fire');
+assert.ok(deck.includes('"data-testid":r.driving?"control-brake":"control-dash"'),'A must alternate brake/dash');
 assert.ok(deck.includes('className:"dpad-hub"'),'D-pad cross hub missing');
 assert.ok(deck.includes('className:"action-pad"'),'ABXY face cluster missing');
 assert.ok(deck.includes('H("interact")'),'Copper action must support press-and-hold on touch');
