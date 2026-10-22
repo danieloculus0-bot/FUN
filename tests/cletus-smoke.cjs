@@ -86,7 +86,7 @@ console.log('PASS Cletus camera zoom, detailed art, boss charge/enrage, render a
 
 // Street scavenging, weapon cycling and healing regression checks.
 assert.equal(polish.shopTest.length,5,'There must be five distinct clues');
-assert.deepEqual(polish.shopTest.map(c=>c.label),[
+assert.deepEqual(Array.from(polish.shopTest,c=>c.label),[
   'TIRE TRACKS','GRAFFITI WARNING','PAYPHONE WITNESS','GARAGE RECEIPT','GANG DROP SITE'
 ],'Five clues must retain their story order');
 assert.doesNotMatch(html,/data-testid="button-cycle-weapon"/,'Cycle button should be gone');
