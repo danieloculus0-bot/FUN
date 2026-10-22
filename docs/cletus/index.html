@@ -1,45 +1,50 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#100b1b">
-<meta name="description" content="Cletus Saves Candy. A wild 16-bit urban rescue adventure. Fight through the streets, collect leads, defeat the gang and save Candy. Free browser game.">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#13081a">
+<title>Cletus Saves Candy | A FUN Original</title>
+<meta name="description" content="They took Candy. Now it is personal. Play Cletus Saves Candy, a free 16-bit top-down urban rescue game with street combat, gangs, cops, glass bottles, Uzis and Big Tony.">
 <link rel="canonical" href="https://danieloculus0-bot.github.io/FUN/cletus/">
 <meta property="og:type" content="website"><meta property="og:site_name" content="FUN">
-<meta property="og:title" content="CLETUS SAVES CANDY | 16-Bit Urban Mayhem">
-<meta property="og:description" content="They took Candy. Now it's personal. Explore a huge gritty pixel-art city, fight gangs, uncover clues and save Candy. Play the full browser game.">
 <meta property="og:url" content="https://danieloculus0-bot.github.io/FUN/cletus/">
+<meta property="og:title" content="CLETUS SAVES CANDY | A FUN ORIGINAL">
+<meta property="og:description" content="They took Candy. Now it's personal. Fight through the city, follow the clues, and take on Big Tony and his crew. Play free in your browser.">
 <meta property="og:image" content="https://danieloculus0-bot.github.io/FUN/Cletus%20Saves%20Candy_%20Neon%20City%20Rescue.png">
-<meta property="og:image:type" content="image/png"><meta property="og:image:alt" content="Cletus in a purple pimp hat, sunglasses and fur coat as thugs pull Candy into a van against a neon city skyline.">
-<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="CLETUS SAVES CANDY">
-<meta name="twitter:description" content="They took Candy. Now it's personal. A playable 16-bit urban rescue game.">
+<meta property="og:image:alt" content="Cletus in his purple pimp hat and fur coat on a gritty 16-bit city game cover.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CLETUS SAVES CANDY">
 <meta name="twitter:image" content="https://danieloculus0-bot.github.io/FUN/Cletus%20Saves%20Candy_%20Neon%20City%20Rescue.png">
-<title>Cletus Saves Candy | FUN</title>
 <link rel="preload" as="image" href="../Cletus%20Saves%20Candy_%20Neon%20City%20Rescue.png">
-<link rel="stylesheet" href="style.css"><script defer src="game.js"></script>
+<style>
+:root{color-scheme:dark;--pink:#f34a99;--gold:#ffd45a;--paper:#f7edf7;--violet:#301936}
+*{box-sizing:border-box}html{background:#0e0a13}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top,#452347 0%,#150e1e 45%,#08070c 100%);font:15px/1.55 system-ui,Arial,sans-serif;color:var(--paper)}
+a{color:inherit;text-decoration:none}.shell{max-width:1330px;padding:0 24px;margin:auto}.nav{height:75px;display:flex;align-items:center;gap:16px;border-bottom:1px solid #583653}
+.logo{font-weight:1000;font-size:32px;letter-spacing:-5px;color:var(--gold)}.logo span{color:var(--pink)}.lab{border-left:1px solid #694e67;padding-left:17px;letter-spacing:2px;font-size:11px;font-weight:900;color:#d7b2cd}.navlinks{display:flex;gap:20px;align-items:center;margin-left:auto;color:#d5b2c5;font-size:11px;font-weight:900;letter-spacing:1px}.navlinks a:hover{color:var(--gold)}
+.main{display:grid;grid-template-columns:minmax(0,1.22fr) minmax(0,.78fr);gap:0;margin-top:32px;border:1px solid #7b426e;box-shadow:0 22px 90px #000b;background:#170f20}
+.poster{min-height:600px;background:linear-gradient(0deg,#12091922,#12091900 35%),url('../Cletus%20Saves%20Candy_%20Neon%20City%20Rescue.png') center/cover no-repeat;position:relative}
+.poster:after{content:'';position:absolute;inset:0;box-shadow:inset -30px 0 55px #1e102b44;pointer-events:none}
+.content{padding:clamp(24px,3vw,52px);display:flex;flex-direction:column;justify-content:center;background:linear-gradient(135deg,#211329,#130e1b)}
+.kicker{font-size:11px;letter-spacing:2.5px;font-weight:1000;color:var(--pink)}h1{font-size:clamp(40px,5.4vw,79px);letter-spacing:-3px;line-height:.94;margin:18px 0;font-weight:1000}h1 em{font-style:normal;color:var(--gold)}.intro{font-size:clamp(16px,1.5vw,21px);font-weight:800;max-width:430px;color:#f5d8e6}.body{max-width:460px;color:#bfaebe;font-size:14px;line-height:1.8}.play{display:flex;align-items:center;justify-content:center;gap:18px;width:100%;background:linear-gradient(180deg,#ffe16c,#f7b72c);border:2px solid #fff4b7;color:#281329;padding:17px 25px;font-size:16px;letter-spacing:1.6px;font-weight:1000;box-shadow:0 6px #8c531f;margin:28px 0 18px;transition:transform .12s,filter .12s}
+.play:hover{transform:translateY(-3px);filter:brightness(1.08)}.play span{font-size:22px}.tags{display:flex;flex-wrap:wrap;gap:7px}.tags span{font-size:10px;font-weight:900;letter-spacing:.7px;border:1px solid #6d426c;padding:6px 8px;color:#deb9ce}
+.info{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin:28px 0 35px}.info article{border-top:2px solid #704369;padding-top:15px}.info b{font-size:12px;letter-spacing:1.5px;color:var(--gold)}.info p{font-size:13px;color:#c5b0c3;line-height:1.7}.foot{display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;align-items:center;border-top:1px solid #583653;padding:22px 0 35px;font-size:11px;color:#b89db2;font-weight:800}.foot a{color:var(--gold)}.foot a:hover{text-decoration:underline}
+@media(max-width:900px){.main{grid-template-columns:1fr}.poster{min-height:unset;aspect-ratio:1.4;background-size:contain;background-color:#090610}.content{padding:25px}h1{font-size:clamp(43px,10vw,75px)}.info{grid-template-columns:1fr;gap:10px}.info article{padding-top:12px}.info p{margin:7px 0}}
+@media(max-width:480px){.shell{padding:0 10px}.nav{height:58px}.logo{font-size:24px}.lab{font-size:8px;letter-spacing:1px}.navlinks{gap:9px;font-size:8px}.main{margin-top:10px}.poster{aspect-ratio:1.15}.content{padding:20px}.kicker{font-size:9px}.intro{font-size:17px}.play{padding:15px;font-size:13px}}
+</style>
 </head>
-<body>
-<div id="cabinet">
-<header class="top"><a href="../" class="mark">F<span>U</span>N</a><div class="headline"><b>CLETUS SAVES CANDY</b><small>16-BIT STREET RESCUE // BROWSER EDITION</small></div><div class="version">THE STREETS DON'T PLAY FAIR <span>●</span></div></header>
-<main class="machine" aria-label="Cletus Saves Candy game">
-  <div class="display" id="display"><canvas id="game" width="960" height="540" tabindex="0" aria-label="Top-down city adventure. Use WASD or arrow keys to move, mouse to aim, J or Space to attack, 1 to 4 to change weapons, E to use a XXX bottle."></canvas>
-    <div class="hud" id="hud" hidden><div class="life"><span>♥ CLETUS</span><div class="life-track"><i id="health-fill"></i></div><b id="health-label">100</b></div><div class="mission"><b id="mission-head">FIND CANDY</b><small id="mission-hint">The thugs left a trail.</small></div><div class="arsenal"><b id="gun-name">FISTS</b><small id="gun-ammo">∞</small></div></div>
-    <div class="notice" id="notice" aria-live="polite"></div>
-    <div class="bossbar" id="bossbar" hidden><b id="bossname">BIG TONY</b><div><i id="bossfill"></i></div></div>
-    <div class="minimap" id="mapWrap"><canvas id="mini" width="160" height="112" aria-label="City minimap"></canvas></div>
-    <div class="crosshair" id="crosshair"></div>
-    <div class="screen menu" id="menu">
-      <div class="art" role="img" aria-label="Cletus Saves Candy cover art"></div>
-      <div class="menubottom"><div><div class="menu-label">A FUN ORIGINAL // ONE HUGE CITY // ONE MISSION</div><p>They took Candy. Now it's personal.</p></div><button id="newgame" class="go" type="button">START THE HUNT <span>▶</span></button></div>
-    </div>
-    <div class="screen cutscene" id="cutscene" hidden><div class="cutscene-title">THAT NIGHT, ON DELANCEY STREET...</div><div class="van-scene"><span class="streetlight">✦</span><div class="candy-char">CANDY!</div><div class="van"><div class="windows"></div><div class="wheel l"></div><div class="wheel r"></div></div></div><div class="dialog"><b>CLETUS:</b> <span id="storyline">CANDY! GET AWAY FROM THAT VAN!</span><button id="skip" type="button">SKIP INTRO ↵</button></div></div>
-    <div class="screen end" id="ending" hidden><div class="end-content"><h2 id="end-title">CANDY IS SAFE!</h2><p id="end-copy">The streets are yours.</p><div id="end-stats"></div><button class="go" id="replay" type="button">PLAY AGAIN ▶</button></div></div>
-    <div class="screen pause" id="pause" hidden><div><h2>PAUSED</h2><p>Candy's still waiting.</p><button class="go" id="resume" type="button">BACK TO IT ▶</button></div></div>
-  </div>
-  <div class="lower"><div class="status"><span class="online">●</span> <span id="status">READY TO HIT THE STREETS</span></div><div class="tools"><button id="sound" type="button" aria-pressed="false">♪ SOUND OFF</button><button id="map-toggle" type="button">▦ MAP</button><button id="pause-btn" type="button">Ⅱ PAUSE</button><button id="full" type="button">⛶ FULLSCREEN</button></div></div>
-  <div class="touch" id="touch" aria-label="Mobile game controls"><div class="dpad"><button data-move="up" aria-label="Move up">▲</button><button data-move="left" aria-label="Move left">◀</button><button data-move="right" aria-label="Move right">▶</button><button data-move="down" aria-label="Move down">▼</button></div><div class="mobilemiddle"><button id="touch-weapon">WEAPON</button><button id="touch-use">XXX</button></div><div class="buttons"><button id="touch-fire" class="fire">FIRE</button><button id="touch-dash">DASH</button></div></div>
+<body><div class="shell">
+<header class="nav"><a class="logo" href="../">F<span>U</span>N</a><span class="lab">ORIGINAL ARCADE GAMES</span><nav class="navlinks" aria-label="Site"><a href="../">EMPEROR GAUNTLET</a><a href="https://github.com/danieloculus0-bot/FUN">SOURCE</a></nav></header>
+<main class="main">
+<div class="poster" role="img" aria-label="Cletus Saves Candy retro neon street rescue game cover"></div>
+<section class="content">
+<div class="kicker">THE CITY ATE HER. HE'S NOT HAVING IT.</div>
+<h1>CLETUS<br><em>SAVES</em><br>CANDY.</h1>
+<p class="intro">They took Candy in a van. Now it's personal.</p>
+<p class="body">Put on your fur coat, straighten your hat and tear through a dangerous concrete jungle. Chase three leads across the city, collect weapons, fight gangs, dodge street hazards and survive Big Tony's crew to bring Candy home.</p>
+<a class="play" href="play.html">PLAY THE GAME <span aria-hidden="true">▶</span></a>
+<div class="tags"><span>16-BIT ARCADE</span><span>OPEN CITY MAP</span><span>BIG TONY + CREW</span><span>BROWSER-PLAYABLE</span><span>NO INSTALL</span></div>
+</section>
 </main>
-<footer class="info"><div><b>ON FOOT.</b> WASD / ARROWS <span>·</span> MOUSE AIM <span>·</span> SPACE OR J FIRE <span>·</span> SHIFT DASH <span>·</span> 1-4 WEAPONS <span>·</span> E DRINK XXX <span>·</span> M MAP <span>·</span> P PAUSE</div><div><a href="../">EMPEROR GAUNTLET</a> <span>·</span> <a href="https://github.com/danieloculus0-bot/FUN">SOURCE</a></div></footer>
-</div>
-</body></html>
+<section class="info" aria-label="How to play"><article><b>01 / EXPLORE</b><p>Follow gold clues through back streets, warehouse blocks and cracked sidewalks. Watch for dogs, rats, criminals, cops and open manholes.</p></article><article><b>02 / FIGHT BACK</b><p>Pick up bottles, Uzis and rocket launchers. Get close with your fists, sprint out of trouble, or drink a brown XXX bottle for health with woozy side effects.</p></article><article><b>03 / SAVE CANDY</b><p>Locate the warehouse, fight through Tony's gang, defeat Big Tony and reach Candy. Then beat your high score.</p></article></section>
+<footer class="foot"><span>CLETUS SAVES CANDY / A FUN ORIGINAL</span><span>WASD TO MOVE · MOUSE TO AIM · SPACE TO ATTACK · SHIFT TO DASH · E FOR XXX</span><a href="../">ALSO PLAY EMPEROR GAUNTLET</a></footer>
+</div></body></html>
