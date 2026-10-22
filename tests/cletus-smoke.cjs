@@ -53,7 +53,7 @@ assert.match(html, /Cletus%20Saves%20Candy_%20Neon%20City%20Rescue\.png/, 'Openi
 const wholeEnd=source.indexOf('function Ce(',start);
 assert.ok(wholeEnd>stop,'Renderer and boss logic not found');
 const worldCtx={Math};
-vm.runInNewContext('const '+source.slice(start,wholeEnd)+';globalThis.polish={Y0,Fh,n2,je,w0,Yu,Wh,$h,updateCopper,shopTest:Nt,nearestCar,enterExitVehicle,vehicleBlocked,updateDriving,updateTraffic,damageVehicle,vehicleHUD,Df,cletusAimAtHostile};',worldCtx);
+vm.runInNewContext('const '+source.slice(start,wholeEnd)+';globalThis.polish={Y0,Fh,n2,je,w0,Yu,Wh,$h,updateCopper,shopTest:Nt,nearestCar,enterExitVehicle,vehicleBlocked,updateDriving,updateTraffic,damageVehicle,vehicleHUD,Df,cletusAimAtHostile,cityLights,drawCharacterDetail,registerTakedown,showFloater};',worldCtx);
 const polish=worldCtx.polish, active=polish.Y0(0);
 for(const pickup of active.drops.slice(-4)) {
   assert.equal(polish.Yu(active,pickup.x,pickup.y,8),false,'Final boss supply pickup trapped in a wall');
@@ -273,3 +273,39 @@ polish.enterExitVehicle(heldExit,new Set(),null,false);
 polish.Fh(heldExit,new Set(['interact']),null,false);
 assert.notEqual(heldExit.harvest.index,-1,'A fresh E press can still start harvesting');
 console.log('PASS enemies GC, score write throttle, stable RAF, blur pause, key validation, touch auto-aim and portable artwork fallback.');
+
+
+// Small visual/play-feel polish should not change the missions or controls.
+assert.match(source,/function drawCharacterDetail\(/,'Character detail renderer missing');
+assert.match(source,/function cityLights\(/,'City glow renderer missing');
+assert.match(source,/function registerTakedown\(/,'Streak scoring missing');
+assert.match(source,/function showFloater\(/,'Score popups missing');
+assert.match(source,/if\(!o\.driving&&v\.dash>28\)/,'No ghost Cletus sprinting out of a moving car');
+const mood=polish.Y0(0);mood.phase='playing';
+let gradients=0,paint=0;
+const effectsCtx=new Proxy({createRadialGradient(){gradients++;return{addColorStop(){}}}},{
+ get(target,name){if(name in target)return target[name];return (...args)=>{if(name==='fillRect')paint++}},
+ set(target,name,value){target[name]=value;return true}
+});
+polish.cityLights(effectsCtx,mood);
+assert.ok(gradients>=1,'Nearby storefront lights must illuminate part of the world');
+assert.ok(gradients<=10,'Light sources must stay capped per draw call');
+const beforeSprite=paint;
+for(const type of ['cletus','candy','gang','cop','thug','boss','civil-0','civil-4','dog','rat']){
+ polish.drawCharacterDetail(effectsCtx,type,30,30,0,type==='boss');
+}
+assert.ok(paint-beforeSprite>35,'Characters should get substantial pixel details');
+const streakWorld=polish.Y0(0);streakWorld.phase='playing';
+const enemy1={type:'gang',x:230,y:288,hp:12,max:12,hit:0,dead:false,radius:9};
+const enemy2={type:'thug',x:255,y:288,hp:12,max:12,hit:0,dead:false,radius:9};
+const baseScore=streakWorld.score;
+polish.Df(streakWorld,enemy1,30,0,null,false);
+polish.Df(streakWorld,enemy2,30,0,null,false);
+assert.equal(streakWorld.combo,2,'Quick successive takedowns should build a streak');
+assert.equal(streakWorld.score-baseScore,140*2+30,'Second takedown should award a modest bonus');
+assert.equal(streakWorld.floaters.length,2,'Each takedown should create a floating score');
+assert.equal(enemy1.dead,true);
+streakWorld.tick=streakWorld.comboUntil+1;
+polish.Fh(streakWorld,new Set(),null,false);
+assert.equal(streakWorld.combo,0,'Streak ends after the timer, not permanently');
+console.log('PASS cinematic neon glows, detailed character art, restrained street streak and floating score feedback.');
