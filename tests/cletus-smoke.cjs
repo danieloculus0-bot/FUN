@@ -53,7 +53,7 @@ assert.match(html, /Cletus%20Saves%20Candy_%20Neon%20City%20Rescue\.png/, 'Openi
 const wholeEnd=source.indexOf('function Ce(',start);
 assert.ok(wholeEnd>stop,'Renderer and boss logic not found');
 const worldCtx={Math};
-vm.runInNewContext('const '+source.slice(start,wholeEnd)+';globalThis.polish={Y0,Fh,n2,je,w0,Yu,Wh,$h,updateCopper,shopTest:Nt};',worldCtx);
+vm.runInNewContext('const '+source.slice(start,wholeEnd)+';globalThis.polish={Y0,Fh,n2,je,w0,Yu,Wh,$h,updateCopper,shopTest:Nt,nearestCar,enterExitVehicle,vehicleBlocked,updateDriving,updateTraffic,damageVehicle,vehicleHUD};',worldCtx);
 const polish=worldCtx.polish, active=polish.Y0(0);
 for(const pickup of active.drops.slice(-4)) {
   assert.equal(polish.Yu(active,pickup.x,pickup.y,8),false,'Final boss supply pickup trapped in a wall');
@@ -165,3 +165,60 @@ assert.ok(deck.includes('H("attack")'),'Fire must support press-and-hold on touc
 assert.ok(deck.includes('H("dash")'),'Dash must support press-and-hold on touch');
 assert.doesNotMatch(deck,/children:"Heal"/,'No old manual healing control');
 console.log('PASS SNES mobile ABXY/dpad/LR, locked portrait and landscape, fullscreen gesture and home-screen app manifest.');
+
+
+// Vehicle integration: player-controlled cars, acceleration, ramming, traffic and ejection.
+// Do not introduce a wanted-stars or police-heat system in this pass.
+assert.match(source,/function updateDriving\(/,'Drivable physics missing');
+assert.match(source,/function updateTraffic\(/,'Moving traffic missing');
+assert.match(source,/function vehicleHUD\(/,'Vehicle status and enter prompt missing');
+assert.match(source,/damageVehicle\(/,'Vehicle durability missing');
+assert.match(source,/p\.knockedOut=true/,'Pedestrian impact response missing');
+assert.doesNotMatch(source,/wantedLevel|wantedStars|policeHeat|heatLevel/,'Wanted level is deferred');
+const road=polish.Y0(0);road.phase='playing';
+assert.equal(road.traffic.length,9,'City should have nine moving AI traffic vehicles');
+assert.ok(road.props.some(c=>c.type==='car'&&c.hp>0),'Road-ready starter car should exist');
+const starter=road.props.find(c=>c.type==='car'&&c.x===107&&c.y===320);
+assert.ok(starter,'Reliable enterable starter car missing');
+road.player.x=starter.x-36;road.player.y=starter.y;
+assert.equal(polish.nearestCar(road),starter,'Starter vehicle must be detectable');
+polish.enterExitVehicle(road,new Set(['interact']),null,false);
+assert.equal(road.driving,starter,'Interacting near a parked car must enter it');
+assert.equal(starter.driven,true,'Vehicle should record its driver');
+assert.equal(road.player.x,starter.x,'Player must ride at vehicle position');
+polish.enterExitVehicle(road,new Set(),null,false);
+const beforeY=starter.y;
+for(let j=0;j<25;j++){road.tick++;polish.updateDriving(road,new Set(['up']),null,false)}
+assert.ok(starter.speed>2,'Up button must accelerate the car');
+assert.ok(starter.y<beforeY-20,'Car must travel north on road');
+const priorAngle=starter.angle;
+for(let j=0;j<10;j++){road.tick++;polish.updateDriving(road,new Set(['up','right']),null,false)}
+assert.ok(starter.angle>priorAngle,'Right should steer the car');
+assert.ok(Math.abs(road.player.x-starter.x)<.01,'Player stays inside the moving car');
+const traffic=road.traffic[0],trafficBefore=traffic.y;
+road.tick++;polish.updateTraffic(road,null,false);
+assert.notEqual(traffic.y,trafficBefore,'Civilian traffic should move');
+const victim={...road.enemies[0],x:starter.x,y:starter.y-20,dead:false,hp:26,max:26,roadHitUntil:0,hit:0,radius:9};
+road.enemies.push(victim);
+starter.speed=3.5;road.tick++;
+polish.updateDriving(road,new Set(['up']),null,false);
+assert.ok(victim.hp<26||victim.dead,'Running into an enemy must deal damage');
+const hp=starter.hp;
+road.driveImpactUntil=0;road.tick+=25;
+polish.damageVehicle(road,12,null,false);
+assert.ok(starter.hp<hp,'Vehicle collision should reduce car durability');
+road.driveImpactUntil=0;road.tick+=25;
+polish.damageVehicle(road,500,null,false);
+assert.equal(road.driving,null,'Destroyed car should eject its driver');
+assert.equal(starter.condition,'wreck','Totalled car should become a wreck');
+assert.equal(polish.nearestCar({...road,player:{x:starter.x,y:starter.y}})===starter,false,'Wreck should not be driveable');
+assert.ok(polish.Yu(road,road.player.x,road.player.y,8)===false,'Driver should eject to walkable ground');
+const exitTest=polish.Y0(0);exitTest.phase='playing';
+const parked=exitTest.props.find(c=>c.type==='car'&&c.x===107&&c.y===320);
+exitTest.player.x=parked.x-36;exitTest.player.y=parked.y;
+polish.enterExitVehicle(exitTest,new Set(['interact']),null,false);
+polish.enterExitVehicle(exitTest,new Set(),null,false);
+polish.enterExitVehicle(exitTest,new Set(['interact']),null,false);
+assert.equal(exitTest.driving,null,'Pressing interact again should exit a car');
+assert.equal(polish.Yu(exitTest,exitTest.player.x,exitTest.player.y,8),false,'Exit must choose a safe nearby pavement');
+console.log('PASS driving, steering, moving traffic, vehicle impact on foes, durability, wreck and safe exit.');
