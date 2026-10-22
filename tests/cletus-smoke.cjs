@@ -138,3 +138,30 @@ assert.equal(p.uziGold,true,'Pawn shop must unlock the golden Uzi');
 assert.equal(p.weapon,2,'Pawn shop must equip the golden Uzi');
 assert.equal(upgrades.shop.purchased,true,'Pawn shop purchase must be one-time');
 console.log('PASS 5 clues, +30% Uzi ammo, auto-heal, smart weapons, 7+ car models, copper shop and fighting building owners.');
+
+// Mobile handheld layout and installation checks.
+const manifest=JSON.parse(fs.readFileSync(path.join(base,'manifest.webmanifest'),'utf8'));
+assert.equal(manifest.display,'standalone','iOS/Android home-screen standalone mode');
+assert.equal(manifest.start_url,'/FUN/cletus/play.html');
+assert.match(html,/apple-mobile-web-app-capable/,'iOS standalone web app hint');
+assert.match(html,/viewport-fit=cover/,'Use mobile safe-area insets');
+assert.match(html,/manifest\.webmanifest/,'Web app manifest link');
+assert.match(html,/window\.cletusFullscreen=function/,'Full-screen gesture button');
+assert.match(html,/document\.addEventListener\('touchmove'/,'Prevent mobile page rubber-band scroll');
+assert.match(html,/html,body,#root\{height:100%/,'Lock viewport height for touch screens');
+assert.match(html,/@media\(pointer:coarse\) and \(max-width:1180px\) and \(orientation:landscape\)/,'Landscape gamepad mode');
+assert.match(html,/\.mobile-pad\.touch-controls\{display:contents\}/,'Controller must flank the canvas in landscape');
+const deckStart=source.indexOf('className:"mobile-pad touch-controls"');
+const deckEnd=source.indexOf('className:"controls-row"',deckStart);
+assert.ok(deckStart>0&&deckEnd>deckStart,'Mobile controller React component missing');
+const deck=source.slice(deckStart,deckEnd);
+for(const id of ['control-up','control-down','control-left','control-right','control-attack','control-dash','button-interact','control-swap','control-prev-weapon','control-next-weapon','button-pause-touch','button-sound-mobile','button-fullscreen']){
+ assert.ok(deck.includes('data-testid:"'+id+'"'),'Missing SNES control '+id);
+}
+assert.ok(deck.includes('className:"dpad-hub"'),'D-pad cross hub missing');
+assert.ok(deck.includes('className:"action-pad"'),'ABXY face cluster missing');
+assert.ok(deck.includes('H("interact")'),'Copper action must support press-and-hold on touch');
+assert.ok(deck.includes('H("attack")'),'Fire must support press-and-hold on touch');
+assert.ok(deck.includes('H("dash")'),'Dash must support press-and-hold on touch');
+assert.doesNotMatch(deck,/children:"Heal"/,'No old manual healing control');
+console.log('PASS SNES mobile ABXY/dpad/LR, locked portrait and landscape, fullscreen gesture and home-screen app manifest.');
