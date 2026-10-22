@@ -310,7 +310,9 @@ function updateTraffic(i,audio,sound){
    }
  }
 }
-function Fh(i,o,r,f){if(i.phase!=="playing")return;const v=i.player;i.tick+=1;if(updatePawnShop(i,o,r,f))return;v.immune>0&&(v.immune-=1),v.cool>0&&(v.cool-=1),v.dash>0&&(v.dash-=1),v.woozy>0&&(v.woozy-=1),i.shake>0&&(i.shake-=1);const vehicleAction=enterExitVehicle(i,o,r,f);
+function Fh(i,o,r,f){if(i.phase!=="playing")return;const v=i.player;i.tick+=1;if(updatePawnShop(i,o,r,f))return;v.immune>0&&(v.immune-=1),v.cool>0&&(v.cool-=1),v.dash>0&&(v.dash-=1),v.woozy>0&&(v.woozy-=1),i.shake>0&&(i.shake-=1);const enteringShop=!i.driving&&o.has("interact")&&jl(v,i.shop)<47&&!i.shop.reentryLatch
+ ?(openPawnShop(i,o,r,f),true):false;
+ const vehicleAction=enteringShop||enterExitVehicle(i,o,r,f);
  let O=Number(o.has("right"))-Number(o.has("left")),H=Number(o.has("down"))-Number(o.has("up"));
  const M=Math.hypot(O,H);
  if(i.driving){
