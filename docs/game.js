@@ -259,6 +259,7 @@
     }
   }
   function setOverlay(kicker, title, copy, action, hint = "") {
+    overlay.classList.remove("cover-menu");
     overlayKicker.textContent = kicker;
     overlayTitle.textContent = title;
     overlayCopy.textContent = copy;
@@ -267,6 +268,7 @@
     overlay.hidden = false;
   }
   function start() {
+    overlay.classList.remove("cover-menu");
     if (state === "paused") {
       state = "running";
     } else {
