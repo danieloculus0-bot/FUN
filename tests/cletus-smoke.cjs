@@ -18,7 +18,7 @@ const source=script[1];
 new vm.Script(source,{filename:'cletus-game.js'});
 assert.match(source,/tonyMob\(i,12\)/,'Initial gang trigger missing');
 assert.match(source,/tonyMob\(i,6\)/,'Reinforcement trigger missing');
-assert.match(source,/i\.leads===3&&!i\.tonyGangSpawned/,'Gang must wait for final lead');
+assert.match(source,/i\.leads===5&&!i\.tonyGangSpawned/,'Gang must wait for final lead');
 assert.match(source,/i\.boss\.hp<i\.boss\.max\*\.42/,'Reinforcement health trigger missing');
 const start=source.indexOf('bl=480,vl=270'),stop=source.indexOf('function ti(i,o',start);
 assert.ok(start>0&&stop>start,'Game rules cannot be isolated');
@@ -53,7 +53,7 @@ assert.match(html, /Cletus%20Saves%20Candy_%20Neon%20City%20Rescue\.png/, 'Openi
 const wholeEnd=source.indexOf('function Ce(',start);
 assert.ok(wholeEnd>stop,'Renderer and boss logic not found');
 const worldCtx={Math};
-vm.runInNewContext('const '+source.slice(start,wholeEnd)+';globalThis.polish={Y0,Fh,n2,je,w0,Yu};',worldCtx);
+vm.runInNewContext('const '+source.slice(start,wholeEnd)+';globalThis.polish={Y0,Fh,n2,je,w0,Yu,Wh,$h,updateCopper,shopTest:Nt};',worldCtx);
 const polish=worldCtx.polish, active=polish.Y0(0);
 for(const pickup of active.drops.slice(-4)) {
   assert.equal(polish.Yu(active,pickup.x,pickup.y,8),false,'Final boss supply pickup trapped in a wall');
@@ -73,7 +73,7 @@ polish.je(graphics,'boss',100,100,0,0,0);
 polish.w0(graphics,50,50,2,false,0);
 polish.w0(graphics,50,50,2,true,0);
 assert.ok(rectangles>50,'Sprite and city renderer produced too few draw calls');
-active.leads=3;active.tonyGangSpawned=true;active.tonyReinforced=true;
+active.leads=5;active.tonyGangSpawned=true;active.tonyReinforced=true;
 active.player.x=active.boss.x+130;active.player.y=active.boss.y-22;
 active.bossNextCharge=0;
 for(let tick=0;tick<40;tick++)polish.Fh(active,new Set(),null,false);
@@ -82,3 +82,59 @@ active.boss.hp=300;
 for(let tick=0;tick<40;tick++)polish.Fh(active,new Set(),null,false);
 assert.equal(active.bossPhase2,true,'Tony must enter his furious second phase');
 console.log('PASS Cletus camera zoom, detailed art, boss charge/enrage, render and supply accessibility.');
+
+
+// Street scavenging, weapon cycling and healing regression checks.
+assert.equal(polish.shopTest.length,5,'There must be five distinct clues');
+assert.deepEqual(polish.shopTest.map(c=>c.label),[
+  'TIRE TRACKS','GRAFFITI WARNING','PAYPHONE WITNESS','GARAGE RECEIPT','GANG DROP SITE'
+],'Five clues must retain their story order');
+assert.doesNotMatch(html,/data-testid="button-cycle-weapon"/,'Cycle button should be gone');
+assert.doesNotMatch(html,/data-testid="button-heal-desktop"/,'Heal button should be gone');
+assert.match(source,/UZI AMMO \+68/,'Uzi ammo must increase from 52 to 68 per pickup');
+assert.match(source,/Math\.random\(\)<\.55/,'XXX pickups should sometimes cause wooziness');
+assert.match(source,/function nextLoadedWeapon/,'Auto weapon fallback missing');
+assert.match(source,/function updateCopper/,'Copper harvesting missing');
+const upgrades=polish.Y0(0);upgrades.phase='playing';
+const p=upgrades.player;
+p.hp=35;
+polish.$h(upgrades,{x:p.x,y:p.y,type:'xxx'},null,false);
+assert.equal(p.hp,79,'XXX should auto-heal 44 without a button');
+assert.equal(p.xxx,1,'XXX counter should count used bottles');
+polish.$h(upgrades,{x:p.x,y:p.y,type:'uzi'},null,false);
+assert.equal(p.ammo[2],68,'Uzi pickup should grant 68 ammo');
+p.weapon=1;p.ammo[1]=1;p.ammo[2]=2;p.ammo[3]=1;p.cool=0;
+polish.Wh(upgrades,null,false);
+assert.equal(p.weapon,2,'Bottles should switch to loaded Uzi');
+p.cool=0;p.ammo[2]=1;polish.Wh(upgrades,null,false);
+assert.equal(p.weapon,3,'Empty Uzi should switch to rockets');
+p.cool=0;polish.Wh(upgrades,null,false);
+assert.equal(p.weapon,0,'Fists are last resort');
+assert.ok(upgrades.props.filter(d=>d.type==='car').length>12,'City should contain distinct cars');
+assert.ok(new Set(upgrades.props.filter(d=>d.type==='car').map(d=>d.model)).size>=4,'Cars need several identifiable models');
+assert.equal(upgrades.drops.some(d=>d.type==='copper'),false,'Copper cannot drop on streets');
+let harvested=0,ownersBefore=upgrades.enemies.length;
+for(let k=0;k<upgrades.buildings.length&&harvested<5;k++){
+ const b=upgrades.buildings[k];if(b.pawn||b.wireStripped)continue;
+ const candidates=[
+   {x:b.x-15,y:b.y+b.h/2},
+   {x:b.x+b.w+15,y:b.y+b.h/2},
+   {x:b.x+b.w/2,y:b.y-15},
+   {x:b.x+b.w/2,y:b.y+b.h+15}
+ ];
+ const loc=candidates.find(q=>!polish.Yu(upgrades,q.x,q.y,8));
+ if(!loc)continue;
+ p.x=loc.x;p.y=loc.y;
+ for(let tick=0;tick<94;tick++){upgrades.tick++;polish.updateCopper(upgrades,new Set(['interact']),null,false,0)}
+ if(b.wireStripped)harvested++;
+}
+assert.equal(harvested,5,'Five buildings should yield sufficient wire');
+assert.equal(p.copper,10,'Copper must come only from building harvesting');
+assert.ok(upgrades.enemies.length>ownersBefore,'Building owners must confront Cletus');
+p.x=upgrades.shop.x;p.y=upgrades.shop.y;upgrades.tick++;
+polish.updateCopper(upgrades,new Set(['interact']),null,false,0);
+assert.equal(p.copper,0,'Pawn shop must consume exactly 10 copper');
+assert.equal(p.uziGold,true,'Pawn shop must unlock the golden Uzi');
+assert.equal(p.weapon,2,'Pawn shop must equip the golden Uzi');
+assert.equal(upgrades.shop.purchased,true,'Pawn shop purchase must be one-time');
+console.log('PASS 5 clues, +30% Uzi ammo, auto-heal, smart weapons, 7+ car models, copper shop and fighting building owners.');
