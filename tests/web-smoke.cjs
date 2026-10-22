@@ -11,7 +11,7 @@ assert.ok(source.includes(last), "Game entrypoint missing");
 // Test instrumentation is only applied in Node. The browser game is unchanged.
 source = source.replace(last,
   "  requestAnimationFrame(frame);\n" +
-  "  globalThis.__test = { get game() { return game; }, get state() { return state; }, start, pause, shove, tick, downBird, throwGrenade, selectWeapon, cycleWeapon, hurtYeti, warnSeal, yetiSnack, collisions, pressed, pointerAim };\n" +
+  "  globalThis.__test = { get game() { return game; }, get state() { return state; }, start, pause, shove, tick, downBird, throwGrenade, selectWeapon, cycleWeapon, hurtYeti, warnSeal, yetiSnack, collisions, pressed, pointerAim, updatePlayer, moveProjectiles, rocketDetonate, ionDetonate };\n" +
   "})();"
 );
 const events = new Map();
@@ -59,6 +59,7 @@ const document = {
   addEventListener(name, fn) { events.set("document:" + name, fn); }
 };
 const window = {
+  matchMedia(){return {matches:false};},
   addEventListener(name, fn) { events.set("window:" + name, fn); }
 };
 const frames = [];
@@ -344,13 +345,13 @@ nodes.game.handlers.pointerdown({...eTouch});
 assert.equal(g.pointerAim.active,true,"Optional touch aiming works");
 assert.equal(g.pointerAim.touch,true,"Mobile aim source is tracked");
 assert.ok(g.pointerAim.x>500,"Aim uses the touch position");
-// Holding the D-pad must override a simultaneous aiming finger.
+// Finger aiming stays intentional even while the D-pad moves.
 g.game.player.x=170;g.game.player.y=180;
 g.game.player.vx=g.game.player.vy=0;g.game.player.temp=100;
 holdButtons[0].handlers.pointerdown(eTouch);
 g.tick();
-assert.ok(g.game.player.fy<-.95&&Math.abs(g.game.player.fx)<.05,
-  "D-pad aims UP even while another finger touches the battlefield");
+assert.ok(g.game.player.fx>.25,
+  "Touch aim overrides D-pad facing while movement stays active");
 holdButtons[0].handlers.pointerup();
 g.tick();
 assert.ok(g.game.player.fx>.25,"Touch aim remains an optional secondary input");
@@ -408,5 +409,52 @@ assert.match(homeCss,/\.cletus-menu-link:focus-visible/,
   "Cross-game link must support keyboard focus");
 assert.doesNotMatch(homeCss,/\.cletus-menu-link\{display:none/,
   "Do not hide the start-menu cross-game link on mobile");
+
+// Coarse-pointer emulation: nearby Yeti is excluded even if closer than the penguin.
+window.matchMedia=()=>({matches:true});
+vm.runInNewContext(source,sandbox,{filename:"mobile-game.js"});
+const m=sandbox.__test;
+m.start();
+const mp=m.game.player;
+mp.x=1200;mp.y=650;mp.vx=mp.vy=0;mp.fx=1;mp.fy=0;
+m.game.leopardSeals=[];m.game.seal=null;
+const foe=m.game.birds[0];
+m.game.birds=[foe];foe.x=mp.x;foe.y=mp.y-110;foe.down=false;foe.vx=foe.vy=0;
+const gentleYeti={x:mp.x,y:mp.y-55,alive:true,hp:6000,rage:0,guardian:0};
+m.game.yeti=gentleYeti;
+m.updatePlayer();
+assert.equal(mp.aimMode,"auto","Coarse pointer enables mobile auto aim");
+assert.ok(mp.fy<-.99,"Mobile aims at penguin, not closer Yeti");
+assert.equal(mp.autoTarget,foe,"Yeti is never an assisted target");
+mp.owned.uzi=true;mp.weapon="uzi";mp.ammo.uzi=40;mp.shoveCD=0;
+const beforeYetiHP=gentleYeti.hp;
+m.shove();
+assert.ok(m.game.bullets[0]?.autoAim,"Auto rounds retain assisted marker");
+for(let i=0;i<6;i++)m.moveProjectiles();
+assert.equal(gentleYeti.hp,beforeYetiHP,"Assisted rounds cannot accidentally hit Yeti");
+assert.equal(gentleYeti.rage,0,"Auto shots don't provoke Yeti");
+m.rocketDetonate(gentleYeti.x,gentleYeti.y,true);
+m.ionDetonate(gentleYeti.x,gentleYeti.y,true);
+assert.equal(gentleYeti.hp,beforeYetiHP,"Auto explosive splash protects Yeti");
+const touchYeti={pointerType:"touch",pointerId:28,clientX:500,clientY:330,preventDefault(){}};
+nodes.game.handlers.pointerdown(touchYeti);
+m.pressed.add("right");
+m.updatePlayer();
+m.pressed.delete("right");
+assert.equal(mp.aimMode,"manual","Touch aim disables assistance");
+assert.ok(mp.fy<-.95,"Manual touch points at Yeti despite D-pad movement");
+assert.equal(mp.autoTarget,null,"Manual aim removes automatic lock");
+mp.shoveCD=0;mp.weapon="uzi";mp.ammo.uzi=40;
+m.shove();
+assert.ok(m.game.bullets.some(b=>!b.autoAim),"Manual shots are not assisted");
+for(let i=0;i<5;i++)m.moveProjectiles();
+assert.ok(gentleYeti.hp<beforeYetiHP,"Deliberate manual shot damages Yeti");
+nodes.game.handlers.pointerup({pointerType:"touch"});
+assert.equal(m.pointerAim.active,false,"Lifting touch disables manual override");
+// Explosive test steps may have defeated the only penguin. Restore a valid foe.
+foe.down=false;foe.hp=100;foe.x=mp.x;foe.y=mp.y-110;
+m.updatePlayer();
+assert.equal(mp.aimMode,"auto","Auto aim resumes after deliberate touch release");
+assert.equal(mp.autoTarget,foe,"Auto aim still excludes Yeti");
 
 console.log("Emperor Gauntlet web smoke tests: PASS");

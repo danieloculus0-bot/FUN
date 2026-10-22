@@ -47,8 +47,36 @@
   const statusText = document.getElementById("game-status");
   const gameFrame = document.getElementById("game-frame");
   const pressed = new Set();
-  // Mouse aim is optional. Keyboard and touch users retain move-to-face aiming.
+  // On mobile, acquire visible enemies only. The Yeti and baby seal are not targets.
+  // Touching or dragging on the ice is a deliberate manual aiming override.
   const pointerAim={active:false,touch:false,x:500,y:320};
+  const mobileAutoAim=!!window.matchMedia?.("(pointer: coarse)")?.matches;
+  function nearestMobileTarget(p){
+    let nearest=Infinity,best=null;
+    const consider=target=>{
+      const dx=target.x-p.x,dy=target.y-p.y,x=dx+W/2,y=dy+385;
+      if(x<42||x>W-42||y<135||y>H-120)return;
+      const distance=dx*dx+dy*dy;
+      if(distance<nearest){nearest=distance;best=target;}
+    };
+    for(const bird of game.birds)if(!bird.down)consider(bird);
+    for(const seal of game.leopardSeals)if(!seal.dead&&seal.emerge>.35)consider(seal);
+    return best;
+  }
+  function aimAtTouchOrMouse(p){
+    const direction=norm(pointerAim.x-W/2,pointerAim.y-385);
+    if(direction.x!==0||direction.y!==0){p.fx=direction.x;p.fy=direction.y;}
+    p.aimMode="manual";p.autoTarget=null;
+  }
+  function applyMobileAim(p){
+    p.aimMode="manual";p.autoTarget=null;
+    if(!mobileAutoAim||pointerAim.active)return;
+    const target=nearestMobileTarget(p);
+    if(!target)return;
+    const direction=norm(target.x-p.x,target.y-p.y);
+    if(direction.x===0&&direction.y===0)return;
+    p.fx=direction.x;p.fy=direction.y;p.aimMode="auto";p.autoTarget=target;
+  }
   const soundButton=document.getElementById("sound-button");
   let audio=null, soundOn=false, lastSfxTick={};
   function playSfx(type){
@@ -184,7 +212,8 @@
         shoveCD: 0, swing: 0, swingId: 0, provocation: 0,
         weapon:"fists",owned:{fists:true},ammo:{uzi:120,shotgun:20,ion:0,rocket:0,flame:0},
         grenades:2,parka:0,cleats:false,rage:0,combo:0,comboTime:0,
-        swingReach:43,swingColor:"#fbb667",muzzle:0,warming:false,flameActive:0,flameFireCD:0,flameMeltCD:0
+        swingReach:43,swingColor:"#fbb667",muzzle:0,warming:false,flameActive:0,flameFireCD:0,flameMeltCD:0,
+        aimMode:"manual",autoTarget:null,swingAutoAim:false
       },
       birds: [], leopardSeals:[], leopardKills:0, drifts: [
         { x: 360, y: 300, w: 270, h: 120 },
@@ -412,8 +441,8 @@
       if(!leopard.dead&&leopard.emerge>.28&&hits(leopard.x,leopard.y,32))
         hurtLeopard(leopard,16);
     }
-    if(game.yeti?.alive&&hits(game.yeti.x,game.yeti.y,52))hurtYeti(9);
-    if(game.seal&&hits(game.seal.x,game.seal.y,19))warnSeal();
+    if(p.aimMode!=="auto"&&game.yeti?.alive&&hits(game.yeti.x,game.yeti.y,52))hurtYeti(9);
+    if(p.aimMode!=="auto"&&game.seal&&hits(game.seal.x,game.seal.y,19))warnSeal();
     if(p.flameFireCD<=0){
       const x=p.x+p.fx*rand(112,147),y=p.y+p.fy*rand(112,147);
       if(dropFuelFire(x,y))p.flameFireCD=75;
@@ -448,12 +477,13 @@
       p.shoveCD=18;say("CLICK. EMPTY. FIND AMMO OR SWITCH WEAPONS.",120);return;
     }
     p.ammo[p.weapon]--;p.shoveCD=w.cooldown;p.provocation+=.8;p.muzzle=5;
+    const autoAim=p.aimMode==="auto";
     if(p.weapon==="flame"){sprayFlame(p);return;}
     if(p.weapon==="rocket"){
       const angle=Math.atan2(p.fy,p.fx);
       game.bullets.push({x:p.x+p.fx*35,y:p.y+p.fy*35,
         vx:Math.cos(angle)*w.velocity,vy:Math.sin(angle)*w.velocity,
-        damage:w.damage,life:85,color:w.color,rocket:true,trail:0});
+        damage:w.damage,life:85,color:w.color,rocket:true,trail:0,autoAim});
       particles(p.x+p.fx*27,p.y+p.fy*27,C.orange,36,6);
       game.shake=Math.max(game.shake,8);
       playSfx("shotgun");
@@ -464,7 +494,7 @@
       const a=Math.atan2(p.fy,p.fx);
       game.bullets.push({x:p.x+p.fx*34,y:p.y+p.fy*34,
         vx:Math.cos(a)*w.velocity,vy:Math.sin(a)*w.velocity,
-        damage:w.damage,life:70,color:w.color,ion:true});
+        damage:w.damage,life:70,color:w.color,ion:true,autoAim});
       game.ionShots++;
       particles(p.x+p.fx*35,p.y+p.fy*35,C.cyan,40,8);
       game.shake=Math.max(game.shake,9);
@@ -477,7 +507,7 @@
       const theta=angle+rand(-w.spread,w.spread);
       game.bullets.push({x:p.x+p.fx*25,y:p.y+p.fy*25,
         vx:Math.cos(theta)*w.velocity,vy:Math.sin(theta)*w.velocity,
-        damage:w.damage*rand(.8,1.18),life:w.pellets?18:48,color:w.color});
+        damage:w.damage*rand(.8,1.18),life:w.pellets?18:48,color:w.color,autoAim});
     }
     particles(p.x+p.fx*35,p.y+p.fy*35,w.color,9,6);
     if(w.pellets)game.shake+=5;
@@ -485,13 +515,15 @@
   }
   function throwGrenade(){
     if(state!=="running"||game.player.grenades<1)return;
-    const p=game.player;p.grenades--;
+    const p=game.player;
+    if(pointerAim.active)aimAtTouchOrMouse(p);else applyMobileAim(p);
+    p.grenades--;
     game.bombs.push({x:p.x+p.fx*22,y:p.y+p.fy*22,
-      vx:p.fx*10+p.vx*.3,vy:p.fy*10+p.vy*.3,life:56});
+      vx:p.fx*10+p.vx*.3,vy:p.fy*10+p.vy*.3,life:56,autoAim:p.aimMode==="auto"});
     say("GRENADE OUT! THIS IS FINE.",100);
     playSfx("grenade");
   }
-  function boom(x,y){
+  function boom(x,y,autoAim=false){
     game.explosions.push({x,y,r:0,life:22});
     particles(x,y,C.orange,75,10);particles(x,y,C.red,25,7);
     for(const b of game.birds){
@@ -504,8 +536,8 @@
     }
     const p=game.player,d=Math.hypot(p.x-x,p.y-y);
     if(d<110)p.hp-=Math.max(4,25*(1-d/120));
-    if(game.yeti?.alive&&Math.hypot(game.yeti.x-x,game.yeti.y-y)<155)hurtYeti(140);
-    if(game.seal&&Math.hypot(game.seal.x-x,game.seal.y-y)<120)warnSeal();
+    if(!autoAim&&game.yeti?.alive&&Math.hypot(game.yeti.x-x,game.yeti.y-y)<155)hurtYeti(140);
+    if(!autoAim&&game.seal&&Math.hypot(game.seal.x-x,game.seal.y-y)<120)warnSeal();
     damageNearbyLeopards(x,y,155,150);
     game.shake=16;say("BOOM. ANTARCTICA FILES A FORMAL COMPLAINT.",155);
     playSfx("boom");
@@ -618,7 +650,7 @@
       playSfx("boss");
     }
   }
-  function ionDetonate(x,y){
+  function ionDetonate(x,y,autoAim=false){
     x=clamp(x,40,WORLD_W-40);y=clamp(y,40,WORLD_H-40);
     game.explosions.push({x,y,r:0,life:38,ion:true});
     particles(x,y,C.cyan,95,13);
@@ -635,9 +667,9 @@
     // A guardian Yeti freshly summoned by a seal warning must not also
     // get accidentally hit by the very same plasma detonation.
     const yetiBeforeImpact=game.yeti?.alive?game.yeti:null;
-    if(game.seal&&Math.hypot(game.seal.x-x,game.seal.y-y)<245)warnSeal();
+    if(!autoAim&&game.seal&&Math.hypot(game.seal.x-x,game.seal.y-y)<245)warnSeal();
     damageNearbyLeopards(x,y,250,520);
-    if(yetiBeforeImpact&&game.yeti===yetiBeforeImpact&&
+    if(!autoAim&&yetiBeforeImpact&&game.yeti===yetiBeforeImpact&&
        game.yeti.alive&&Math.hypot(game.yeti.x-x,game.yeti.y-y)<240){
       const d=Math.hypot(game.yeti.x-x,game.yeti.y-y);
       hurtYeti(Math.max(90,550*(1-d/260)));
@@ -782,7 +814,7 @@
     y.y=clamp(y.y+y.vy,70,WORLD_H-70);
     if(y.life<=0&&y.rage===0)game.yeti=null;
   }
-  function rocketDetonate(x,y){
+  function rocketDetonate(x,y,autoAim=false){
     x=clamp(x,35,WORLD_W-35);y=clamp(y,35,WORLD_H-35);
     game.explosions.push({x,y,r:0,life:32,maxR:180,rocket:true});
     particles(x,y,C.orange,115,12);particles(x,y,C.red,30,8);
@@ -794,8 +826,8 @@
         smack(b,Math.max(25,350*(1-d/230)),n.x*20,n.y*20);
       }
     }
-    if(game.yeti?.alive&&Math.hypot(x-game.yeti.x,y-game.yeti.y)<180)hurtYeti(200);
-    if(game.seal&&Math.hypot(x-game.seal.x,y-game.seal.y)<140)warnSeal();
+    if(!autoAim&&game.yeti?.alive&&Math.hypot(x-game.yeti.x,y-game.yeti.y)<180)hurtYeti(200);
+    if(!autoAim&&game.seal&&Math.hypot(x-game.seal.x,y-game.seal.y)<140)warnSeal();
     damageNearbyLeopards(x,y,195,340);
     const p=game.player,dist=Math.hypot(x-p.x,y-p.y);
     if(dist<160)p.hp-=Math.max(8,50*(1-dist/170));
@@ -814,24 +846,24 @@
           game.leopardSeals.some(l=>!l.dead&&l.emerge>.35&&Math.hypot(l.x-bullet.x,l.y-bullet.y)<46);
         if(impact||bullet.life<=0||bullet.x<35||bullet.y<35||
            bullet.x>WORLD_W-35||bullet.y>WORLD_H-35){
-          rocketDetonate(bullet.x,bullet.y);bullet.life=0;
+          rocketDetonate(bullet.x,bullet.y,bullet.autoAim);bullet.life=0;
         }
         continue;
       }
       if(bullet.ion){
         const hit=game.birds.some(b=>!b.down&&Math.hypot(b.x-bullet.x,b.y-bullet.y)<(b.variant==="boss"?55:28))||
           game.leopardSeals.some(l=>!l.dead&&l.emerge>.35&&Math.hypot(l.x-bullet.x,l.y-bullet.y)<43);
-        const yetiHit=game.yeti?.alive&&Math.hypot(game.yeti.x-bullet.x,game.yeti.y-bullet.y)<63;
+        const yetiHit=!bullet.autoAim&&game.yeti?.alive&&Math.hypot(game.yeti.x-bullet.x,game.yeti.y-bullet.y)<63;
         if(hit||yetiHit||bullet.life<=0||
           bullet.x<=35||bullet.y<=35||bullet.x>=WORLD_W-35||bullet.y>=WORLD_H-35){
-          ionDetonate(bullet.x,bullet.y);
+          ionDetonate(bullet.x,bullet.y,bullet.autoAim);
           bullet.life=0;
         }
         continue;
       }
       if(bullet.x<0||bullet.y<0||bullet.x>WORLD_W||bullet.y>WORLD_H)bullet.life=0;
       const seal=game.seal;
-      if(seal&&bullet.life>0){
+      if(!bullet.autoAim&&seal&&bullet.life>0){
         const dx=bullet.x-ox,dy=bullet.y-oy,den=dx*dx+dy*dy;
         const t=clamp(den?((seal.x-ox)*dx+(seal.y-oy)*dy)/den:0,0,1);
         if(Math.hypot(seal.x-(ox+t*dx),seal.y-(oy+t*dy))<22){
@@ -849,7 +881,7 @@
         }
       }
       const yeti=game.yeti;
-      if(yeti?.alive&&bullet.life>0){
+      if(!bullet.autoAim&&yeti?.alive&&bullet.life>0){
         const dx=bullet.x-ox,dy=bullet.y-oy,den=dx*dx+dy*dy;
         const t=clamp(den?((yeti.x-ox)*dx+(yeti.y-oy)*dy)/den:0,0,1);
         if(Math.hypot(yeti.x-(ox+t*dx),yeti.y-(oy+t*dy))<66){
@@ -872,7 +904,7 @@
     for(const bomb of game.bombs){
       bomb.x+=bomb.vx;bomb.y+=bomb.vy;
       bomb.vx*=.95;bomb.vy*=.95;bomb.life--;
-      if(bomb.life<=0)boom(bomb.x,bomb.y);
+      if(bomb.life<=0)boom(bomb.x,bomb.y,bomb.autoAim);
     }
     game.bombs=game.bombs.filter(b=>b.life>0);
     for(const blast of game.explosions){blast.life--;blast.r=Math.min(blast.maxR||135,blast.r+(blast.blood?22:15));}
@@ -921,10 +953,12 @@
     const p = game.player;
     const w=ARMORY[p.weapon];
     if(p.shoveCD>0)return;
+    if(pointerAim.active)aimAtTouchOrMouse(p);else applyMobileAim(p);
     if(w.type==="gun"){fireWeapon();return;}
     if(p.stamina<w.stamina)return;
     p.shoveCD=w.cooldown;p.stamina-=w.stamina;
     p.swing=9;p.swingReach=w.reach;p.swingColor=w.color;
+    p.swingAutoAim=p.aimMode==="auto";
     p.swingId++;p.provocation++;
     particles(p.x+p.fx*w.reach,p.y+p.fy*w.reach,w.color,12,4);
     playSfx("melee");
@@ -992,8 +1026,8 @@
     else p.stamina += .22;
     p.stamina = clamp(p.stamina, 0, 100);
     if (mx !== 0 || my !== 0) {
-      // On mobile the D-pad is the PRIMARY steering and aiming control.
-      if(!pointerAim.active||pointerAim.touch){p.fx=move.x;p.fy=move.y;}
+      // Movement cannot override deliberate finger/mouse aim.
+      if(!pointerAim.active){p.fx=move.x;p.fy=move.y;}
       const acceleration = sprint ? .72 : .43;
       p.vx += move.x * acceleration * terrainSlow;
       p.vy += move.y * acceleration * terrainSlow;
@@ -1007,12 +1041,9 @@
     p.vy *= friction;
     p.x = clamp(p.x + p.vx, PR, WORLD_W - PR);
     p.y = clamp(p.y + p.vy, PR, WORLD_H - PR);
-    // Finger aiming is optional. Any held D-pad direction overrides it.
-    if(pointerAim.active&&!(pointerAim.touch&&(mx!==0||my!==0))){
-      const camX=p.x-W/2,camY=p.y-385;
-      const face=norm(pointerAim.x+camX-p.x,pointerAim.y+camY-p.y);
-      if(face.x!==0||face.y!==0){p.fx=face.x;p.fy=face.y;}
-    }
+    // Dragging is a deliberate manual override; otherwise mobile auto-locks visible foes.
+    if(pointerAim.active)aimAtTouchOrMouse(p);
+    else applyMobileAim(p);
     if (p.shoveCD > 0) p.shoveCD--;
     if(p.muzzle>0)p.muzzle--;
     if(p.flameActive>0)p.flameActive--;
@@ -1224,7 +1255,7 @@
       }
     }
     const seal=game.seal;
-    if(seal&&p.swing>0&&seal.lastSwing!==p.swingId){
+    if(seal&&!p.swingAutoAim&&p.swing>0&&seal.lastSwing!==p.swingId){
       const dx=seal.x-p.x,dy=seal.y-p.y,n=norm(dx,dy);
       if(Math.hypot(dx-p.fx*p.swingReach,dy-p.fy*p.swingReach)<40&&
          n.x*p.fx+n.y*p.fy>.15){
@@ -1242,7 +1273,7 @@
       }
     }
     const yeti=game.yeti;
-    if(yeti?.alive&&yeti.guardian<=0&&p.swing>0&&yeti.lastSwing!==p.swingId){
+    if(yeti?.alive&&!p.swingAutoAim&&yeti.guardian<=0&&p.swing>0&&yeti.lastSwing!==p.swingId){
       const dx=yeti.x-p.x,dy=yeti.y-p.y;
       const n=norm(dx,dy);
       if(Math.hypot(dx-p.fx*p.swingReach,dy-p.fy*p.swingReach)<70&&
@@ -2109,6 +2140,14 @@
     drawBlizzard();
     ctx.restore();
     drawHud();
+    // Highlight only the assisted enemy target, never the Yeti or baby seal.
+    if(mobileAutoAim&&game.player.autoTarget&&state==="running"){
+      const target=game.player.autoTarget,x=target.x-camX,y=target.y-camY;
+      if(x>42&&x<W-42&&y>135&&y<H-120){
+        ctx.strokeStyle=C.cyan;ctx.lineWidth=2;ctx.beginPath();
+        ctx.arc(x,y,23,0,Math.PI*2);ctx.stroke();
+      }
+    }
     if(pointerAim.active&&state==="running"){
       const x=pointerAim.x,y=pointerAim.y;
       ctx.strokeStyle=C.yellow;ctx.lineWidth=2;ctx.beginPath();
@@ -2237,6 +2276,7 @@
     pointerAim.y=clamp((e.clientY-box.top)*H/box.height,0,H);
     pointerAim.active=true;
     pointerAim.touch=e.pointerType==="touch";
+    if(state==="running")aimAtTouchOrMouse(game.player);
   };
   canvas.addEventListener("pointermove",e=>{
     if(e.pointerType==="touch"&&state!=="running")return;
@@ -2246,7 +2286,7 @@
     if(state!=="running")return;
     if(e.pointerType==="touch"){
       e.preventDefault();
-      // Drag on the ice with one thumb to aim while the other holds B.
+      // Drag to deliberately aim, including at the Yeti.
       canvas.setPointerCapture?.(e.pointerId);
       aimAtPointer(e);
       return;
@@ -2254,8 +2294,8 @@
     if(e.button!==0)return;
     pressed.add("attack");shove();
   });
-  // Touch aiming is optional and never overrides the D-pad. Releasing a
-  // pointing finger must not release the separate B button's held-fire state.
+  // Touch aiming overrides assisted facing, but not D-pad movement.
+  // Releasing the aiming finger does not release the B button.
   const releasePointer=e=>{
     if(e?.pointerType==="touch"){
       pointerAim.active=false;
