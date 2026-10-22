@@ -146,7 +146,7 @@ console.log('PASS 5 clues, +30% Uzi ammo, auto-heal, smart weapons, 7+ car model
 // Mobile handheld layout and installation checks.
 const manifest=JSON.parse(fs.readFileSync(path.join(base,'manifest.webmanifest'),'utf8'));
 assert.equal(manifest.display,'standalone','iOS/Android home-screen standalone mode');
-assert.equal(manifest.start_url,'/FUN/cletus/play.html?v=drivefix-20261022-4','Installed launch URL should request the tested Drive Fix 4 build');
+assert.equal(manifest.start_url,'/FUN/cletus/play.html','Installed app must always launch the canonical main game URL');
 assert.equal(manifest.id,'/FUN/cletus/play.html','App identity must remain stable across updates');
 assert.match(html,/apple-mobile-web-app-capable/,'iOS standalone web app hint');
 assert.match(html,/viewport-fit=cover/,'Use mobile safe-area insets');
@@ -552,3 +552,42 @@ for(const [direction,want] of [['up',0],['right',Math.PI/2],['down',Math.PI],['l
 assert.ok(source.includes('i.mobileControls?keys.has("reverse"):keys.has("down")'),'Mobile reverse must be separate from desktop keyboard DOWN');
 assert.ok(source.includes('endPointerAttack:tl,isDriving:()=>!!o.current.driving'),'Y behavior must use current vehicle state');
 console.log('PASS four-direction steering, independent Y reverse, X enter/exit unchanged.');
+
+// Canonical installed URL update behavior. No game copies or replacement shortcut:
+// old launch URLs acquire a fresh ?v= value when the main release marker changes.
+const release=JSON.parse(fs.readFileSync(path.join(base,'release.json'),'utf8'));
+assert.equal(release.entry,'/FUN/cletus/play.html');
+assert.match(release.build,/^[a-z0-9._-]{1,64}$/i);
+assert.ok(html.includes('name="cletus-build" content="'+release.build+'"'),'Bundled build must match release marker');
+const updaterIndex=html.indexOf('<!-- The installed shortcut keeps');
+assert.ok(updaterIndex>0,'Update bootstrap must exist before game bundle');
+const updaterScript=html.slice(updaterIndex).match(/<script>([\s\S]*?)<\/script>/);
+assert.ok(updaterScript,'Update script missing');
+new vm.Script(updaterScript[1]);
+assert.ok(updaterIndex<html.indexOf('<script type="module">'),'Updater must load before game JS');
+assert.ok(html.includes('window.addEventListener("pageshow",checkForUpdate)'),'Updater should run on app open');
+assert.ok(html.includes('document.addEventListener("visibilitychange"'),'Updater should recheck when home-screen app returns');
+(async()=>{
+ const page='https://danieloculus0-bot.github.io/FUN/cletus/play.html';
+ const listeners={};const docListeners={};const moves=[];
+ const location={protocol:'https:',hostname:'danieloculus0-bot.github.io',href:page,replace(url){moves.push(url);this.href=url}};
+ let probes=0;
+ const sandbox={location,document:{hidden:false,addEventListener(k,fn){docListeners[k]=fn}},
+    window:{addEventListener(k,fn){listeners[k]=fn}},fetch:async url=>{probes++;assert.ok(url.includes('release.json?_='));return {ok:true,json:async()=>({build:'next-release'})}},
+    Date:{now:()=>1800000000000},URL,console};
+ vm.runInNewContext(updaterScript[1],sandbox);
+ await listeners.pageshow();
+ assert.equal(probes,1,'Updater should query current release without HTTP cache');
+ assert.equal(moves[0],page+'?v=next-release','Current home-screen URL must refresh to new build');
+ // A page already on the newest URL must not enter an endless reload loop.
+ const keep={...sandbox.location,href:page+'?v=next-release',replace(url){moves.push(url)}};
+ const secondListeners={};
+ vm.runInNewContext(updaterScript[1],{...sandbox,location:keep,window:{addEventListener(k,fn){secondListeners[k]=fn}}});
+ await secondListeners.pageshow();
+ assert.equal(moves.length,1,'Fresh URL should never loop');
+ // An offline copy must not attempt a network check.
+ const offlineListeners={};
+ vm.runInNewContext(updaterScript[1],{...sandbox,location:{protocol:'file:',hostname:'',href:'file:///tmp/play.html'},window:{addEventListener(k,fn){offlineListeners[k]=fn}}});
+ assert.equal(Object.keys(offlineListeners).length,0,'venvWin offline game must not fetch online updates');
+ console.log('PASS same-URL installed-app updates, cache bypass, foreground checks, no reload loop and offline isolation.');
+})().catch(err=>{console.error(err);process.exitCode=1});
