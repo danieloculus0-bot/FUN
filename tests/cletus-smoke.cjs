@@ -146,7 +146,8 @@ console.log('PASS 5 clues, +30% Uzi ammo, auto-heal, smart weapons, 7+ car model
 // Mobile handheld layout and installation checks.
 const manifest=JSON.parse(fs.readFileSync(path.join(base,'manifest.webmanifest'),'utf8'));
 assert.equal(manifest.display,'standalone','iOS/Android home-screen standalone mode');
-assert.equal(manifest.start_url,'/FUN/cletus/play.html');
+assert.equal(manifest.start_url,'/FUN/cletus/play.html?v=drivefix-20261022-4','Installed launch URL should request the tested Drive Fix 4 build');
+assert.equal(manifest.id,'/FUN/cletus/play.html','App identity must remain stable across updates');
 assert.match(html,/apple-mobile-web-app-capable/,'iOS standalone web app hint');
 assert.match(html,/viewport-fit=cover/,'Use mobile safe-area insets');
 assert.match(html,/manifest\.webmanifest/,'Web app manifest link');
