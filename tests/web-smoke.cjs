@@ -451,6 +451,8 @@ for(let i=0;i<5;i++)m.moveProjectiles();
 assert.ok(gentleYeti.hp<beforeYetiHP,"Deliberate manual shot damages Yeti");
 nodes.game.handlers.pointerup({pointerType:"touch"});
 assert.equal(m.pointerAim.active,false,"Lifting touch disables manual override");
+// Explosive test steps may have defeated the only penguin. Restore a valid foe.
+foe.down=false;foe.hp=100;foe.x=mp.x;foe.y=mp.y-110;
 m.updatePlayer();
 assert.equal(mp.aimMode,"auto","Auto aim resumes after deliberate touch release");
 assert.equal(mp.autoTarget,foe,"Auto aim still excludes Yeti");
