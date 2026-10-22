@@ -4,6 +4,41 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
     <title>Cletus Saves Candy</title>
+    <meta name="cletus-build" content="drivefix-20261022-5" />
+    <!-- The installed shortcut keeps its existing URL. On reactivation, check for
+         releases and reload from that same URL with a fresh query if necessary. -->
+    <script>
+    (function(){
+      "use strict";
+      const built="drivefix-20261022-5";
+      // Local/offline bundles must not contact GitHub Pages or redirect.
+      if(location.protocol!=="https:"||location.hostname!=="danieloculus0-bot.github.io")return;
+      let checking=false,lastCheck=0;
+      async function checkForUpdate(){
+        if(document.hidden||checking||Date.now()-lastCheck<8000)return;
+        checking=true;lastCheck=Date.now();
+        try{
+          const probe=new URL("./release.json",location.href);
+          probe.searchParams.set("_",String(Date.now()));
+          const response=await fetch(probe.href,{cache:"no-store"});
+          if(!response.ok)return;
+          const info=await response.json();
+          const latest=info&&info.build;
+          if(typeof latest!=="string"||!/^[a-z0-9._-]{1,64}$/i.test(latest)||latest===built)return;
+          const next=new URL(location.href);
+          // A matching query avoids reload loops while GitHub Pages deploys.
+          if(next.searchParams.get("v")===latest)return;
+          next.searchParams.set("v",latest);
+          location.replace(next.href);
+        }catch(err){console.debug("Cletus update check unavailable",err)}
+        finally{checking=false}
+      }
+      window.cletusCheckForUpdate=checkForUpdate;
+      window.addEventListener("pageshow",checkForUpdate);
+      window.addEventListener("focus",checkForUpdate);
+      document.addEventListener("visibilitychange",function(){if(!document.hidden)checkForUpdate()});
+    })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
