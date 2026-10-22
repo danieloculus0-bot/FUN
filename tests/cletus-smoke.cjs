@@ -10,7 +10,7 @@ assert.ok(html.length > 100000, 'Game content missing');
 assert.match(html, /<div id="root"><\/div>/, 'Game root missing');
 assert.match(html, /Cletus Saves Candy/, 'Title missing');
 assert.match(html, /og:image/, 'Cover preview missing');
-assert.match(landing, /href="play\.html"/, 'Landing must link to game');
+assert.ok(landing.includes('href="play.html'), 'Landing must link to game');
 assert.match(landing, /Cletus%20Saves%20Candy_%20Neon%20City%20Rescue\.png/, 'Landing cover missing');
 const script=html.match(/<script type="module">([\s\S]*?)<\/script>/);
 assert.ok(script,'Inline game module missing');
@@ -524,3 +524,8 @@ control('attack',true);
 assert.ok(pressed.has('attack')&&!pressed.has('gas'),'Touch B should fire on foot');
 control('attack',false);
 console.log('PASS mobile vehicle HUD frame, touch GAS/BRAKE, steering, reverse, desktop unchanged, and mobile 2x Golden Uzi.');
+
+assert.ok(source.includes('o.current.mobileControls=true'),'Touch inputs must force mobile mode');
+assert.ok(source.includes('stoppedByError=true;clearKeys();console.error'),'Runtime errors must not silently freeze the game');
+assert.ok(source.includes('cletus-runtime-error'),'Show on-screen runtime error banner');
+assert.ok(!source.includes('o.player.immune&&o.tick%6<3&&S(i,0,0,bl,vl'),'Damage flash should not cover whole screen red');
