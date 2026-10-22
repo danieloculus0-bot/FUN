@@ -1,6 +1,6 @@
-# FUN — Emperor Gauntlet
+# FUN — Original browser games
 
-Independent free browser game and playground repository; the main active project is Emperor Gauntlet, an Antarctic penguin-survival arcade game. Not part of the manufacturing ERP engine.
+Independent, free browser arcade games. FUN includes Emperor Gauntlet, an Antarctic penguin-survival arcade game, and Cletus Saves Candy, a gritty urban rescue adventure. Not part of the manufacturing ERP engine.
 
 ## Current build state
 
@@ -9,6 +9,11 @@ Independent free browser game and playground repository; the main active project
 - [pages build and deployment](https://github.com/danieloculus0-bot/FUN/actions/runs/39489952300) — **Passed** at inspected `main`.
 
 [Live workflow history](https://github.com/danieloculus0-bot/FUN/actions) is the source for newer results.
+
+## Play the games
+
+- **[Cletus Saves Candy](https://danieloculus0-bot.github.io/FUN/cletus/)**: full browser game with city exploration, clue hunting, improvised weapons, Uzis, rockets, Big Tony and his gang. [Launch game](https://danieloculus0-bot.github.io/FUN/cletus/play.html) · [Game source](docs/cletus/play.html)
+- **[Emperor Gauntlet](https://danieloculus0-bot.github.io/FUN/)**: Antarctic arcade shooter with day/night combat, penguins, seals and Yeti.
 
 ## Implemented features
 
