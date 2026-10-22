@@ -3,7 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
-    <title>Cletus Saves Candy</title><meta name="theme-color" content="#15101d" /><meta name="apple-mobile-web-app-capable" content="yes" /><meta name="mobile-web-app-capable" content="yes" /><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" /><meta name="apple-mobile-web-app-title" content="Cletus Saves Candy" /><link rel="apple-touch-icon" href="../Cletus%20Saves%20Candy_%20Neon%20City%20Rescue.png" /><link rel="manifest" href="manifest.webmanifest" />
+    <title>Cletus Saves Candy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' rx='15' fill='%23180d23'/%3E%3Ctext x='40' y='56' text-anchor='middle' font-size='54' font-family='sans-serif' font-weight='900' fill='%23ffcf61'%3EC%3C/text%3E%3C/svg%3E" /><meta name="theme-color" content="#15101d" /><meta name="apple-mobile-web-app-capable" content="yes" /><meta name="mobile-web-app-capable" content="yes" /><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" /><meta name="apple-mobile-web-app-title" content="Cletus Saves Candy" /><link rel="apple-touch-icon" href="../Cletus%20Saves%20Candy_%20Neon%20City%20Rescue.png" /><link rel="manifest" href="manifest.webmanifest" />
     <meta name="description" content="A gritty 16-bit city rescue. Track the van, follow the leads, take down Big Tony, and bring Candy home." />
     <meta name="robots" content="index, follow" />
     <meta property="og:title" content="Cletus Saves Candy" />
@@ -613,10 +617,10 @@ E.jsx("div",{className:"pad-legend","aria-hidden":"true",children:"D-PAD MOVE / 
   background:#100a18d8;border:1px solid #a56285;
   box-shadow:0 10px 24px #07050ca8;
 }
-.game-overlay[data-testid="overlay-menu"] .overlay-title,
-.game-overlay[data-testid="overlay-menu"] .overlay-copy,
-.game-overlay[data-testid="overlay-menu"] .overlay-kicker,
-.game-overlay[data-testid="overlay-menu"] .story-line{
+html.cletus-key-art-ready .game-overlay[data-testid="overlay-menu"] .overlay-title,
+html.cletus-key-art-ready .game-overlay[data-testid="overlay-menu"] .overlay-copy,
+html.cletus-key-art-ready .game-overlay[data-testid="overlay-menu"] .overlay-kicker,
+html.cletus-key-art-ready .game-overlay[data-testid="overlay-menu"] .story-line{
   position:absolute;overflow:hidden;clip-path:inset(50%);width:1px;height:1px;
   padding:0;margin:-1px;white-space:nowrap;
 }
@@ -683,6 +687,30 @@ body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .touch-controls .system-key{height:20px;min-height:20px;font-size:8px}
 }
 
+
+/* Portable copy: keep a readable game menu when cover PNG isn't alongside HTML. */
+html:not(.cletus-key-art-ready) .game-overlay[data-testid="overlay-menu"]{
+  background:radial-gradient(circle at 50% 15%,#4b275d,#1b1026 57%,#090710);
+  place-items:center;align-items:center;
+}
+html:not(.cletus-key-art-ready) .game-overlay[data-testid="overlay-menu"] .overlay-card{
+  padding:clamp(12px,4vw,30px);border:2px solid #a56285;
+  background:#100a18f2;max-width:min(92%,560px);
+}
+html:not(.cletus-key-art-ready) .game-overlay[data-testid="overlay-menu"] .overlay-title{
+  font-size:clamp(26px,5.8vw,57px);line-height:.95;white-space:normal;
+}
+html:not(.cletus-key-art-ready) .game-overlay[data-testid="overlay-menu"] .overlay-copy{
+  margin:10px auto;font-size:clamp(12px,2.2vw,16px);
+}
+html:not(.cletus-key-art-ready) .game-overlay[data-testid="overlay-menu"] .story-line{
+  max-width:350px;margin:10px auto 16px;
+}
+:root{
+  --app-font-sans:"Barlow Condensed","Arial Narrow",Impact,system-ui,sans-serif;
+  --app-font-mono:"Share Tech Mono",Consolas,"Courier New",monospace;
+}
+
 </style>
   </head>
   <body>
@@ -696,6 +724,16 @@ window.cletusFullscreen=function(){if(document.fullscreenElement){document.exitF
 tip('For iPhone full-screen play: open in Safari, tap Share, Add to Home Screen, and launch Cletus from your Home Screen.')};
 document.addEventListener('touchmove',e=>{if(matchMedia('(pointer:coarse) and (max-width:1180px)').matches&&e.cancelable)e.preventDefault()},{passive:false});
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.touch-controls,.game-canvas'))e.preventDefault()});
+})();
+</script>
+<script>
+/* Key art is optional in copies of this single-file game.
+   Hide menu text only when the external cover has actually loaded. */
+(function(){
+ const art=new Image();
+ art.onload=()=>document.documentElement.classList.add('cletus-key-art-ready');
+ art.onerror=()=>document.documentElement.classList.remove('cletus-key-art-ready');
+ art.src='../Cletus%20Saves%20Candy_%20Neon%20City%20Rescue.png';
 })();
 </script>
   </body>
