@@ -2,7 +2,7 @@
   "name": "Cletus Saves Candy",
   "short_name": "Cletus",
   "description": "A 16-bit street-rescue arcade game from FUN.",
-  "start_url": "/FUN/cletus/play.html?v=drivefix-20261022-4",
+  "start_url": "/FUN/cletus/play.html",
   "scope": "/FUN/cletus/",
   "id": "/FUN/cletus/play.html",
   "display": "standalone",
