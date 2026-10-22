@@ -43,7 +43,7 @@ function Wh(i,o,r){const f=i.player;if(i.phase!=="playing"||f.cool>0)return;cons
  rt(r,f,560,.07,"triangle",.04);rt(r,f,800,.1,"triangle",.035)
 }
 function cletusBossPhase(i,p,r,f){
- if(i.leads!==3||!i.boss||i.boss.dead)return;
+ if(i.leads!==5||!i.boss||i.boss.dead)return;
  const b=i.boss,d=jl(b,p),phase2=b.hp<b.max*.55;
  if(phase2&&!i.bossPhase2){i.bossPhase2=!0;aa(i,"BIG TONY IS FURIOUS! WATCH HIS CHARGE!",180);Yt(i,b,"#f9b65b",20,3)}
  if(i.bossDash>0){
