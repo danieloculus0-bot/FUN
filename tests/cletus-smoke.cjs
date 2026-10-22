@@ -37,3 +37,48 @@ for(const thug of gang){
   assert.equal(ctx.test.Yu(world,thug.x,thug.y,thug.radius),false,'Gang member inside obstacle');
 }
 console.log('PASS Cletus landing, script syntax, cover tags, boss gang and reinforcements.');
+
+
+// Polish-pass regression checks: closer camera, detailed render, boss mechanics,
+// and supplies placed on traversable street instead of inside buildings.
+assert.match(source, /i\.scale\(4\/3,4\/3\)/, 'World camera must be zoomed 33%');
+assert.match(source, /i\.aim\.x\/\(4\/3\)/, 'Pointer aim must compensate for zoom');
+assert.match(source, /function cletusBossPhase\(/, 'Boss attack phases missing');
+assert.match(source, /o\.bossWindup=0/, 'Boss charge state missing');
+assert.match(source, /o\.bossPhase2/, 'Boss enrage tracking missing');
+assert.match(source, /function w0\(/, 'Vehicle art renderer missing');
+assert.match(source, /function je\(/, 'Detailed character renderer missing');
+assert.match(html, /overlay-menu/, 'Opening cover art mode missing');
+assert.match(html, /Cletus%20Saves%20Candy_%20Neon%20City%20Rescue\.png/, 'Opening cover asset link missing');
+const wholeEnd=source.indexOf('function Ce(',start);
+assert.ok(wholeEnd>stop,'Renderer and boss logic not found');
+const worldCtx={Math};
+vm.runInNewContext('const '+source.slice(start,wholeEnd)+';globalThis.polish={Y0,Fh,n2,je,w0,Yu};',worldCtx);
+const polish=worldCtx.polish, active=polish.Y0(0);
+for(const pickup of active.drops.slice(-4)) {
+  assert.equal(polish.Yu(active,pickup.x,pickup.y,8),false,'Final boss supply pickup trapped in a wall');
+}
+active.phase='playing';
+active.player.x=900;active.player.y=790;
+for(let tick=0;tick<30;tick++)polish.Fh(active,new Set(['right']),null,false);
+assert.ok(active.camera.x>0,'Camera must follow the player');
+let rectangles=0;
+const graphics=new Proxy({createRadialGradient(){return {addColorStop(){}};}}, {
+  get(obj,key){if(key in obj)return obj[key];return (...args)=>{if(key==='fillRect')rectangles++;};},
+  set(obj,key,value){obj[key]=value;return true;}
+});
+polish.n2(graphics,active);
+polish.je(graphics,'cletus',100,100,0,0,0);
+polish.je(graphics,'boss',100,100,0,0,0);
+polish.w0(graphics,50,50,2,false,0);
+polish.w0(graphics,50,50,2,true,0);
+assert.ok(rectangles>50,'Sprite and city renderer produced too few draw calls');
+active.leads=3;active.tonyGangSpawned=true;active.tonyReinforced=true;
+active.player.x=active.boss.x+130;active.player.y=active.boss.y-22;
+active.bossNextCharge=0;
+for(let tick=0;tick<40;tick++)polish.Fh(active,new Set(),null,false);
+assert.ok(active.bossDash>0||active.bossWindup>0,'Tony should wind up and charge');
+active.boss.hp=300;
+for(let tick=0;tick<40;tick++)polish.Fh(active,new Set(),null,false);
+assert.equal(active.bossPhase2,true,'Tony must enter his furious second phase');
+console.log('PASS Cletus camera zoom, detailed art, boss charge/enrage, render and supply accessibility.');
