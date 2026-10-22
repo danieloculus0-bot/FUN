@@ -241,7 +241,7 @@ assert.match(source,/now-lastWrite>=5000/,'Best score writes must be throttled')
 assert.match(source,/window\.addEventListener\("pagehide",saveBest\)/,'Score must flush on exit');
 assert.match(source,/function cletusAimAtHostile\(/,'Touch auto aim missing');
 assert.match(source,/const golden=f\.weapon===2&&f\.uziGold/,
- 'Only the purchased Golden Uzi should auto-aim on any platform');
+ 'Only the Golden Uzi should auto-aim on desktop');
 assert.match(source,/if\(i\.driveLatch\)return true/,'Do not start copper stripping when E is held after leaving a car');
 assert.match(html,/family=Barlow\+Condensed/,'Typography stylesheet should load');
 assert.match(html,/family=Barlow\+Condensed[\s\S]*?family=Share\+Tech\+Mono/,'Both typefaces should load');
@@ -322,9 +322,9 @@ assert.match(source,/function drawGoldenUzi\(/,'Gold gun needs a special display
 assert.match(source,/shop\.open=true/,'Shop should open only through the entrance action');
 assert.match(source,/if\(updatePawnShop\(i,o,r,f\)\)return/,'Active shop freezes game simulation');
 assert.match(source,/const golden=f\.weapon===2&&f\.uziGold/,'Auto-target must be exclusive to acquired gun');
-assert.match(source,/i\.goldTarget=cletusAimAtHostile\(i,340\)/,'Golden gun must target on fire on every platform');
-assert.doesNotMatch(source,/i\.touchFire&&!i\.pointerActive\)cletusAimAtHostile\(i\)/,
- 'Regular touch guns must not gain the pawnshop exclusive auto-aim');
+assert.match(source,/if\(golden\|\|i\.mobileControls\)/,'All mobile weapons must auto-aim when fired');
+assert.match(source,/damage:\[0,48,golden\?\(i\.mobileControls\?48:24\):16,120\]/,
+ 'Golden Uzi must deal 48 mobile and 24 desktop damage');
 const shopGame=polish.Y0(0);shopGame.phase='playing';
 shopGame.player.x=shopGame.shop.x;shopGame.player.y=shopGame.shop.y;
 shopGame.player.copper=9;shopGame.enemies=[];shopGame.traffic=[];
@@ -389,7 +389,7 @@ gunGame.enemies=[];gunGame.player.face=Math.PI;gunGame.player.cool=0;
 polish.Wh(gunGame,null,false);
 assert.equal(gunGame.goldTarget,null,'No hostile means no phantom target lock');
 assert.ok(gunGame.shots.filter(shot=>shot.owner==='player').at(-1).vx<0,'Without a target, golden gun falls back to current facing');
-console.log('PASS pawn-shop room with explicit purchase/exit, 10 copper economy, one-time Golden Uzi, PC and mobile exclusive auto-aim.');
+console.log('PASS pawn-shop room with explicit purchase/exit, 10 copper economy, and desktop Golden Uzi auto-aim.');
 
 
 // Five clue discoveries must pause the world and open playable case-file dialogue.
@@ -456,3 +456,69 @@ assert.equal(tapWorld.clueScene.page,1);
 assert.equal(polish.advanceClueScene(tapWorld),true);
 assert.equal(tapWorld.clueScene,null);
 console.log('PASS five distinct clue stories, pixel portrait, KPI panel, pause semantics, B/X controls, held-key guard and tap progression.');
+
+
+// Mobile vehicle driving regression: render the dashboard *with a car occupied*.
+// This catches the previously missed undefined-variable crash in vehicleHUD,
+// which stopped requestAnimationFrame immediately after entering a car.
+const mobileRoad=polish.Y0(0);mobileRoad.phase='playing';mobileRoad.mobileControls=true;
+const mobileCar=mobileRoad.props.find(v=>v.type==='car'&&v.x===107&&v.y===320);
+assert.ok(mobileCar,'Mobile drive starter missing');
+mobileRoad.player.x=mobileCar.x-36;mobileRoad.player.y=mobileCar.y;
+polish.enterExitVehicle(mobileRoad,new Set(['interact']),null,false);
+assert.equal(mobileRoad.driving,mobileCar,'Mobile must enter car');
+assert.doesNotThrow(()=>polish.vehicleHUD(graphics,mobileRoad),'Vehicle dashboard must render with mobile driver');
+assert.doesNotThrow(()=>polish.n2(graphics,mobileRoad),'Full game frame must render with mobile driver');
+const mobileBefore=mobileCar.y;
+for(let j=0;j<25;j++){mobileRoad.tick++;polish.updateDriving(mobileRoad,new Set(['gas']),null,false)}
+assert.ok(mobileCar.speed>2,'Mobile gas must accelerate car');
+assert.ok(mobileCar.y<mobileBefore-20,'Mobile car must actually travel when GAS is held');
+const mobileAngle=mobileCar.angle;
+for(let j=0;j<10;j++){mobileRoad.tick++;polish.updateDriving(mobileRoad,new Set(['gas','left']),null,false)}
+assert.ok(mobileCar.angle<mobileAngle,'Left arrow must steer mobile car');
+const preBrake=Math.abs(mobileCar.speed);
+for(let j=0;j<13;j++){mobileRoad.tick++;polish.updateDriving(mobileRoad,new Set(['gas','brake']),null,false)}
+assert.ok(Math.abs(mobileCar.speed)<preBrake*.1,'BRAKE must rapidly decelerate even with GAS held');
+assert.doesNotThrow(()=>polish.n2(graphics,mobileRoad),'Mobile rendering must survive driving, steering and braking');
+const mobileReverse=polish.Y0(0);mobileReverse.mobileControls=true;
+const reverseCar=mobileReverse.props.find(v=>v.type==='car'&&v.x===107&&v.y===320);
+mobileReverse.driving=reverseCar;
+reverseCar.speed=0;
+for(let j=0;j<7;j++){mobileReverse.tick++;polish.updateDriving(mobileReverse,new Set(['down']),null,false)}
+assert.ok(reverseCar.speed<0,'Mobile down arrow must reverse');
+const desktopRoad=polish.Y0(0);
+const desktopCar=desktopRoad.props.find(v=>v.type==='car'&&v.x===107&&v.y===320);
+desktopRoad.driving=desktopCar;
+for(let j=0;j<7;j++){desktopRoad.tick++;polish.updateDriving(desktopRoad,new Set(['up']),null,false)}
+assert.ok(desktopCar.speed>0,'Desktop UP must still accelerate');
+assert.doesNotThrow(()=>polish.vehicleHUD(graphics,desktopRoad),'Desktop vehicle HUD must also render');
+const mobileGun=polish.Y0(0);mobileGun.mobileControls=true;mobileGun.phase='playing';
+mobileGun.buildings=[];mobileGun.props=[];mobileGun.traffic=[];mobileGun.enemies=[];
+mobileGun.player.x=200;mobileGun.player.y=300;
+mobileGun.player.weapon=2;mobileGun.player.ammo[2]=10;mobileGun.player.face=Math.PI;
+mobileGun.enemies.push({x:300,y:300,hp:200,max:200,radius:9,dead:false,type:'gang',hit:0,speed:.7,damage:8,cooldown:0,drift:0});
+polish.Wh(mobileGun,null,false);
+assert.ok(mobileGun.shots.at(-1).vx>0,'Regular Uzi should auto-aim on mobile');
+assert.equal(mobileGun.shots.at(-1).damage,16,'Normal Uzi remains at normal damage');
+mobileGun.player.uziGold=true;mobileGun.player.cool=0;mobileGun.player.face=Math.PI;
+polish.Wh(mobileGun,null,false);
+assert.equal(mobileGun.shots.at(-1).damage,48,'Mobile Golden Uzi has 2x the desktop 24 damage');
+assert.equal(lockShot.damage,24,'Desktop Golden Uzi damage remains unchanged');
+// Verify that hold-actions are mapped to the pedals while driving, not just drawn on screen.
+const bindingStart=source.indexOf('At=yl.useCallback((V,fl)=>');
+const bindingEnd=source.indexOf('},[])',bindingStart);
+assert.ok(bindingStart>=0&&bindingEnd>bindingStart,'Mobile touch binding not found');
+const bindingSource=source.slice(bindingStart+'At=yl.useCallback('.length,bindingEnd+1);
+const pressed=new Set();
+const control=vm.runInNewContext('('+bindingSource+')',{o:{current:mobileRoad},r:{current:pressed}});
+control('attack',true);
+assert.ok(pressed.has('gas')&&!pressed.has('attack'),'Touch B should hold GAS when inside car');
+control('dash',true);
+assert.ok(pressed.has('brake')&&!pressed.has('dash'),'Touch A should hold BRAKE when inside car');
+control('attack',false);control('dash',false);
+assert.ok(!pressed.has('gas')&&!pressed.has('brake'),'Releasing pedals must release their held state');
+mobileRoad.driving=null;
+control('attack',true);
+assert.ok(pressed.has('attack')&&!pressed.has('gas'),'Touch B should fire on foot');
+control('attack',false);
+console.log('PASS mobile vehicle HUD frame, touch GAS/BRAKE, steering, reverse, desktop unchanged, and mobile 2x Golden Uzi.');
