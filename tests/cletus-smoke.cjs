@@ -240,8 +240,8 @@ assert.match(source,/document\.addEventListener\("visibilitychange",onVisibility
 assert.match(source,/now-lastWrite>=5000/,'Best score writes must be throttled');
 assert.match(source,/window\.addEventListener\("pagehide",saveBest\)/,'Score must flush on exit');
 assert.match(source,/function cletusAimAtHostile\(/,'Touch auto aim missing');
-assert.match(source,/if\(i\.touchFire&&!i\.pointerActive\)cletusAimAtHostile\(i\)/,
- 'Auto-aim should be touch specific and not override pointer aim');
+assert.match(source,/const golden=f\.weapon===2&&f\.uziGold/,
+ 'Only the purchased Golden Uzi should auto-aim on any platform');
 assert.match(source,/if\(i\.driveLatch\)return true/,'Do not start copper stripping when E is held after leaving a car');
 assert.match(html,/family=Barlow\+Condensed/,'Typography stylesheet should load');
 assert.match(html,/family=Barlow\+Condensed[\s\S]*?family=Share\+Tech\+Mono/,'Both typefaces should load');
@@ -276,7 +276,7 @@ assert.equal(heldExit.harvest.index,-1,'Held exit key must not trigger copper ha
 polish.enterExitVehicle(heldExit,new Set(),null,false);
 polish.Fh(heldExit,new Set(['interact']),null,false);
 assert.notEqual(heldExit.harvest.index,-1,'A fresh E press can still start harvesting');
-console.log('PASS enemies GC, score write throttle, stable RAF, blur pause, key validation, touch auto-aim and portable artwork fallback.');
+console.log('PASS enemies GC, score write throttle, stable RAF, blur pause, key validation, special-only auto-aim and portable artwork fallback.');
 
 
 // Small visual/play-feel polish should not change the missions or controls.
