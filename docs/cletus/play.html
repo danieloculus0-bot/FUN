@@ -899,21 +899,33 @@ if(o.combo>1&&o.tick<=o.comboUntil){
    if(key==="enter"&&["menu","won","lost"].includes(world.phase))L();
  };
  const onKeyUp=event=>{const control=B0[event.key.toLowerCase()];if(control)r.current.delete(control)};
+ let stoppedByError=false;
  const render=now=>{
-   if(!alive)return;
-   lag+=Math.min(50,now-lastFrame);lastFrame=now;
-   while(lag>=frameStep){Fh(o.current,r.current,f.current,v.current);lag-=frameStep}
-   const world=o.current;
-   if(world.score>world.best)world.best=world.score;
-   if(world.best>lastStoredBest&&now-lastWrite>=5000)saveBest();
-   if(world.phase==="won"||world.phase==="lost")clearKeys();
-   if(world.phase!==previousPhase){
-     previousPhase=world.phase;M(world.phase);
-     if(world.phase==="paused"||world.phase==="won"||world.phase==="lost")saveBest();
+   if(!alive||stoppedByError)return;
+   try{
+     lag+=Math.min(50,now-lastFrame);lastFrame=now;
+     while(lag>=frameStep){Fh(o.current,r.current,f.current,v.current);lag-=frameStep}
+     const world=o.current;
+     if(world.score>world.best)world.best=world.score;
+     if(world.best>lastStoredBest&&now-lastWrite>=5000)saveBest();
+     if(world.phase==="won"||world.phase==="lost")clearKeys();
+     if(world.phase!==previousPhase){
+       previousPhase=world.phase;M(world.phase);
+       if(world.phase==="paused"||world.phase==="won"||world.phase==="lost")saveBest();
+     }
+     if(now-O.current>120){d(Ce(world));O.current=now}
+     ctx.setTransform(2,0,0,2,0,0);n2(ctx,world);
+     frameId=requestAnimationFrame(render);
+   }catch(error){
+     // Fail visibly, instead of leaving a dead frame and unresponsive touch pad.
+     stoppedByError=true;clearKeys();console.error("Cletus runtime error",error);
+     const banner=document.createElement("div");
+     banner.id="cletus-runtime-error";
+     banner.setAttribute("role","alert");
+     banner.style.cssText="position:fixed;z-index:99999;top:10%;left:8%;right:8%;padding:14px;border:2px solid #ffce78;border-radius:8px;background:#201423;color:white;font:700 14px/1.45 monospace;text-align:center;box-shadow:0 5px 30px #000d";
+     banner.textContent="CLETUS GAME ERROR ("+String(error?.message||error).slice(0,150)+"). Please report this message.";
+     document.body.appendChild(banner);
    }
-   if(now-O.current>120){d(Ce(world));O.current=now}
-   ctx.setTransform(2,0,0,2,0,0);n2(ctx,world);
-   frameId=requestAnimationFrame(render);
  };
  window.addEventListener("keydown",onKeyDown);
  window.addEventListener("keyup",onKeyUp);
