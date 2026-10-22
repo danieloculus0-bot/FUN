@@ -105,6 +105,9 @@ for (let t = 1; t <= 50; t++) {
   frame(t * (1000 / 60));
 }
 const player = g.game.player;
+// Stabilize the melee test: random pickups and movement can change equipment/facing.
+assert.equal(g.selectWeapon("fists"),true);
+player.fx=1;player.fy=0;player.shoveCD=0;player.swing=0;player.stamina=100;player.rage=0;
 const bird = g.game.birds[0];
 g.game.birds = [bird];
 bird.x = player.x + 40;
