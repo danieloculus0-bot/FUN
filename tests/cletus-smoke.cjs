@@ -694,8 +694,9 @@ assert.ok(source.includes('onClick:()=>o==="menu"?i.start():O()'),'Mobile START/
 assert.ok(source.includes('disabled:!["menu","playing","paused"].includes(o)'),'PLAY button must be enabled on the menu');
 assert.ok(html.includes('html.cletus-key-art-ready .game-overlay[data-testid="overlay-menu"] .overlay-card{display:none}'),'Poster must not be covered by start banner on touch screens');
 assert.ok(html.includes('grid-template-rows:28px minmax(0,1fr) 39px'),'Portrait control pad must use compact rows instead of giant empty space');
-assert.ok(html.includes('flex:0 0 clamp(258px,35dvh,328px)!important'),'Portrait controls must have a bounded height');
+assert.ok(html.includes('flex:0 0 clamp(252px,32dvh,310px)!important'),'Portrait controls must have a bounded height');
 assert.ok(html.includes('flex:1 1 0!important'),'City canvas must receive remaining screen height');
+assert.ok(html.includes('.game-shell{padding-top:env(safe-area-inset-top)}'),'Status-bar safe area must not hide in-game HUD');
 assert.ok(html.includes('.touch-controls .system-pad{')&&html.includes('transform:none!important'),'Sound/play keys must be horizontal, not drifting diagonally across face controls');
 assert.ok(html.includes('[data-testid="button-fullscreen"]{display:none!important}'),'Useless Safari fullscreen button must be hidden on iPhone');
 assert.ok(html.includes("top:'max(44px,env(safe-area-inset-top))'"),'Fullscreen notice must not block the controller or cover art');
@@ -736,7 +737,7 @@ const release=JSON.parse(fs.readFileSync(path.join(base,'release.json'),'utf8'))
 assert.equal(release.entry,'/FUN/cletus/play.html');
 assert.match(release.build,/^[a-z0-9._-]{1,64}$/i);
 assert.ok(html.includes('name="cletus-build" content="'+release.build+'"'),'Bundled build must match release marker');
-assert.ok(source.includes('CLETUS MOBILE PLAY 8'),'Visible on-screen edition must show latest platform-specific controls release');
+assert.ok(source.includes('CLETUS PORTRAIT 9'),'Visible on-screen edition must show latest platform-specific controls release');
 const updaterIndex=html.indexOf('<!-- The installed shortcut keeps');
 assert.ok(updaterIndex>0,'Update bootstrap must exist before game bundle');
 const updaterScript=html.slice(updaterIndex).match(/<script>([\s\S]*?)<\/script>/);
