@@ -1173,7 +1173,7 @@ if(portraitShift>0&&(o.shop.open||o.clueScene||o.streetScene)){
  if(world.shop.open){
   V.preventDefault();
   const box=V.currentTarget.getBoundingClientRect();
-  const x=(V.clientX-box.left)/box.width*bl,y=(V.clientY-box.top)/box.height*vl;
+  const x=(V.clientX-box.left)/box.width*bl,y=(V.clientY-box.top)/box.height*vl-Math.max(0,vl-270)/2;
   if(x>=16&&x<=178&&y>=53&&y<201){
    world.shop.selected=Math.max(0,Math.min(PAWN_WARES.length-1,Math.floor((y-53)/37)));return;
   }
