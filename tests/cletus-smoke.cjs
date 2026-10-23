@@ -634,7 +634,7 @@ const release=JSON.parse(fs.readFileSync(path.join(base,'release.json'),'utf8'))
 assert.equal(release.entry,'/FUN/cletus/play.html');
 assert.match(release.build,/^[a-z0-9._-]{1,64}$/i);
 assert.ok(html.includes('name="cletus-build" content="'+release.build+'"'),'Bundled build must match release marker');
-assert.ok(source.includes('DRIVE FIX 5'),'Visible on-screen edition must show current release 5, not previous code');
+assert.ok(source.includes('PAWN SHOP 6'),'Visible on-screen edition must show current release 5, not previous code');
 const updaterIndex=html.indexOf('<!-- The installed shortcut keeps');
 assert.ok(updaterIndex>0,'Update bootstrap must exist before game bundle');
 const updaterScript=html.slice(updaterIndex).match(/<script>([\s\S]*?)<\/script>/);
