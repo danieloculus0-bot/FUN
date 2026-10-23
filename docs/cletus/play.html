@@ -232,7 +232,7 @@ function openPawnShop(world,keys,audio,sound){
  shop.open=true;shop.interactLatch=true;shop.attackLatch=keys.has("attack");shop.navLatch=true;shop.pendingBuy=false;
  world.harvest.index=-1;world.harvest.progress=0;
  world.goldTarget=null;
- aa(world,"PAWN SHOP — UP/DOWN TO BROWSE, B TO BUY, X TO EXIT",145);
+ aa(world,world.mobileControls?"PAWN SHOP · D-PAD BROWSE · B BUY · X EXIT":"PAWN SHOP · ARROWS BROWSE · SPACE BUY · E EXIT",145);
  rt(audio,sound,470,.1,"triangle",.04);
  return true;
 }
@@ -362,7 +362,7 @@ function enterExitVehicle(i,keys,audio,sound){
  i.driving=car;car.driven=true;car.speed=car.speed||0;car.hp??=115;car.maxHp??=115;
  i.player.x=car.x;i.player.y=car.y;i.player.immune=Math.max(15,i.player.immune);
  i.harvest.index=-1;i.harvest.progress=0;i.driveLatch=true;
- aa(i,i.mobileControls?"HOTWIRED! D-PAD STEERS ALL DIRECTIONS · B GAS · A BRAKE · Y REVERSE · X EXIT":"HOTWIRED! D-PAD STEERS · UP GAS · DOWN REVERSE · E / X TO EXIT",185);
+ aa(i,i.mobileControls?"HOTWIRED! D-PAD STEERS ALL DIRECTIONS · B GAS · A BRAKE · Y REVERSE · X EXIT":"HOTWIRED! STEER WITH ARROWS · UP GAS · DOWN REVERSE · E EXIT",185);
  rt(audio,sound,155,.17,"sawtooth",.035);
  return true;
 }
@@ -788,7 +788,7 @@ function drawPawnShopFront(ctx,world){
  S(ctx,x-40,y+18,80,5,"#443b42");
  ctx.save();ctx.globalAlpha=pulse;ctx.strokeStyle="#f9c764";ctx.lineWidth=1.7;
  ctx.beginPath();ctx.ellipse(x,y+8,40,20,0,0,Math.PI*2);ctx.stroke();ctx.restore();
- if(world.tick%72<54)Kl(ctx,"E / X  ENTER",x-29,y+36,"#ffdc91",8);
+ if(world.tick%72<54)Kl(ctx,world.mobileControls?"X  ENTER":"E  ENTER",x-29,y+36,"#ffdc91",8);
 }
 
 function drawGoldenUzi(ctx,x,y,scale=2){
@@ -900,11 +900,11 @@ function drawPawnShopInterior(ctx,world){
  Kl(ctx,item.id==="gold"?"PAY $1000 IN CASH / COPPER / BOTH":item.stats,207,183,"#a7d5cc",8);
  S(ctx,9,209,462,52,"#342332");
  Kl(ctx,owned?"OWNED · READY TO EQUIP":canAfford?"READY TO BUY":"NEED MORE CASH / COPPER",17,223,owned?"#aaffc0":canAfford?"#ffeea9":"#f9adb0",10);
- Kl(ctx,"UP/DOWN: BROWSE  •  TAP ITEM TO PREVIEW",17,234,"#e6be9b",8);
+ Kl(ctx,world.mobileControls?"D-PAD: BROWSE  ·  TAP: PREVIEW":"ARROWS: BROWSE  ·  CLICK: PREVIEW",17,234,"#e6be9b",8);
  S(ctx,16,239,266,17,owned?"#4d4c3b":canAfford?"#9b6c35":"#65434d");
- Kl(ctx,owned?"B / SPACE: EQUIP":canAfford?"B / SPACE / TAP: BUY":"INSUFFICIENT FUNDS",23,251,"#fff5d0",9);
+ Kl(ctx,owned?(world.mobileControls?"B / TAP: EQUIP":"SPACE / CLICK: EQUIP"):canAfford?(world.mobileControls?"B / TAP: BUY":"SPACE / CLICK: BUY"):"INSUFFICIENT FUNDS",23,251,"#fff5d0",9);
  S(ctx,295,239,168,17,"#33303e");
- Kl(ctx,"X / E: EXIT",320,251,"#e1c7c2",9);
+ Kl(ctx,world.mobileControls?"X: EXIT":"E: EXIT",320,251,"#e1c7c2",9);
  ctx.restore();
 }
 function l2(i,o){const{camera:r,tick:f}=o;S(i,0,0,bl,vl,"#55575b");for(let v=-180;v<qt+180;v+=36)for(let O=-180;O<ta+180;O+=30){const H=v-r.x,M=O-r.y;if(H<-40||H>bl+40||M<-32||M>vl+32)continue;const z=(Math.sin(v*.18+O*.037)+Math.cos(O*.12-v*.026))*.5;Math.abs(z)>.82&&S(i,H+v%16,M,3,2,"#4a4d52")}for(const v of xe){const O=v-r.x;S(i,O-66,0,132,vl,"#292a31"),S(i,O-69,0,4,vl,"#a49e91"),S(i,O+65,0,4,vl,"#a49e91");for(let H=-40;H<ta;H+=52){const M=H-r.y;S(i,O-2,M,4,22,"#9f9270"),S(i,O-60,M+4,2,3,"#42434a"),S(i,O+47,M+31,3,2,"#5b5655")}}for(const v of qe){const O=v-r.y;S(i,0,O-58,bl,116,"#282a31"),S(i,0,O-61,bl,4,"#a49e91"),S(i,0,O+57,bl,4,"#a49e91");for(let H=-40;H<qt;H+=56){const M=H-r.x;S(i,M,O-2,24,3,"#a39678"),S(i,M+24,O+24,5,2,"#4c4c51")}}for(const xx of xe)for(const yy of qe){
@@ -1020,10 +1020,10 @@ for(const M of o.drops){const z=M.x-r.x,d=M.y-r.y;z<-20||z>bl+20||d<-22||d>vl+22
    S(ctx,149,59,173,5,"#38383d");
    S(ctx,149,59,173*Bu(car.hp/car.maxHp,0,1),5,car.hp<40?"#ec5360":"#72ce82");
    const woman=streetwalkerNearby(world);
-   Kl(ctx,woman?"STOPPED NEAR "+woman.name+" · X TALK":world.mobileControls?"B GAS  A BRAKE  Y REV  X EXIT":"E / X EXIT   UP GAS",149,80,woman?"#ffb2d5":"#f4c77f",7);
+   Kl(ctx,woman?"STOPPED NEAR "+woman.name+" · "+(world.mobileControls?"X":"E")+" TALK":world.mobileControls?"B GAS  A BRAKE  Y REV  X EXIT":"E EXIT  UP GAS  DOWN REV",149,80,woman?"#ffb2d5":"#f4c77f",7);
  }else if(world.phase==="playing"&&nearestCar(world,54)&&world.tick%90<72){
    S(ctx,118,192,250,22,"#131322d9");
-   Kl(ctx,"PRESS E / X TO ENTER CAR",134,207,"#ffe0a1",10);
+   Kl(ctx,world.mobileControls?"PRESS X TO ENTER CAR":"PRESS E TO ENTER CAR",134,207,"#ffe0a1",10);
  }
 }
 
@@ -1054,7 +1054,7 @@ function drawStreetScene(ctx,world){
  for(const w of words){if((line+" "+w).trim().length>72&&line){lines.push(line);line=w}else line+=(line?" ":"")+w}
  if(line)lines.push(line);
  for(let j=0;j<Math.min(2,lines.length);j++)Kl(ctx,lines[j],28,232+j*11,"#34263e",9);
- Kl(ctx,(scene.page+1)+"/"+scene.dialogue.length+"  •  B / X / TAP NEXT",298,252,"#7d3f51",8);
+ Kl(ctx,(scene.page+1)+"/"+scene.dialogue.length+(world.mobileControls?" · B / X / TAP NEXT":" · SPACE / E / ENTER NEXT"),289,252,"#7d3f51",8);
  ctx.restore();
 }
 function drawClueScene(ctx,world){
@@ -1106,7 +1106,7 @@ function drawClueScene(ctx,world){
    Kl(ctx,stats[j][1],x+7,229,stats[j][2],16);
  }
  px(13,243,454,17,"#533349");
- Kl(ctx,page===0?"CONTINUE: B / X / SPACE / ENTER / TAP":"CLOSE CASE: B / X / SPACE / ENTER / TAP",21,254,"#ffe2ab",9);
+ Kl(ctx,(page===0?"CONTINUE: ":"CLOSE CASE: ")+(world.mobileControls?"B / X / TAP":"SPACE / E / ENTER / CLICK"),21,254,"#ffe2ab",9);
  Kl(ctx,(page+1)+"/"+file.lines.length,430,254,"#fff0c9",9);
  ctx.restore();
 }
@@ -1130,17 +1130,17 @@ if(o.combo>1&&o.tick<=o.comboUntil){
 }
  o.leads===5&&!o.boss.dead&&(S(i,141,245,195,20,"#130d1df0"),Kl(i,o.bossPhase2?"BIG TONY // FURIOUS":"BIG TONY // THE BLOCK",147,253,"#ffcf97",7),S(i,146,257,184,4,"#542839"),S(i,146,257,184*Math.max(0,o.boss.hp/o.boss.max),4,"#f05466"));if(o.harvest.index>=0){
  const n=o.harvest.progress/94;
- S(i,135,194,210,34,"#110d1df1");Kl(i,"STRIPPING COPPER  ·  HOLD E / ACTION",146,207,"#f2c88d",8);
+ S(i,135,194,210,34,"#110d1df1");Kl(i,o.mobileControls?"STRIPPING COPPER · HOLD X":"STRIPPING COPPER · HOLD E",146,207,"#f2c88d",8);
  S(i,147,215,186,8,"#51403b");S(i,147,215,186*n,8,"#f6b558");
 }else if(jl(o.player,o.shop)<55){
  S(i,106,193,270,29,"#170e1fe8");
- Kl(i,"E / X : ENTER PAWN SHOP  ($"+o.player.cash+"  /  "+o.player.copper+" CU)",116,212,"#ffe19a",8);
+ Kl(i,(o.mobileControls?"X":"E")+" : ENTER PAWN SHOP  ($"+o.player.cash+" / "+o.player.copper+" CU)",116,212,"#ffe19a",8);
 }else if(o.tick%18<13){
  const p=o.player;
  for(const b of o.buildings){
  if(b.wireStripped||b.pawn)continue;
  const dist=Math.hypot(p.x-Bu(p.x,b.x,b.x+b.w),p.y-Bu(p.y,b.y,b.y+b.h));
- if(dist<27){S(i,135,201,210,23,"#150f1be8");Kl(i,"HOLD E / ACTION TO STRIP COPPER",148,216,"#f5c98d",8);break}
+ if(dist<27){S(i,135,201,210,23,"#150f1be8");Kl(i,o.mobileControls?"HOLD X TO STRIP COPPER":"HOLD E TO STRIP COPPER",148,216,"#f5c98d",8);break}
  }
 }vehicleHUD(i,o);drawPawnShopInterior(i,o);drawClueScene(i,o);drawStreetScene(i,o);}function Ce(i){const o=i.leads<5?`FIND CLUE ${i.leads+1} / 5 · ${Nt[i.leads].label}`:i.boss?.dead?"GET TO CANDY":"DEFEAT BIG TONY",r=i.leads<5?Nt[i.leads].district:"THE WAREHOUSE";return{hp:Math.ceil(i.player.hp),maxHp:100,weapon:i.player.weapon===2&&i.player.uziGold?"GOLDEN UZI":ai[i.player.weapon],ammo:[1,2,3,6].includes(i.player.weapon)?i.player.ammo[i.player.weapon]:null,bottles:i.player.xxx,copper:i.player.copper,cash:i.player.cash,golden:i.player.uziGold,leads:i.leads,score:i.score,kills:i.kills,best:i.best,objective:o,district:i.leads===5?"THE WAREHOUSE":i.player.x>qt-500?"WAREHOUSE ROW":r,notice:i.messageUntil>i.tick?i.message:"",bossHp:i.boss?.hp??0,bossMaxHp:i.boss?.max??520,bossVisible:i.leads===5&&!!i.boss&&!i.boss.dead,driving:!!i.driving}}function i2(){try{return Number(localStorage.getItem("cletus-candy-best")||0)}catch{return 0}}function c2(){const i=yl.useRef(null),o=yl.useRef(Y0(i2())),r=yl.useRef(new Set),f=yl.useRef(null),v=yl.useRef(!1),O=yl.useRef(0),[H,M]=yl.useState("menu"),[z,d]=yl.useState(()=>Ce(o.current)),[N,q]=yl.useState(!1),L=yl.useCallback(()=>{const V=o.current.best;o.current=Y0(V),o.current.phase="playing",r.current.clear(),d(Ce(o.current)),M("playing")},[]),Al=yl.useCallback(()=>{const V=o.current;V.phase==="playing"?V.phase="paused":V.phase==="paused"&&(V.phase="playing"),r.current.clear(),M(V.phase)},[]),ll=yl.useCallback(V=>{Nf(o.current,V),d(Ce(o.current))},[]),Bt=yl.useCallback(async()=>{try{f.current||(f.current=new AudioContext),f.current.state==="suspended"&&await f.current.resume(),v.current=!v.current,q(v.current),rt(f.current,v.current,480,.09,"triangle")}catch{v.current=!1,q(!1)}},[]),At=yl.useCallback((V,fl)=>{o.current.mobileControls=true;if(V==="attack"||V==="dash"){const pedal=V==="attack"?"gas":"brake";r.current.delete(V);r.current.delete(pedal);if(fl)r.current.add(o.current.driving&&!o.current.streetScene?pedal:V)}else fl?r.current.add(V):r.current.delete(V);if(V==="attack")o.current.touchFire=fl&&!o.current.driving},[]),Cl=yl.useCallback(V=>{if(o.current.clueScene||o.current.streetScene||o.current.shop.open||o.current.mobileControls)return;const fl=V.currentTarget.getBoundingClientRect(),ml=o.current;ml.aim.x=(V.clientX-fl.left)/fl.width*bl,ml.aim.y=(V.clientY-fl.top)/fl.height*vl,ml.pointerActive=!0},[]),Il=yl.useCallback(V=>{
  const world=o.current;
