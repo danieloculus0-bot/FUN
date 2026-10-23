@@ -1407,6 +1407,8 @@ html.cletus-key-art-ready .game-overlay[data-testid="overlay-menu"]{background-i
 @media (pointer:coarse) and (max-width:1180px) and (orientation:portrait){
  .game-shell,.game-wrap,.play-layout,.game-column{min-height:0!important;height:100%!important}
  .masthead{display:none!important}
+ /* The iPhone status bar must never cover health, objectives or the cover art. */
+ .game-shell{padding-top:env(safe-area-inset-top)}
  .game-column{display:flex;flex-direction:column}
  .screen-frame{
    flex:1 1 0!important;
