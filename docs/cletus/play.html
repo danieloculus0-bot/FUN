@@ -1253,7 +1253,7 @@ E.jsxs("button",{type:"button",className:"touch-btn shoulder shoulder-left","dat
 E.jsxs("div",{className:"dpad","aria-label":"Movement and steering D-pad",children:[E.jsx("button",{type:"button",className:"touch-btn up mobile-control","aria-label":"Move up","data-testid":"control-up",onPointerDown:H("up"),onPointerUp:M("up"),onPointerCancel:M("up"),onLostPointerCapture:M("up"),children:"▲"}),E.jsx("button",{type:"button",className:"touch-btn left mobile-control","aria-label":"Move left","data-testid":"control-left",onPointerDown:H("left"),onPointerUp:M("left"),onPointerCancel:M("left"),onLostPointerCapture:M("left"),children:"◀"}),E.jsx("span",{className:"dpad-hub","aria-hidden":"true"}),E.jsx("button",{type:"button",className:"touch-btn right mobile-control","aria-label":"Move right","data-testid":"control-right",onPointerDown:H("right"),onPointerUp:M("right"),onPointerCancel:M("right"),onLostPointerCapture:M("right"),children:"▶"}),E.jsx("button",{type:"button",className:"touch-btn down mobile-control","aria-label":"Move down","data-testid":"control-down",onPointerDown:H("down"),onPointerUp:M("down"),onPointerCancel:M("down"),onLostPointerCapture:M("down"),children:"▼"})]}),
 E.jsxs("div",{className:"system-pad",children:[
 E.jsx("button",{type:"button",className:"touch-btn system-key","data-testid":"button-sound-mobile","aria-label":"Toggle soundtrack",onClick:i.toggleSound,children:i.soundOn?"SOUND ON":"SOUND"}),
-E.jsx("button",{type:"button",className:"touch-btn system-key","data-testid":"button-pause-touch","aria-label":o==="paused"?"Resume game":"Pause game",disabled:o!=="playing"&&o!=="paused",onClick:O,children:o==="paused"?"RESUME":"START"}),
+E.jsx("button",{type:"button",className:"touch-btn system-key","data-testid":"button-pause-touch","aria-label":o==="paused"?"Resume game":"Pause game",disabled:!["menu","playing","paused"].includes(o),onClick:()=>o==="menu"?i.start():O(),children:o==="menu"?"PLAY":o==="paused"?"RESUME":"PAUSE"}),
 E.jsx("button",{type:"button",className:"touch-btn system-key","data-testid":"button-fullscreen","aria-label":"Full-screen mode",onClick:()=>window.cletusFullscreen?.(),children:"⛶ FULL"})
 ]}),
 E.jsxs("div",{className:"action-pad","aria-label":"SNES ABXY buttons",children:[
@@ -1326,11 +1326,14 @@ body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .touch-controls .action-pad{grid-area:2/3;width:min(40vw,171px,31dvh);height:auto;aspect-ratio:1;display:grid;grid-template:repeat(3,minmax(0,1fr))/repeat(3,minmax(0,1fr));gap:2px;align-self:center;justify-self:center}
 .touch-controls .action-pad .face{border-radius:50%;font-size:clamp(16px,4vw,24px)}
 .touch-controls .action-pad .x{grid-area:1/2;background:#4d5c88}.touch-controls .action-pad .y{grid-area:2/1;background:#655281}.touch-controls .action-pad .a{grid-area:2/3;background:#3f746b}.touch-controls .action-pad .b{grid-area:3/2;background:#985169}
-.touch-controls .system-pad{grid-area:2/2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(5px,1.5dvh,13px);width:100%;min-width:0}
+.touch-controls .system-pad{grid-area:2/2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(5px,1.5dvh,13px);width:100%;min-width:0;transform:translateY(clamp(45px,9dvh,125px))}
 .touch-controls .system-key{width:min(100%,78px);height:25px;min-height:25px;flex:0 0 auto;font-size:9px;border-radius:14px;background:#696f7d;transform:rotate(-12deg)}
 .touch-controls .system-key:active{transform:rotate(-12deg) translateY(2px)}
 .touch-controls .pad-legend{grid-area:3/1/4/4;align-self:center;justify-self:center;color:#2f3c46;white-space:nowrap;font-size:clamp(7px,1.35vw,9px);letter-spacing:.25px;font-weight:900}
 .game-overlay .overlay-card{max-height:98%;max-width:100%;overflow-y:auto}
+/* The phone's real PLAY button is on the controller. Keep the poster unobstructed. */
+html.cletus-key-art-ready .game-overlay[data-testid="overlay-menu"] .overlay-card{display:none}
+html.cletus-key-art-ready .game-overlay[data-testid="overlay-menu"]{background-image:url("../Cletus%20Saves%20Candy_%20Neon%20City%20Rescue.png");background-position:center;background-size:contain;background-repeat:no-repeat}
 }
 @media(pointer:coarse) and (max-width:1180px) and (orientation:landscape){
 .masthead,.hud-strip,.side-panel{display:none!important}
@@ -1388,9 +1391,9 @@ html:not(.cletus-key-art-ready) .game-overlay[data-testid="overlay-menu"] .story
 (function(){
 let t;
 function tip(msg){let e=document.getElementById('fullscreen-hint');if(!e){e=document.createElement('div');e.id='fullscreen-hint';e.setAttribute('role','status');document.body.appendChild(e)}
-e.textContent=msg;Object.assign(e.style,{position:'fixed',zIndex:'1000',left:'10%',right:'10%',bottom:'max(12px,env(safe-area-inset-bottom))',padding:'12px',border:'2px solid #ffd46c',background:'#170e22',color:'#ffe6bd',font:'bold 13px/1.4 system-ui',textAlign:'center'});clearTimeout(t);t=setTimeout(()=>e.remove(),6000)}
-window.cletusFullscreen=function(){if(document.fullscreenElement){document.exitFullscreen?.();return}const root=document.getElementById('root');if(root&&root.requestFullscreen){try{const p=root.requestFullscreen({navigationUI:'hide'});if(p&&p.catch)p.catch(()=>tip('For iPhone full-screen play: open in Safari, Share, Add to Home Screen.'));return}catch(e){}}
-tip('For iPhone full-screen play: open in Safari, tap Share, Add to Home Screen, and launch Cletus from your Home Screen.')};
+e.textContent=msg;Object.assign(e.style,{position:'fixed',zIndex:'1000',left:'12%',right:'12%',top:'max(44px,env(safe-area-inset-top))',bottom:'auto',padding:'8px',border:'2px solid #ffd46c',background:'#170e22',color:'#ffe6bd',font:'bold 13px/1.4 system-ui',textAlign:'center'});clearTimeout(t);t=setTimeout(()=>e.remove(),6000)}
+window.cletusFullscreen=function(){if(document.fullscreenElement){document.exitFullscreen?.();return}const root=document.getElementById('root');if(root&&root.requestFullscreen){try{const p=root.requestFullscreen({navigationUI:'hide'});if(p&&p.catch)p.catch(()=>tip('iPhone fullscreen: Safari → Share → Add to Home Screen.'));return}catch(e){}}
+tip('iPhone fullscreen: use Safari → Share → Add to Home Screen.')};
 document.addEventListener('touchmove',e=>{if(matchMedia('(pointer:coarse) and (max-width:1180px)').matches&&e.cancelable)e.preventDefault()},{passive:false});
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.touch-controls,.game-canvas'))e.preventDefault()});
 })();
