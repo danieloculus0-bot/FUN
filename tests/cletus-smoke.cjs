@@ -53,7 +53,7 @@ assert.match(html, /Cletus%20Saves%20Candy_%20Neon%20City%20Rescue\.png/, 'Openi
 const wholeEnd=source.indexOf('function Ce(',start);
 assert.ok(wholeEnd>stop,'Renderer and boss logic not found');
 const worldCtx={Math};
-vm.runInNewContext('const '+source.slice(start,wholeEnd)+';globalThis.polish={Y0,Fh,n2,je,w0,Yu,Wh,$h,updateCopper,shopTest:Nt,nearestCar,enterExitVehicle,vehicleBlocked,updateDriving,updateTraffic,damageVehicle,vehicleHUD,Df,cletusAimAtHostile,cityLights,drawCharacterDetail,registerTakedown,showFloater,openPawnShop,buyGoldenUzi,updatePawnShop,drawPawnShopInterior,drawPawnShopFront,drawGoldenUzi,CLUE_DIALOGUES,startClueScene,advanceClueScene,updateClueScene,drawClueScene};',worldCtx);
+vm.runInNewContext('const '+source.slice(start,wholeEnd)+';globalThis.polish={Y0,Fh,n2,je,w0,Yu,Wh,$h,updateCopper,shopTest:Nt,nearestCar,enterExitVehicle,vehicleBlocked,updateDriving,updateTraffic,damageVehicle,vehicleHUD,Df,cletusAimAtHostile,cityLights,drawCharacterDetail,registerTakedown,showFloater,openPawnShop,buyGoldenUzi,updatePawnShop,drawPawnShopInterior,drawPawnShopFront,drawGoldenUzi,drawPawnWeapon,drawStreetScene,streetwalkerNearby,startStreetScene,advanceStreetScene,updateStreetScene,PAWN_WARES,buyPawnItem,weaponUnlocked,nextSelectableWeapon,Nf,CLUE_DIALOGUES,startClueScene,advanceClueScene,updateClueScene,drawClueScene};',worldCtx);
 const polish=worldCtx.polish, active=polish.Y0(0);
 for(const pickup of active.drops.slice(-4)) {
   assert.equal(polish.Yu(active,pickup.x,pickup.y,8),false,'Final boss supply pickup trapped in a wall');
@@ -114,7 +114,7 @@ assert.ok(upgrades.props.filter(d=>d.type==='car').length>12,'City should contai
 assert.ok(new Set(upgrades.props.filter(d=>d.type==='car').map(d=>d.model)).size>=4,'Cars need several identifiable models');
 assert.equal(upgrades.drops.some(d=>d.type==='copper'),false,'Copper cannot drop on streets');
 let harvested=0,ownersBefore=upgrades.enemies.length;
-for(let k=0;k<upgrades.buildings.length&&harvested<5;k++){
+for(let k=0;k<upgrades.buildings.length&&harvested<10;k++){
  const b=upgrades.buildings[k];if(b.pawn||b.wireStripped)continue;
  const candidates=[
    {x:b.x-15,y:b.y+b.h/2},
@@ -128,16 +128,18 @@ for(let k=0;k<upgrades.buildings.length&&harvested<5;k++){
  for(let tick=0;tick<94;tick++){upgrades.tick++;polish.updateCopper(upgrades,new Set(['interact']),null,false,0)}
  if(b.wireStripped)harvested++;
 }
-assert.equal(harvested,5,'Five buildings should yield sufficient wire');
-assert.equal(p.copper,10,'Copper must come only from building harvesting');
+assert.equal(harvested,10,'Ten buildings should yield the twenty copper needed for gold');
+assert.equal(p.copper,20,'Copper must come only from building harvesting');
 assert.ok(upgrades.enemies.length>ownersBefore,'Building owners must confront Cletus');
 p.x=upgrades.shop.x;p.y=upgrades.shop.y;upgrades.tick++;
 polish.updateCopper(upgrades,new Set(['interact']),null,false,0);
 assert.equal(upgrades.shop.open,true,'Press E at the pawn shop to enter an interactive room');
-assert.equal(p.copper,10,'Entering the shop must not automatically spend copper');
+assert.equal(p.copper,20,'Entering the shop must not automatically spend copper');
+p.cash=1000;
 polish.Fh(upgrades,new Set(),null,false);
 polish.Fh(upgrades,new Set(['attack']),null,false);
-assert.equal(p.copper,0,'B/Space inside pawn shop must consume exactly 10 copper');
+assert.equal(p.copper,0,'Golden Uzi must consume exactly twenty copper');
+assert.equal(p.cash,0,'Golden Uzi must consume $1000 in real earned funds');
 assert.equal(p.uziGold,true,'Pawn shop must unlock the golden Uzi');
 assert.equal(p.weapon,2,'Pawn shop must equip the golden Uzi');
 assert.equal(upgrades.shop.purchased,true,'Pawn shop purchase must be one-time');
@@ -333,7 +335,7 @@ assert.match(source,/damage:\[0,48,golden\?\(i\.mobileControls\?48:24\):16,120\]
  'Golden Uzi must deal 48 mobile and 24 desktop damage');
 const shopGame=polish.Y0(0);shopGame.phase='playing';
 shopGame.player.x=shopGame.shop.x;shopGame.player.y=shopGame.shop.y;
-shopGame.player.copper=9;shopGame.enemies=[];shopGame.traffic=[];
+shopGame.player.copper=19;shopGame.player.cash=900;shopGame.enemies=[];shopGame.traffic=[];
 const shopCtx=new Proxy({},{
  get(target,key){if(key in target)return target[key];return ()=>{}},
  set(target,key,value){target[key]=value;return true}
@@ -341,18 +343,20 @@ const shopCtx=new Proxy({},{
 assert.equal(polish.drawPawnShopInterior(shopCtx,shopGame),undefined);
 polish.Fh(shopGame,new Set(['interact']),null,false);
 assert.equal(shopGame.shop.open,true,'Doorway E opens shop even with traffic nearby');
-assert.equal(shopGame.player.copper,9);
+assert.equal(shopGame.player.copper,19);
 polish.drawPawnShopInterior(shopCtx,shopGame);
 polish.Fh(shopGame,new Set(['attack']),null,false);
-assert.equal(shopGame.shop.purchased,false,'Cannot get golden gun for fewer than ten copper');
-assert.equal(shopGame.player.copper,9,'Failed purchase must not consume copper');
-shopGame.player.copper=10;
+assert.equal(shopGame.shop.purchased,false,'Cannot get golden gun for fewer than twenty copper and $1000');
+assert.equal(shopGame.player.copper,19,'Failed purchase must not consume copper');
+assert.equal(shopGame.player.cash,900,'Failed purchase must not consume cash');
+shopGame.player.copper=20;shopGame.player.cash=1000;
 polish.Fh(shopGame,new Set(['attack']),null,false);
 assert.equal(shopGame.shop.purchased,false,'Held B must not trigger repeat purchase');
 polish.Fh(shopGame,new Set(),null,false);
 polish.Fh(shopGame,new Set(['attack']),null,false);
 assert.equal(shopGame.shop.purchased,true,'A new B press buys when sufficiently funded');
 assert.equal(shopGame.player.copper,0);
+assert.equal(shopGame.player.cash,0);
 assert.equal(shopGame.player.uziGold,true);
 assert.equal(shopGame.player.ammo[2],130,'Buying grants 130 golden rounds');
 const earned=shopGame.score;
@@ -550,8 +554,74 @@ for(const [direction,want] of [['up',0],['right',Math.PI/2],['down',Math.PI],['l
  assert.equal(car.speed,0,'D-pad '+direction+' without GAS must never accelerate or reverse');
 }
 assert.ok(source.includes('i.mobileControls?keys.has("reverse"):keys.has("down")'),'Mobile reverse must be separate from desktop keyboard DOWN');
-assert.ok(source.includes('endPointerAttack:tl,isDriving:()=>!!o.current.driving'),'Y behavior must use current vehicle state');
+assert.ok(source.includes('cycleWeapon,isDriving:()=>!!o.current.driving'),'Y behavior must use current vehicle state');
 console.log('PASS four-direction steering, independent Y reverse, X enter/exit unchanged.');
+
+// New comedy-encounter and secondary cash economy: no silent dummy actions.
+const street=polish.Y0(0);street.phase='playing';
+assert.ok(street.streetwalkers.length>=15,'NPCs should exist across the city');
+const gal=street.streetwalkers[0];const car={x:gal.x,y:gal.y,angle:0,speed:0,model:'sedan',hp:110,maxHp:110,r:23};
+street.driving=car;street.player.x=car.x;street.player.y=car.y;
+street.enemies=[];street.traffic=[];street.props=[];street.drops=[];street.buildings=[];
+assert.equal(polish.streetwalkerNearby(street),gal,'Adult NPC should approach stopped car');
+car.speed=1.2;
+assert.equal(polish.streetwalkerNearby(street),null,'Streetwalker must not approach moving car');
+car.speed=0;
+polish.Fh(street,new Set(['interact']),null,false);
+assert.ok(street.streetScene,'X must let streetwalker in and begin actual dialogue');
+assert.equal(street.streetScene.dialogue.length,4,'Conversation should show Cletus and woman with punchline');
+assert.equal(street.player.cash,0,'No immediate award for opening dialogue');
+for(let j=0;j<4;j++){polish.Fh(street,new Set(),null,false);polish.Fh(street,new Set(['interact']),null,false)}
+assert.equal(street.streetScene,null,'Dialogue concludes');
+assert.equal(gal.paid,true,'NPC should be recorded as paid');
+assert.equal(street.player.cash,100,'Female NPC pays Cletus one $100 bundle');
+assert.equal(polish.streetwalkerNearby(street),null,'Same NPC cannot be farmed again');
+polish.$h(street,{x:car.x,y:car.y,type:'cash'},null,false);
+assert.equal(street.player.cash,200,'Cash pickup grants a $100 bill bundle');
+const market=polish.Y0(0);
+assert.equal(market.shop.cost,20);
+assert.equal(market.shop.cashCost,1000);
+assert.equal(polish.PAWN_WARES.length,4,'Three normal weapons and golden Uzi must be in inventory');
+market.player.cash=950;market.player.copper=20;
+assert.equal(polish.buyGoldenUzi(market,null,false),false,'Cannot buy golden Uzi for twenty copper without a grand');
+assert.equal(market.player.copper,20,'Rejected purchases preserve copper');
+market.player.cash=1000;
+assert.equal(polish.buyGoldenUzi(market,null,false),true,'Twenty copper and one grand buy Golden Uzi');
+assert.equal(market.player.cash,0);assert.equal(market.player.copper,0);
+market.player.cash=950;
+for(const [j,expected,price] of [[1,'knife',200],[2,'sword',450],[3,'handgun',300]]){
+  market.shop.selected=j;
+  assert.equal(polish.buyPawnItem(market,null,false),true,'Purchase '+expected);
+  assert.equal(market.shop.owned[expected],true,expected+' should be in owned inventory');
+  assert.equal(market.player.weapon,polish.PAWN_WARES[j].weapon);
+}
+assert.equal(market.player.cash,0,'Shop prices consume a real balance');
+assert.equal(polish.weaponUnlocked(market,4),true);
+assert.equal(polish.weaponUnlocked(market,5),true);
+assert.equal(polish.weaponUnlocked(market,6),true);
+const previousCash=market.player.cash;
+market.shop.selected=2;assert.equal(polish.buyPawnItem(market,null,false),true);
+assert.equal(market.player.cash,previousCash,'Owned items equip without charging twice');
+const armed=polish.Y0(0);armed.phase='playing';
+polish.Nf(armed,5);assert.equal(armed.player.weapon,1,'Cannot select an unpurchased sword');
+armed.shop.owned.knife=true;armed.player.meleeKnife=true;
+polish.Nf(armed,4);assert.equal(armed.player.weapon,4,'Purchased knife can equip');
+armed.player.cool=0;polish.Wh(armed,null,false);
+assert.equal(armed.shots.length,0,'Melee weapon uses real strike not fake bullets');
+armed.shop.owned.handgun=true;armed.player.ammo[6]=72;
+polish.Nf(armed,6);polish.Wh(armed,null,false);
+assert.equal(armed.shots.at(-1).kind,6,'Purchased handgun fires real bullets');
+const fakeCtx=new Proxy({createRadialGradient(){return{addColorStop(){}}}}, {get(obj,key){if(key in obj)return obj[key];return()=>{}},set(obj,key,value){obj[key]=value;return true}});
+street.streetScene={woman:gal,page:0,dialogue:[{speaker:gal.name,text:'A nice little conversation.'}]};
+polish.drawStreetScene(fakeCtx,street);
+market.shop.open=true;market.shop.selected=2;
+polish.drawPawnShopInterior(fakeCtx,market);
+polish.drawGoldenUzi(fakeCtx,240,110,1.4);
+polish.drawPawnWeapon(fakeCtx,polish.PAWN_WARES[2],220,130,1.3);
+assert.ok(source.includes('world.shop.pendingBuy=true'),'Shop must support tapping BUY on an iPhone');
+assert.ok(source.includes('function drawStreetScene('),'Encounter must render dialogue portraits on screen');
+console.log('PASS adult streetwalker stopped-car interaction, Candy dialogue, real $100 rewards, inventory, purchase guards, weapon combat and previews.');
+
 
 // Canonical installed URL update behavior. No game copies or replacement shortcut:
 // old launch URLs acquire a fresh ?v= value when the main release marker changes.
