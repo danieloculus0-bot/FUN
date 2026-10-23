@@ -407,10 +407,10 @@ console.log('PASS pawn-shop room with explicit purchase/exit, 10 copper economy,
 assert.equal(polish.CLUE_DIALOGUES.length,5,'Every clue needs a scripted dialogue');
 assert.match(source,/function drawClueScene\(/,'Missing in-game cinematic case-file screen');
 assert.match(source,/drawClueScene\(i,o\)/,'The dialogue scene must render on the game canvas');
-assert.match(source,/if\(updateClueScene\(i,o\)\)return/,'Clues must freeze the simulation');
-assert.match(source,/if\(o\.current\.clueScene\)\{advanceClueScene\(o\.current\);return\}/,
+assert.ok(source.includes('if(updateClueScene(i,o)||updateStreetScene(i,o))return'),'Clues and street scenes must freeze the simulation');
+assert.ok(source.includes('if(world.clueScene){advanceClueScene(world);return}'),
  'Touching the canvas should advance a clue page');
-assert.match(source,/if\(key==="enter"&&!event\.repeat\)advanceClueScene\(world\)/,
+assert.ok(source.includes('if(key==="enter"&&!event.repeat)')&&source.includes('if(world.clueScene)advanceClueScene(world)'),
  'Enter should advance the dialogue without triggering restart');
 for(let index=0;index<5;index++){
  const caseWorld=polish.Y0(0);
