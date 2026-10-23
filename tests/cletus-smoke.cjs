@@ -692,9 +692,42 @@ console.log('PASS mobile X and desktop E exclusivity on seven real game screens.
 
 assert.ok(source.includes('onClick:()=>o==="menu"?i.start():O()'),'Mobile START/PLAY button must launch from the menu');
 assert.ok(source.includes('disabled:!["menu","playing","paused"].includes(o)'),'PLAY button must be enabled on the menu');
-assert.ok(source.includes('html.cletus-key-art-ready .game-overlay[data-testid="overlay-menu"] .overlay-card{display:none}'),'Poster must not be covered by start banner on touch screens');
-assert.ok(source.includes('transform:translateY(clamp(45px,9dvh,125px))'),'System buttons must be moved down into empty controller space');
-assert.ok(source.includes("top:'max(44px,env(safe-area-inset-top))'"),'Fullscreen notice must not block the controller or cover art');
+assert.ok(html.includes('html.cletus-key-art-ready .game-overlay[data-testid="overlay-menu"] .overlay-card{display:none}'),'Poster must not be covered by start banner on touch screens');
+assert.ok(html.includes('grid-template-rows:28px minmax(0,1fr) 39px'),'Portrait control pad must use compact rows instead of giant empty space');
+assert.ok(html.includes('flex:0 0 clamp(258px,35dvh,328px)!important'),'Portrait controls must have a bounded height');
+assert.ok(html.includes('flex:1 1 0!important'),'City canvas must receive remaining screen height');
+assert.ok(html.includes('.touch-controls .system-pad{')&&html.includes('transform:none!important'),'Sound/play keys must be horizontal, not drifting diagonally across face controls');
+assert.ok(html.includes('[data-testid="button-fullscreen"]{display:none!important}'),'Useless Safari fullscreen button must be hidden on iPhone');
+assert.ok(html.includes("top:'max(44px,env(safe-area-inset-top))'"),'Fullscreen notice must not block the controller or cover art');
+
+// Tall world rendering, not a CSS-stretched 16:9 screenshot.
+assert.ok(source.includes('function syncCletusCanvasViewport('),'Portrait viewport adapter missing');
+assert.ok(source.includes('new ResizeObserver(syncViewport)'),'Canvas should respond to available screen space');
+assert.ok(source.includes('canvas.height=next*2'),'Canvas backing pixels must match visible height');
+assert.ok(source.includes('Math.max(0,vl-270)/2'),'Pawn-shop taps must account for centered modal');
+const tallCtx={Math,matchMedia:()=>({matches:true})};
+vm.runInNewContext('let '+source.slice(start,wholeEnd)+
+ ';globalThis.portrait={syncCletusCanvasViewport,n2,Y0,currentHeight:()=>vl};',tallCtx);
+const tall=tallCtx.portrait;
+const fakeCanvas={width:960,height:540,getBoundingClientRect:()=>({width:393,height:530})};
+assert.equal(tall.syncCletusCanvasViewport(fakeCanvas),true,'Resizing portrait must change internal world shape');
+assert.ok(tall.currentHeight()>540,'Portrait should expose more actual city vertically');
+assert.equal(fakeCanvas.height,tall.currentHeight()*2,'Canvas backing height must follow logical world height');
+const tallWorld=tall.Y0(0);tallWorld.phase='playing';tallWorld.player.x=500;tallWorld.player.y=800;
+tallWorld.camera.x=300;tallWorld.camera.y=400;
+const tallDraws=[];
+const tallGraphics=new Proxy({createRadialGradient(){return{addColorStop(){}}}},{
+ get(target,key){if(key in target)return target[key];return(...args)=>{if(key==='fillRect')tallDraws.push(args)}},
+ set(target,key,value){target[key]=value;return true}
+});
+tall.n2(tallGraphics,tallWorld);
+assert.ok(tallDraws.length>200,'Tall mobile world should actually render city and HUD');
+assert.equal(tall.syncCletusCanvasViewport(fakeCanvas),false,'Unchanged geometry should not erase canvas every frame');
+tallCtx.matchMedia=()=>({matches:false});
+assert.equal(tall.syncCletusCanvasViewport(fakeCanvas),true,'Rotating must restore the normal canvas');
+assert.equal(tall.currentHeight(),270,'Landscape / desktop should preserve original 16:9 logic');
+assert.equal(fakeCanvas.height,540,'Rotating must restore the original backing pixels');
+console.log('PASS native portrait world viewport, responsive resize/rotate, tall render and pawn-shop touch offset.');
 console.log('PASS mobile PLAY launch, uncovered poster, lowered system keys, nonblocking fullscreen notice.');
 
 // Canonical installed URL update behavior. No game copies or replacement shortcut:
