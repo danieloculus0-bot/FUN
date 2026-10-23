@@ -240,7 +240,7 @@ console.log('PASS driving, steering, moving traffic, vehicle impact on foes, dur
 assert.match(source,/for\(let j=i\.enemies\.length-1;j>=0;j--\)if\(i\.enemies\[j\]\.dead\)i\.enemies\.splice\(j,1\)/,
  'Dead enemies should be retired from the world every tick');
 assert.doesNotMatch(source,/"1234"\.includes\(B\)/,'Empty string must never select fists');
-assert.match(source,/\/\^\[1-4\]\$\/\.test\(key\)/,'Only explicit weapon number keys should switch');
+assert.match(source,/\/\^\[1-7\]\$\/\.test\(key\)/,'Only explicit weapon number keys should switch');
 assert.match(source,/\}\,\[L\]\)/,'The RAF effect must stay mounted across phase updates');
 assert.doesNotMatch(source,/\}\,\[H,L\]\)/,'Changing phase must not tear down the RAF');
 assert.match(source,/window\.addEventListener\("blur",pauseWhenHidden\)/,'Blur must pause');
