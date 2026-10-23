@@ -614,7 +614,7 @@ polish.Nf(armed,4);assert.equal(armed.player.weapon,4,'Purchased knife can equip
 armed.player.cool=0;polish.Wh(armed,null,false);
 assert.equal(armed.shots.length,0,'Melee weapon uses real strike not fake bullets');
 armed.shop.owned.handgun=true;armed.player.ammo[6]=72;
-polish.Nf(armed,6);polish.Wh(armed,null,false);
+polish.Nf(armed,6);armed.player.cool=0;polish.Wh(armed,null,false);
 assert.equal(armed.shots.at(-1).kind,6,'Purchased handgun fires real bullets');
 const fakeCtx=new Proxy({createRadialGradient(){return{addColorStop(){}}}}, {get(obj,key){if(key in obj)return obj[key];return()=>{}},set(obj,key,value){obj[key]=value;return true}});
 street.streetScene={woman:gal,page:0,dialogue:[{speaker:gal.name,text:'A nice little conversation.'}]};
