@@ -690,13 +690,20 @@ assert.ok(source.includes('onPointerDown:H("interact")'),'Mobile X must press th
 assert.ok(!source.includes('PRESS E / X TO ENTER CAR'),'No mixed keyboard/mobile car prompts');
 console.log('PASS mobile X and desktop E exclusivity on seven real game screens.');
 
+assert.ok(source.includes('onClick:()=>o==="menu"?i.start():O()'),'Mobile START/PLAY button must launch from the menu');
+assert.ok(source.includes('disabled:!["menu","playing","paused"].includes(o)'),'PLAY button must be enabled on the menu');
+assert.ok(source.includes('html.cletus-key-art-ready .game-overlay[data-testid="overlay-menu"] .overlay-card{display:none}'),'Poster must not be covered by start banner on touch screens');
+assert.ok(source.includes('transform:translateY(clamp(45px,9dvh,125px))'),'System buttons must be moved down into empty controller space');
+assert.ok(source.includes("top:'max(44px,env(safe-area-inset-top))'"),'Fullscreen notice must not block the controller or cover art');
+console.log('PASS mobile PLAY launch, uncovered poster, lowered system keys, nonblocking fullscreen notice.');
+
 // Canonical installed URL update behavior. No game copies or replacement shortcut:
 // old launch URLs acquire a fresh ?v= value when the main release marker changes.
 const release=JSON.parse(fs.readFileSync(path.join(base,'release.json'),'utf8'));
 assert.equal(release.entry,'/FUN/cletus/play.html');
 assert.match(release.build,/^[a-z0-9._-]{1,64}$/i);
 assert.ok(html.includes('name="cletus-build" content="'+release.build+'"'),'Bundled build must match release marker');
-assert.ok(source.includes('CLETUS CONTROLS 7'),'Visible on-screen edition must show latest platform-specific controls release');
+assert.ok(source.includes('CLETUS MOBILE PLAY 8'),'Visible on-screen edition must show latest platform-specific controls release');
 const updaterIndex=html.indexOf('<!-- The installed shortcut keeps');
 assert.ok(updaterIndex>0,'Update bootstrap must exist before game bundle');
 const updaterScript=html.slice(updaterIndex).match(/<script>([\s\S]*?)<\/script>/);
