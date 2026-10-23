@@ -135,11 +135,11 @@ p.x=upgrades.shop.x;p.y=upgrades.shop.y;upgrades.tick++;
 polish.updateCopper(upgrades,new Set(['interact']),null,false,0);
 assert.equal(upgrades.shop.open,true,'Press E at the pawn shop to enter an interactive room');
 assert.equal(p.copper,20,'Entering the shop must not automatically spend copper');
-p.cash=1000;
+p.cash=0;
 polish.Fh(upgrades,new Set(),null,false);
 polish.Fh(upgrades,new Set(['attack']),null,false);
 assert.equal(p.copper,0,'Golden Uzi must consume exactly twenty copper');
-assert.equal(p.cash,0,'Golden Uzi must consume $1000 in real earned funds');
+assert.equal(p.cash,0,'Copper-only purchase must not require cash');
 assert.equal(p.uziGold,true,'Pawn shop must unlock the golden Uzi');
 assert.equal(p.weapon,2,'Pawn shop must equip the golden Uzi');
 assert.equal(upgrades.shop.purchased,true,'Pawn shop purchase must be one-time');
@@ -335,7 +335,7 @@ assert.match(source,/damage:\[0,48,golden\?\(i\.mobileControls\?48:24\):16,120\]
  'Golden Uzi must deal 48 mobile and 24 desktop damage');
 const shopGame=polish.Y0(0);shopGame.phase='playing';
 shopGame.player.x=shopGame.shop.x;shopGame.player.y=shopGame.shop.y;
-shopGame.player.copper=19;shopGame.player.cash=900;shopGame.enemies=[];shopGame.traffic=[];
+shopGame.player.copper=19;shopGame.player.cash=0;shopGame.enemies=[];shopGame.traffic=[];
 const shopCtx=new Proxy({},{
  get(target,key){if(key in target)return target[key];return ()=>{}},
  set(target,key,value){target[key]=value;return true}
@@ -346,10 +346,10 @@ assert.equal(shopGame.shop.open,true,'Doorway E opens shop even with traffic nea
 assert.equal(shopGame.player.copper,19);
 polish.drawPawnShopInterior(shopCtx,shopGame);
 polish.Fh(shopGame,new Set(['attack']),null,false);
-assert.equal(shopGame.shop.purchased,false,'Cannot get golden gun for fewer than twenty copper and $1000');
+assert.equal(shopGame.shop.purchased,false,'Cannot get golden gun below $1000 combined value');
 assert.equal(shopGame.player.copper,19,'Failed purchase must not consume copper');
-assert.equal(shopGame.player.cash,900,'Failed purchase must not consume cash');
-shopGame.player.copper=20;shopGame.player.cash=1000;
+assert.equal(shopGame.player.cash,0,'Failed purchase must not consume cash');
+shopGame.player.copper=20;shopGame.player.cash=0;
 polish.Fh(shopGame,new Set(['attack']),null,false);
 assert.equal(shopGame.shop.purchased,false,'Held B must not trigger repeat purchase');
 polish.Fh(shopGame,new Set(),null,false);
@@ -582,12 +582,17 @@ const market=polish.Y0(0);
 assert.equal(market.shop.cost,20);
 assert.equal(market.shop.cashCost,1000);
 assert.equal(polish.PAWN_WARES.length,4,'Three normal weapons and golden Uzi must be in inventory');
-market.player.cash=950;market.player.copper=20;
-assert.equal(polish.buyGoldenUzi(market,null,false),false,'Cannot buy golden Uzi for twenty copper without a grand');
+market.player.cash=950;market.player.copper=0;
+assert.equal(polish.buyGoldenUzi(market,null,false),false,'Cannot buy golden Uzi below $1000 total');
 assert.equal(market.player.copper,20,'Rejected purchases preserve copper');
 market.player.cash=1000;
-assert.equal(polish.buyGoldenUzi(market,null,false),true,'Twenty copper and one grand buy Golden Uzi');
+assert.equal(polish.buyGoldenUzi(market,null,false),true,'A thousand cash buys Golden Uzi');
 assert.equal(market.player.cash,0);assert.equal(market.player.copper,0);
+for(const [cash,cu,remainingCash,remainingCopper] of [[0,20,0,0],[500,10,0,0],[950,1,0,0],[925,2,25,0]]){
+ const mixed=polish.Y0(0);mixed.player.cash=cash;mixed.player.copper=cu;
+ assert.equal(polish.buyGoldenUzi(mixed,null,false),true,'Golden Uzi accepts mixed pawn credit');
+ assert.equal(mixed.player.cash,remainingCash);assert.equal(mixed.player.copper,remainingCopper);
+}
 market.player.cash=950;
 for(const [j,expected,price] of [[1,'knife',200],[2,'sword',450],[3,'handgun',300]]){
   market.shop.selected=j;
