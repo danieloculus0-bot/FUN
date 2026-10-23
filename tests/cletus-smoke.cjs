@@ -584,7 +584,7 @@ assert.equal(market.shop.cashCost,1000);
 assert.equal(polish.PAWN_WARES.length,4,'Three normal weapons and golden Uzi must be in inventory');
 market.player.cash=950;market.player.copper=0;
 assert.equal(polish.buyGoldenUzi(market,null,false),false,'Cannot buy golden Uzi below $1000 total');
-assert.equal(market.player.copper,20,'Rejected purchases preserve copper');
+assert.equal(market.player.copper,0,'Rejected purchases preserve copper');
 market.player.cash=1000;
 assert.equal(polish.buyGoldenUzi(market,null,false),true,'A thousand cash buys Golden Uzi');
 assert.equal(market.player.cash,0);assert.equal(market.player.copper,0);
@@ -627,6 +627,68 @@ assert.ok(source.includes('world.shop.pendingBuy=true'),'Shop must support tappi
 assert.ok(source.includes('function drawStreetScene('),'Encounter must render dialogue portraits on screen');
 console.log('PASS adult streetwalker stopped-car interaction, Candy dialogue, real $100 rewards, inventory, purchase guards, weapon combat and previews.');
 
+
+// Input instructions must be exclusive for each platform. Render actual canvas
+// text instead of checking strings that may be unreachable at runtime.
+function instructionCanvas(){
+ const lines=[];
+ const ctx=new Proxy({
+   lines,
+   createRadialGradient(){return{addColorStop(){}}},
+   createLinearGradient(){return{addColorStop(){}}}
+ },{
+   get(target,key){if(key in target)return target[key];if(key==='fillText')return value=>{lines.push(String(value))};return()=>{}},
+   set(target,key,value){target[key]=value;return true}
+ });
+ return ctx;
+}
+function expectInstructions(mode,draw,world,required,forbidden){
+ const ctx=instructionCanvas();
+ draw(ctx,world);
+ const lines=ctx.lines.join('\n');
+ for(const phrase of required)assert.ok(lines.includes(phrase),mode+': missing '+phrase);
+ for(const phrase of forbidden)assert.ok(!lines.includes(phrase),mode+': wrong-platform prompt '+phrase);
+}
+for(const isTouch of [false,true]){
+ const mode=isTouch?'mobile':'desktop';
+ const entrant=polish.Y0(0);entrant.phase='playing';entrant.mobileControls=isTouch;
+ entrant.player.cash=1000;entrant.player.copper=20;
+ entrant.camera.x=entrant.shop.x-220;entrant.camera.y=entrant.shop.y-125;
+ expectInstructions(mode+' shop doorway',polish.drawPawnShopFront,entrant,
+  [isTouch?'X  ENTER':'E  ENTER'],[isTouch?'E  ENTER':'X  ENTER']);
+ const carGame=polish.Y0(0);carGame.phase='playing';carGame.mobileControls=isTouch;
+ const vehicle=carGame.props.find(p=>p.type==='car'&&p.x===107&&p.y===320);
+ carGame.player.x=vehicle.x;carGame.player.y=vehicle.y;
+ expectInstructions(mode+' car entry',polish.vehicleHUD,carGame,
+  [isTouch?'PRESS X TO ENTER CAR':'PRESS E TO ENTER CAR'],
+  [isTouch?'PRESS E TO ENTER CAR':'PRESS X TO ENTER CAR']);
+ carGame.driving=vehicle;vehicle.speed=0;
+ expectInstructions(mode+' car exit',polish.vehicleHUD,carGame,
+  [isTouch?'X EXIT':'E EXIT'],[isTouch?'E EXIT':'X EXIT']);
+ entrant.shop.open=true;entrant.shop.selected=0;
+ expectInstructions(mode+' pawn room',polish.drawPawnShopInterior,entrant,
+  [isTouch?'X: EXIT':'E: EXIT',isTouch?'B / TAP: BUY':'SPACE / CLICK: BUY'],
+  [isTouch?'E: EXIT':'X: EXIT',isTouch?'SPACE / CLICK: BUY':'B / TAP: BUY']);
+ const woman=polish.Y0(0);woman.mobileControls=isTouch;
+ woman.streetScene={woman:{name:'ROXY'},page:0,dialogue:[{speaker:'CLETUS',text:'Have you seen Candy?'}]};
+ expectInstructions(mode+' street conversation',polish.drawStreetScene,woman,
+  [isTouch?'B / X / TAP NEXT':'SPACE / E / ENTER NEXT'],
+  [isTouch?'SPACE / E / ENTER NEXT':'B / X / TAP NEXT']);
+ const clue=polish.Y0(0);clue.mobileControls=isTouch;clue.leads=1;
+ clue.clueScene={index:0,page:0};
+ expectInstructions(mode+' clue dialog',polish.drawClueScene,clue,
+  [isTouch?'CONTINUE: B / X / TAP':'CONTINUE: SPACE / E / ENTER / CLICK'],
+  [isTouch?'CONTINUE: SPACE / E / ENTER / CLICK':'CONTINUE: B / X / TAP']);
+ const copper=polish.Y0(0);copper.phase='playing';copper.mobileControls=isTouch;
+ copper.harvest.index=0;copper.harvest.progress=24;copper.player.x=200;copper.player.y=200;
+ expectInstructions(mode+' copper work',polish.n2,copper,
+  [isTouch?'STRIPPING COPPER · HOLD X':'STRIPPING COPPER · HOLD E'],
+  [isTouch?'HOLD E':'HOLD X']);
+}
+assert.ok(source.includes('e:"interact"'),'PC keyboard must retain E for interacting');
+assert.ok(source.includes('onPointerDown:H("interact")'),'Mobile X must press the same interaction action');
+assert.ok(!source.includes('PRESS E / X TO ENTER CAR'),'No mixed keyboard/mobile car prompts');
+console.log('PASS mobile X and desktop E exclusivity on seven real game screens.');
 
 // Canonical installed URL update behavior. No game copies or replacement shortcut:
 // old launch URLs acquire a fresh ?v= value when the main release marker changes.
