@@ -331,7 +331,7 @@ assert.match(source,/shop\.open=true/,'Shop should open only through the entranc
 assert.match(source,/if\(updatePawnShop\(i,o,r,f\)\)return/,'Active shop freezes game simulation');
 assert.match(source,/const golden=f\.weapon===2&&f\.uziGold/,'Auto-target must be exclusive to acquired gun');
 assert.match(source,/if\(golden\|\|i\.mobileControls\)/,'All mobile weapons must auto-aim when fired');
-assert.match(source,/damage:\[0,48,golden\?\(i\.mobileControls\?48:24\):16,120\]/,
+assert.match(source,/damage:\[0,48,golden\?\(i\.mobileControls\?48:24\):16,120,0,0,34\]/,
  'Golden Uzi must deal 48 mobile and 24 desktop damage');
 const shopGame=polish.Y0(0);shopGame.phase='playing';
 shopGame.player.x=shopGame.shop.x;shopGame.player.y=shopGame.shop.y;
