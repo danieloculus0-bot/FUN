@@ -157,3 +157,6 @@
   .cletus-menu-link{min-height:29px;padding:5px 9px;font-size:10px}
   #overlay.cover-menu .overlay-card{gap:5px}
 }
+
+/* Black canvas portfolio standard · preserve game art and gameplay surfaces */
+html,body{background:#050607}.game-frame,.machine{background-color:#111417}
