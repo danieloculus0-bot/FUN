@@ -20,7 +20,7 @@ assert.match(source,/tonyMob\(i,12\)/,'Initial gang trigger missing');
 assert.match(source,/tonyMob\(i,6\)/,'Reinforcement trigger missing');
 assert.match(source,/i\.leads===5&&!i\.tonyGangSpawned/,'Gang must wait for final lead');
 assert.match(source,/i\.boss\.hp<i\.boss\.max\*\.42/,'Reinforcement health trigger missing');
-const start=source.indexOf('bl=480,vl=270'),stop=source.indexOf('function ti(i,o',start);
+const start=source.indexOf('bl=480,qt=2580'),stop=source.indexOf('function ti(i,o',start);
 assert.ok(start>0&&stop>start,'Game rules cannot be isolated');
 const ctx={Math};
 vm.runInNewContext('const '+source.slice(start,stop)+';globalThis.test={Y0,tonyMob,Yu};',ctx);
