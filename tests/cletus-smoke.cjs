@@ -23,7 +23,9 @@ assert.match(source,/i\.boss\.hp<i\.boss\.max\*\.42/,'Reinforcement health trigg
 const start=source.indexOf('bl=480,qt=2580'),stop=source.indexOf('function ti(i,o',start);
 assert.ok(start>0&&stop>start,'Game rules cannot be isolated');
 const ctx={Math};
-vm.runInNewContext('const '+source.slice(start,stop)+';globalThis.test={Y0,tonyMob,Yu};',ctx);
+// The viewport variable is declared later in the bundled module; the isolated rules
+// slice needs the same initial landscape height without altering the game.
+vm.runInNewContext('let vl=270;const '+source.slice(start,stop)+';globalThis.test={Y0,tonyMob,Yu};',ctx);
 const world=ctx.test.Y0(0);
 assert.equal(world.boss.hp,780);
 assert.equal(world.boss.max,780);
