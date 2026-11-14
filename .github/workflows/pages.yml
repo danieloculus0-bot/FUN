@@ -1,4 +1,4 @@
-name: Test Emperor Gauntlet web edition
+name: FUN browser game regression tests
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Validate JavaScript syntax
         run: node --check docs/game.js
-      - name: Test browser gameplay logic
+      - name: Verify Emperor Gauntlet gameplay
         run: node tests/web-smoke.cjs
-      - name: Validate Cletus game and boss gang
+      - name: Verify Cletus Saves Candy gameplay and mobile controls
         run: node tests/cletus-smoke.cjs
