@@ -16,10 +16,10 @@ const script=html.match(/<script type="module">([\s\S]*?)<\/script>/);
 assert.ok(script,'Inline game module missing');
 const source=script[1];
 // Keep CI failure logs concise: a 400 KB bundled game is not a useful assertion diff.
-const assertSourceMatch = (pattern, message) => assert.ok(pattern.test(source), `${message || 'Expected source feature'} (${pattern})`);
-const assertHtmlMatch = (pattern, message) => assert.ok(pattern.test(html), `${message || 'Expected HTML feature'} (${pattern})`);
-const assertSourceNotMatch = (pattern, message) => assert.ok(!pattern.test(source), `${message || 'Unexpected source feature'} (${pattern})`);
-const assertHtmlNotMatch = (pattern, message) => assert.ok(!pattern.test(html), `${message || 'Unexpected HTML feature'} (${pattern})`);
+function assertSourceMatch(pattern, message) { assert.ok(pattern.test(source), `${message || 'Expected source feature'} (${pattern})`); }
+function assertHtmlMatch(pattern, message) { assert.ok(pattern.test(html), `${message || 'Expected HTML feature'} (${pattern})`); }
+function assertSourceNotMatch(pattern, message) { assert.ok(!pattern.test(source), `${message || 'Unexpected source feature'} (${pattern})`); }
+function assertHtmlNotMatch(pattern, message) { assert.ok(!pattern.test(html), `${message || 'Unexpected HTML feature'} (${pattern})`); }
 
 new vm.Script(source,{filename:'cletus-game.js'});
 assertSourceMatch(/tonyMob\(i,12\)/,'Initial gang trigger missing');
