@@ -120,7 +120,7 @@ function cletusAimAtHostile(world,maxDist=265){
 }
 function Wh(i,o,r){const f=i.player;if(i.phase!=="playing"||f.cool>0)return;
  const golden=f.weapon===2&&f.uziGold;
- if(golden){i.goldTarget=cletusAimAtHostile(i,golden?340:265)}
+ if(golden||i.mobileControls){i.goldTarget=cletusAimAtHostile(i,golden?340:265)}
  else{i.goldTarget=null}
  const v=[19,25,golden?4:6,46,15,28,15];f.cool=v[f.weapon];const O=f.face;
  if(f.weapon===0||f.weapon===4||f.weapon===5){
@@ -131,7 +131,7 @@ function Wh(i,o,r){const f=i.player;if(i.phase!=="playing"||f.cool>0)return;
   L0(i,{x:f.x+Math.cos(O)*reach,y:f.y+Math.sin(O)*reach},strength,radius,o,r);
   rt(o,r,f.weapon===5?280:420,.065,"triangle",.025);
   return;
- }if(f.ammo[f.weapon]<=0){f.weapon=nextLoadedWeapon(f,f.weapon);aa(i,f.weapon?"NEXT WEAPON: "+ai[f.weapon]:"ALL AMMO SPENT — FISTS",90);return}f.ammo[f.weapon]-=1;const H=f.weapon===2?(golden?Da(-.025,.025):Da(-.105,.105)):f.weapon===6?Da(-.032,.032):0,M=O+H,z=[0,6.2,golden?12.4:10.4,4.8,0,0,11.2][f.weapon];i.shots.push({x:f.x+Math.cos(M)*13,y:f.y+Math.sin(M)*13,vx:Math.cos(M)*z,vy:Math.sin(M)*z,ttl:f.weapon===3?76:52,kind:f.weapon,damage:[0,48,golden?48:16,120,0,0,34][f.weapon],owner:"player"}),Yt(i,{x:f.x+Math.cos(M)*15,y:f.y+Math.sin(M)*15},"#ffd47a",4,1.4),rt(o,r,f.weapon===3?58:f.weapon===2?145:235,.1,"sawtooth",.055);if(f.weapon===2&&f.uziGold)Yt(i,{x:f.x+Math.cos(M)*22,y:f.y+Math.sin(M)*22},"#ffdb6d",5,1.4);if(f.ammo[f.weapon]===0){f.weapon=nextLoadedWeapon(f,f.weapon);aa(i,f.weapon?"SWITCHED TO "+(f.weapon===2&&f.uziGold?"GOLDEN UZI":ai[f.weapon]):"AMMO EMPTY — FISTS LAST",80)}}function X0(i,o,r,f,v){i.shake=Math.max(i.shake,9),Yt(i,o,"#ff9639",42,5.3),Yt(i,o,"#ffe47d",24,4.2),v==="player"?L0(i,o,118,88,r,f):jl(i.player,o)<70&&Ye(i,18,r,f),v==="player"&&jl(i.player,o)<42&&Ye(i,10,r,f),rt(r,f,55,.24,"sawtooth",.09)}function weaponUnlocked(world,index){
+ }if(f.ammo[f.weapon]<=0){f.weapon=nextLoadedWeapon(f,f.weapon);aa(i,f.weapon?"NEXT WEAPON: "+ai[f.weapon]:"ALL AMMO SPENT — FISTS",90);return}f.ammo[f.weapon]-=1;const H=f.weapon===2?(golden?Da(-.025,.025):Da(-.105,.105)):f.weapon===6?Da(-.032,.032):0,M=O+H,z=[0,6.2,golden?12.4:10.4,4.8,0,0,11.2][f.weapon];i.shots.push({x:f.x+Math.cos(M)*13,y:f.y+Math.sin(M)*13,vx:Math.cos(M)*z,vy:Math.sin(M)*z,ttl:f.weapon===3?76:52,kind:f.weapon,damage:[0,48,golden?(i.mobileControls?48:24):16,120,0,0,34][f.weapon],owner:"player"}),Yt(i,{x:f.x+Math.cos(M)*15,y:f.y+Math.sin(M)*15},"#ffd47a",4,1.4),rt(o,r,f.weapon===3?58:f.weapon===2?145:235,.1,"sawtooth",.055);if(f.weapon===2&&f.uziGold)Yt(i,{x:f.x+Math.cos(M)*22,y:f.y+Math.sin(M)*22},"#ffdb6d",5,1.4);if(f.ammo[f.weapon]===0){f.weapon=nextLoadedWeapon(f,f.weapon);aa(i,f.weapon?"SWITCHED TO "+(f.weapon===2&&f.uziGold?"GOLDEN UZI":ai[f.weapon]):"AMMO EMPTY — FISTS LAST",80)}}function X0(i,o,r,f,v){i.shake=Math.max(i.shake,9),Yt(i,o,"#ff9639",42,5.3),Yt(i,o,"#ffe47d",24,4.2),v==="player"?L0(i,o,118,88,r,f):jl(i.player,o)<70&&Ye(i,18,r,f),v==="player"&&jl(i.player,o)<42&&Ye(i,10,r,f),rt(r,f,55,.24,"sawtooth",.09)}function weaponUnlocked(world,index){
  return index<=3||index===4&&world.shop.owned.knife||index===5&&world.shop.owned.sword||index===6&&world.shop.owned.handgun;
 }
 function nextSelectableWeapon(world,from,step=1){
