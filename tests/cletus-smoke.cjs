@@ -7,19 +7,25 @@ const base = path.join(__dirname, '../docs/cletus');
 const html = fs.readFileSync(path.join(base, 'play.html'), 'utf8');
 const landing = fs.readFileSync(path.join(base, 'index.html'), 'utf8');
 assert.ok(html.length > 100000, 'Game content missing');
-assert.match(html, /<div id="root"><\/div>/, 'Game root missing');
-assert.match(html, /Cletus Saves Candy/, 'Title missing');
-assert.match(html, /og:image/, 'Cover preview missing');
+assertHtmlMatch( /<div id="root"><\/div>/, 'Game root missing');
+assertHtmlMatch( /Cletus Saves Candy/, 'Title missing');
+assertHtmlMatch( /og:image/, 'Cover preview missing');
 assert.ok(landing.includes('href="play.html'), 'Landing must link to game');
 assert.match(landing, /Cletus%20Saves%20Candy_%20Neon%20City%20Rescue\.png/, 'Landing cover missing');
 const script=html.match(/<script type="module">([\s\S]*?)<\/script>/);
 assert.ok(script,'Inline game module missing');
 const source=script[1];
+// Keep CI failure logs concise: a 400 KB bundled game is not a useful assertion diff.
+const assertSourceMatch = (pattern, message) => assert.ok(pattern.test(source), `${message || 'Expected source feature'} (${pattern})`);
+const assertHtmlMatch = (pattern, message) => assert.ok(pattern.test(html), `${message || 'Expected HTML feature'} (${pattern})`);
+const assertSourceNotMatch = (pattern, message) => assert.ok(!pattern.test(source), `${message || 'Unexpected source feature'} (${pattern})`);
+const assertHtmlNotMatch = (pattern, message) => assert.ok(!pattern.test(html), `${message || 'Unexpected HTML feature'} (${pattern})`);
+
 new vm.Script(source,{filename:'cletus-game.js'});
-assert.match(source,/tonyMob\(i,12\)/,'Initial gang trigger missing');
-assert.match(source,/tonyMob\(i,6\)/,'Reinforcement trigger missing');
-assert.match(source,/i\.leads===5&&!i\.tonyGangSpawned/,'Gang must wait for final lead');
-assert.match(source,/i\.boss\.hp<i\.boss\.max\*\.42/,'Reinforcement health trigger missing');
+assertSourceMatch(/tonyMob\(i,12\)/,'Initial gang trigger missing');
+assertSourceMatch(/tonyMob\(i,6\)/,'Reinforcement trigger missing');
+assertSourceMatch(/i\.leads===5&&!i\.tonyGangSpawned/,'Gang must wait for final lead');
+assertSourceMatch(/i\.boss\.hp<i\.boss\.max\*\.42/,'Reinforcement health trigger missing');
 const start=source.indexOf('bl=480,qt=2580'),stop=source.indexOf('function ti(i,o',start);
 assert.ok(start>0&&stop>start,'Game rules cannot be isolated');
 const ctx={Math};
@@ -43,15 +49,15 @@ console.log('PASS Cletus landing, script syntax, cover tags, boss gang and reinf
 
 // Polish-pass regression checks: closer camera, detailed render, boss mechanics,
 // and supplies placed on traversable street instead of inside buildings.
-assert.match(source, /i\.scale\(4\/3,4\/3\)/, 'World camera must be zoomed 33%');
-assert.match(source, /i\.aim\.x\/\(4\/3\)/, 'Pointer aim must compensate for zoom');
-assert.match(source, /function cletusBossPhase\(/, 'Boss attack phases missing');
-assert.match(source, /o\.bossWindup=0/, 'Boss charge state missing');
-assert.match(source, /o\.bossPhase2/, 'Boss enrage tracking missing');
-assert.match(source, /function w0\(/, 'Vehicle art renderer missing');
-assert.match(source, /function je\(/, 'Detailed character renderer missing');
-assert.match(html, /overlay-menu/, 'Opening cover art mode missing');
-assert.match(html, /Cletus%20Saves%20Candy_%20Neon%20City%20Rescue\.png/, 'Opening cover asset link missing');
+assertSourceMatch( /i\.scale\(4\/3,4\/3\)/, 'World camera must be zoomed 33%');
+assertSourceMatch( /i\.aim\.x\/\(4\/3\)/, 'Pointer aim must compensate for zoom');
+assertSourceMatch( /function cletusBossPhase\(/, 'Boss attack phases missing');
+assertSourceMatch( /o\.bossWindup=0/, 'Boss charge state missing');
+assertSourceMatch( /o\.bossPhase2/, 'Boss enrage tracking missing');
+assertSourceMatch( /function w0\(/, 'Vehicle art renderer missing');
+assertSourceMatch( /function je\(/, 'Detailed character renderer missing');
+assertHtmlMatch( /overlay-menu/, 'Opening cover art mode missing');
+assertHtmlMatch( /Cletus%20Saves%20Candy_%20Neon%20City%20Rescue\.png/, 'Opening cover asset link missing');
 const wholeEnd=source.indexOf('function Ce(',start);
 assert.ok(wholeEnd>stop,'Renderer and boss logic not found');
 const worldCtx={Math};
@@ -91,12 +97,12 @@ assert.equal(polish.shopTest.length,5,'There must be five distinct clues');
 assert.deepEqual(Array.from(polish.shopTest,c=>c.label),[
   'TIRE TRACKS','GRAFFITI WARNING','PAYPHONE WITNESS','GARAGE RECEIPT','GANG DROP SITE'
 ],'Five clues must retain their story order');
-assert.doesNotMatch(html,/data-testid="button-cycle-weapon"/,'Cycle button should be gone');
-assert.doesNotMatch(html,/data-testid="button-heal-desktop"/,'Heal button should be gone');
-assert.match(source,/UZI AMMO \+68/,'Uzi ammo must increase from 52 to 68 per pickup');
-assert.match(source,/Math\.random\(\)<\.55/,'XXX pickups should sometimes cause wooziness');
-assert.match(source,/function nextLoadedWeapon/,'Auto weapon fallback missing');
-assert.match(source,/function updateCopper/,'Copper harvesting missing');
+assertHtmlNotMatch(/data-testid="button-cycle-weapon"/,'Cycle button should be gone');
+assertHtmlNotMatch(/data-testid="button-heal-desktop"/,'Heal button should be gone');
+assertSourceMatch(/UZI AMMO \+68/,'Uzi ammo must increase from 52 to 68 per pickup');
+assertSourceMatch(/Math\.random\(\)<\.55/,'XXX pickups should sometimes cause wooziness');
+assertSourceMatch(/function nextLoadedWeapon/,'Auto weapon fallback missing');
+assertSourceMatch(/function updateCopper/,'Copper harvesting missing');
 const upgrades=polish.Y0(0);upgrades.phase='playing';
 const p=upgrades.player;
 p.hp=35;
@@ -152,14 +158,14 @@ const manifest=JSON.parse(fs.readFileSync(path.join(base,'manifest.webmanifest')
 assert.equal(manifest.display,'standalone','iOS/Android home-screen standalone mode');
 assert.equal(manifest.start_url,'/FUN/cletus/play.html','Installed app must always launch the canonical main game URL');
 assert.equal(manifest.id,'/FUN/cletus/play.html','App identity must remain stable across updates');
-assert.match(html,/apple-mobile-web-app-capable/,'iOS standalone web app hint');
-assert.match(html,/viewport-fit=cover/,'Use mobile safe-area insets');
-assert.match(html,/manifest\.webmanifest/,'Web app manifest link');
-assert.match(html,/window\.cletusFullscreen=function/,'Full-screen gesture button');
-assert.match(html,/document\.addEventListener\('touchmove'/,'Prevent mobile page rubber-band scroll');
-assert.match(html,/html,body,#root\{height:100%/,'Lock viewport height for touch screens');
-assert.match(html,/@media\(pointer:coarse\) and \(max-width:1180px\) and \(orientation:landscape\)/,'Landscape gamepad mode');
-assert.match(html,/\.mobile-pad\.touch-controls\{display:contents\}/,'Controller must flank the canvas in landscape');
+assertHtmlMatch(/apple-mobile-web-app-capable/,'iOS standalone web app hint');
+assertHtmlMatch(/viewport-fit=cover/,'Use mobile safe-area insets');
+assertHtmlMatch(/manifest\.webmanifest/,'Web app manifest link');
+assertHtmlMatch(/window\.cletusFullscreen=function/,'Full-screen gesture button');
+assertHtmlMatch(/document\.addEventListener\('touchmove'/,'Prevent mobile page rubber-band scroll');
+assertHtmlMatch(/html,body,#root\{height:100%/,'Lock viewport height for touch screens');
+assertHtmlMatch(/@media\(pointer:coarse\) and \(max-width:1180px\) and \(orientation:landscape\)/,'Landscape gamepad mode');
+assertHtmlMatch(/\.mobile-pad\.touch-controls\{display:contents\}/,'Controller must flank the canvas in landscape');
 const deckStart=source.indexOf('className:"mobile-pad touch-controls"');
 const deckEnd=source.indexOf('className:"controls-row"',deckStart);
 assert.ok(deckStart>0&&deckEnd>deckStart,'Mobile controller React component missing');
@@ -183,12 +189,12 @@ console.log('PASS SNES mobile ABXY/dpad/LR, locked portrait and landscape, fulls
 
 // Vehicle integration: player-controlled cars, acceleration, ramming, traffic and ejection.
 // Do not introduce a wanted-stars or police-heat system in this pass.
-assert.match(source,/function updateDriving\(/,'Drivable physics missing');
-assert.match(source,/function updateTraffic\(/,'Moving traffic missing');
-assert.match(source,/function vehicleHUD\(/,'Vehicle status and enter prompt missing');
-assert.match(source,/damageVehicle\(/,'Vehicle durability missing');
-assert.match(source,/p\.knockedOut=true/,'Pedestrian impact response missing');
-assert.doesNotMatch(source,/wantedLevel|wantedStars|policeHeat|heatLevel/,'Wanted level is deferred');
+assertSourceMatch(/function updateDriving\(/,'Drivable physics missing');
+assertSourceMatch(/function updateTraffic\(/,'Moving traffic missing');
+assertSourceMatch(/function vehicleHUD\(/,'Vehicle status and enter prompt missing');
+assertSourceMatch(/damageVehicle\(/,'Vehicle durability missing');
+assertSourceMatch(/p\.knockedOut=true/,'Pedestrian impact response missing');
+assertSourceNotMatch(/wantedLevel|wantedStars|policeHeat|heatLevel/,'Wanted level is deferred');
 const road=polish.Y0(0);road.phase='playing';
 assert.equal(road.traffic.length,9,'City should have nine moving AI traffic vehicles');
 assert.ok(road.props.some(c=>c.type==='car'&&c.hp>0),'Road-ready starter car should exist');
@@ -239,27 +245,27 @@ console.log('PASS driving, steering, moving traffic, vehicle impact on foes, dur
 
 
 // 2026-10 maintainability and game-play hardening regression checks.
-assert.match(source,/for\(let j=i\.enemies\.length-1;j>=0;j--\)if\(i\.enemies\[j\]\.dead\)i\.enemies\.splice\(j,1\)/,
+assertSourceMatch(/for\(let j=i\.enemies\.length-1;j>=0;j--\)if\(i\.enemies\[j\]\.dead\)i\.enemies\.splice\(j,1\)/,
  'Dead enemies should be retired from the world every tick');
-assert.doesNotMatch(source,/"1234"\.includes\(B\)/,'Empty string must never select fists');
-assert.match(source,/\/\^\[1-7\]\$\/\.test\(key\)/,'Only explicit weapon number keys should switch');
-assert.match(source,/\}\,\[L\]\)/,'The RAF effect must stay mounted across phase updates');
-assert.doesNotMatch(source,/\}\,\[H,L\]\)/,'Changing phase must not tear down the RAF');
-assert.match(source,/window\.addEventListener\("blur",pauseWhenHidden\)/,'Blur must pause');
-assert.match(source,/document\.addEventListener\("visibilitychange",onVisibility\)/,'Hidden tab must pause');
-assert.match(source,/now-lastWrite>=5000/,'Best score writes must be throttled');
-assert.match(source,/window\.addEventListener\("pagehide",saveBest\)/,'Score must flush on exit');
-assert.match(source,/function cletusAimAtHostile\(/,'Touch auto aim missing');
-assert.match(source,/const golden=f\.weapon===2&&f\.uziGold/,
+assertSourceNotMatch(/"1234"\.includes\(B\)/,'Empty string must never select fists');
+assertSourceMatch(/\/\^\[1-7\]\$\/\.test\(key\)/,'Only explicit weapon number keys should switch');
+assertSourceMatch(/\}\,\[L\]\)/,'The RAF effect must stay mounted across phase updates');
+assertSourceNotMatch(/\}\,\[H,L\]\)/,'Changing phase must not tear down the RAF');
+assertSourceMatch(/window\.addEventListener\("blur",pauseWhenHidden\)/,'Blur must pause');
+assertSourceMatch(/document\.addEventListener\("visibilitychange",onVisibility\)/,'Hidden tab must pause');
+assertSourceMatch(/now-lastWrite>=5000/,'Best score writes must be throttled');
+assertSourceMatch(/window\.addEventListener\("pagehide",saveBest\)/,'Score must flush on exit');
+assertSourceMatch(/function cletusAimAtHostile\(/,'Touch auto aim missing');
+assertSourceMatch(/const golden=f\.weapon===2&&f\.uziGold/,
  'Only the Golden Uzi should auto-aim on desktop');
-assert.match(source,/if\(i\.driveLatch\)return true/,'Do not start copper stripping when E is held after leaving a car');
-assert.match(html,/family=Barlow\+Condensed/,'Typography stylesheet should load');
-assert.match(html,/family=Barlow\+Condensed[\s\S]*?family=Share\+Tech\+Mono/,'Both typefaces should load');
-assert.match(html,/html\.cletus-key-art-ready \.game-overlay\[data-testid="overlay-menu"\] \.overlay-title/,
+assertSourceMatch(/if\(i\.driveLatch\)return true/,'Do not start copper stripping when E is held after leaving a car');
+assertHtmlMatch(/family=Barlow\+Condensed/,'Typography stylesheet should load');
+assertHtmlMatch(/family=Barlow\+Condensed[\s\S]*?family=Share\+Tech\+Mono/,'Both typefaces should load');
+assertHtmlMatch(/html\.cletus-key-art-ready \.game-overlay\[data-testid="overlay-menu"\] \.overlay-title/,
  'Menu text should only hide when cover art is present');
-assert.match(html,/html:not\(\.cletus-key-art-ready\) \.game-overlay\[data-testid="overlay-menu"\]/,
+assertHtmlMatch(/html:not\(\.cletus-key-art-ready\) \.game-overlay\[data-testid="overlay-menu"\]/,
  'Standalone copied HTML must show fallback art and readable intro');
-assert.match(html,/art\.onerror=\(\)=>document\.documentElement\.classList\.remove/,
+assertHtmlMatch(/art\.onerror=\(\)=>document\.documentElement\.classList\.remove/,
  'Cover not found must restore menu copy');
 const corpseWorld=polish.Y0(0);corpseWorld.phase='playing';
 const livingCount=corpseWorld.enemies.length;
@@ -290,11 +296,11 @@ console.log('PASS enemies GC, score write throttle, stable RAF, blur pause, key 
 
 
 // Small visual/play-feel polish should not change the missions or controls.
-assert.match(source,/function drawCharacterDetail\(/,'Character detail renderer missing');
-assert.match(source,/function cityLights\(/,'City glow renderer missing');
-assert.match(source,/function registerTakedown\(/,'Streak scoring missing');
-assert.match(source,/function showFloater\(/,'Score popups missing');
-assert.match(source,/if\(!o\.driving&&v\.dash>28\)/,'No ghost Cletus sprinting out of a moving car');
+assertSourceMatch(/function drawCharacterDetail\(/,'Character detail renderer missing');
+assertSourceMatch(/function cityLights\(/,'City glow renderer missing');
+assertSourceMatch(/function registerTakedown\(/,'Streak scoring missing');
+assertSourceMatch(/function showFloater\(/,'Score popups missing');
+assertSourceMatch(/if\(!o\.driving&&v\.dash>28\)/,'No ghost Cletus sprinting out of a moving car');
 const mood=polish.Y0(0);mood.phase='playing';
 let gradients=0,paint=0;
 const effectsCtx=new Proxy({createRadialGradient(){gradients++;return{addColorStop(){}}}},{
@@ -326,14 +332,14 @@ console.log('PASS cinematic neon glows, detailed character art, restrained stree
 
 
 // Interactive pawn-shop scene and exclusive golden-gun lock-on, desktop and mobile.
-assert.match(source,/function drawPawnShopInterior\(/,'Shop interior scene must exist');
-assert.match(source,/function drawPawnShopFront\(/,'Shop needs visible sidewalk doorway');
-assert.match(source,/function drawGoldenUzi\(/,'Gold gun needs a special display');
-assert.match(source,/shop\.open=true/,'Shop should open only through the entrance action');
-assert.match(source,/if\(updatePawnShop\(i,o,r,f\)\)return/,'Active shop freezes game simulation');
-assert.match(source,/const golden=f\.weapon===2&&f\.uziGold/,'Auto-target must be exclusive to acquired gun');
-assert.match(source,/if\(golden\|\|i\.mobileControls\)/,'All mobile weapons must auto-aim when fired');
-assert.match(source,/damage:\[0,48,golden\?\(i\.mobileControls\?48:24\):16,120,0,0,34\]/,
+assertSourceMatch(/function drawPawnShopInterior\(/,'Shop interior scene must exist');
+assertSourceMatch(/function drawPawnShopFront\(/,'Shop needs visible sidewalk doorway');
+assertSourceMatch(/function drawGoldenUzi\(/,'Gold gun needs a special display');
+assertSourceMatch(/shop\.open=true/,'Shop should open only through the entrance action');
+assertSourceMatch(/if\(updatePawnShop\(i,o,r,f\)\)return/,'Active shop freezes game simulation');
+assertSourceMatch(/const golden=f\.weapon===2&&f\.uziGold/,'Auto-target must be exclusive to acquired gun');
+assertSourceMatch(/if\(golden\|\|i\.mobileControls\)/,'All mobile weapons must auto-aim when fired');
+assertSourceMatch(/damage:\[0,48,golden\?\(i\.mobileControls\?48:24\):16,120,0,0,34\]/,
  'Golden Uzi must deal 48 mobile and 24 desktop damage');
 const shopGame=polish.Y0(0);shopGame.phase='playing';
 shopGame.player.x=shopGame.shop.x;shopGame.player.y=shopGame.shop.y;
@@ -407,8 +413,8 @@ console.log('PASS pawn-shop room with explicit purchase/exit, 10 copper economy,
 // Five clue discoveries must pause the world and open playable case-file dialogue.
 // Render checks assert the narrative, Cletus portrait and real gameplay KPI dashboard.
 assert.equal(polish.CLUE_DIALOGUES.length,5,'Every clue needs a scripted dialogue');
-assert.match(source,/function drawClueScene\(/,'Missing in-game cinematic case-file screen');
-assert.match(source,/drawClueScene\(i,o\)/,'The dialogue scene must render on the game canvas');
+assertSourceMatch(/function drawClueScene\(/,'Missing in-game cinematic case-file screen');
+assertSourceMatch(/drawClueScene\(i,o\)/,'The dialogue scene must render on the game canvas');
 assert.ok(source.includes('if(updateClueScene(i,o)||updateStreetScene(i,o))return'),'Clues and street scenes must freeze the simulation');
 assert.ok(source.includes('if(world.clueScene){advanceClueScene(world);return}'),
  'Touching the canvas should advance a clue page');
