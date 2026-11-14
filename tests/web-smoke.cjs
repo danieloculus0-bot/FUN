@@ -111,6 +111,11 @@ assert.equal(g.selectWeapon("fists"),true);
 player.fx=1;player.fy=0;player.shoveCD=0;player.swing=0;player.stamina=100;player.rage=0;
 const bird = g.game.birds[0];
 g.game.birds = [bird];
+// Isolate the normal melee-hit acceptance test from randomly spawned
+// bruiser hitbox geometry, which can knock this target outside fist reach.
+bird.variant = "emperor";
+bird.mass = 1;
+bird.state = "wander";
 bird.x = player.x + 40;
 bird.y = player.y;
 bird.vx = 0; bird.vy = 0;
